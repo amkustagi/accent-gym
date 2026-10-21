@@ -1,0 +1,63 @@
+import { useState } from 'react';
+import { CATEGORIES, SCENARIOS, type CategoryId } from '../content/scenarios';
+import { open } from '../lib/nav';
+import { useStore } from '../store/store';
+import { Icon } from '../ui/Icon';
+import { scoreTone } from '../ui/ui';
+
+export function Speak() {
+  const [cat, setCat] = useState<CategoryId>('update');
+  const sessions = useStore((s) => s.sessions);
+  const lastBy = new Map<string, number>();
+  sessions.forEach((x) => {
+    const sc = SCENARIOS.find((s) => s.prompt === x.title);
+    if (sc) lastBy.set(sc.id, x.overall);
+  });
+  return (
+    <div className="page">
+      <header className="stack-sm">
+        <span className="eyebrow">Meeting simulator</span>
+        <h1>Rehearse the moments that matter</h1>
+      </header>
+      <section className="grid2">
+        <button className="card hero" style={{ cursor: 'pointer', textAlign: 'left', font: 'inherit' }} onClick={() => open({ kind: 'drill', id: 'pressure' })}>
+          <Icon name="bolt" size={26} />
+          <b style={{ fontFamily: 'var(--display)', fontSize: '1.15rem' }}>Pressure round</b>
+          <span className="small muted">Random question, 10 seconds to prepare</span>
+        </button>
+        <button className="card" style={{ cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'inherit' }} onClick={() => open({ kind: 'drill', id: 'simulator' })}>
+          <Icon name="refresh" size={26} />
+          <b style={{ fontFamily: 'var(--display)', fontSize: '1.15rem' }}>Surprise me</b>
+          <span className="small muted">Any scenario, your pace</span>
+        </button>
+      </section>
+      <div className="chips" role="group" aria-label="Category">
+        {CATEGORIES.map((c) => (
+          <button key={c.id} className="chip" aria-pressed={c.id === cat} onClick={() => setCat(c.id)}>
+            {c.name}
+          </button>
+        ))}
+      </div>
+      <p className="small muted" style={{ marginTop: -6 }}>{CATEGORIES.find((c) => c.id === cat)!.blurb}</p>
+      <div className="card" style={{ paddingBlock: 4 }}>
+        <div className="list">
+          {SCENARIOS.filter((s) => s.category === cat).map((s) => {
+            const last = lastBy.get(s.id);
+            return (
+              <button key={s.id} className="item" onClick={() => open({ kind: 'drill', id: 'simulator', param: s.id })}>
+                <span className="grow">
+                  <span className="small muted">{s.context}</span>
+                  <br />
+                  <b>{s.prompt}</b>
+                  <br />
+                  <span className="small muted">{s.secs}s · {s.frame.join(' → ')}</span>
+                </span>
+                {last !== undefined ? <span className="pill" style={{ color: scoreTone(last) }}>{last}</span> : <Icon name="chevron" className="chev" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
