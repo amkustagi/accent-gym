@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F6F68">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Accent Gym</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: single-column phone app — focus card on top, module tabs, drill list, record-and-compare tray */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --ink:#12302E; --muted:#56706D; --line:#D5DFDD;
+  --accent:#E3A008; --accent-ink:#3A2800; --teal:#1F6F68; --teal-soft:#DCEDEA;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1A19; --surface:#152523; --ink:#E4EFEC; --muted:#93AAA6; --line:#26403C;
+  --accent:#F2B632; --accent-ink:#2A1C00; --teal:#5FC2B6; --teal-soft:#1B3532; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1A19; --surface:#152523; --ink:#E4EFEC; --muted:#93AAA6; --line:#26403C;
+  --accent:#F2B632; --accent-ink:#2A1C00; --teal:#5FC2B6; --teal-soft:#1B3532; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:620px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.9rem;font-weight:800}
+h2{font-size:1.35rem;font-weight:800}
+h3{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--body);font-weight:700}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.top p{margin:2px 0 0;color:var(--muted)}
+.streak{font-family:var(--mono);font-size:.85rem;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;white-space:nowrap}
+.streak b{color:var(--teal)}
+.focus{background:var(--teal);color:#fff;border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.focus h3{color:rgba(255,255,255,.75)}
+.focus ol{margin:0;padding-left:20px}
+.focus button{align-self:flex-start;margin-top:4px;background:var(--accent);color:var(--accent-ink);border:0}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-inline:-4px;padding-inline:4px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 14px;font:600 .9rem var(--body);cursor:pointer;display:flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.ptitle{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ipa{font-family:var(--mono);color:var(--teal);font-size:.95rem}
+.tip{background:var(--teal-soft);border-radius:12px;padding:12px 14px;font-size:.95rem}
+.tip b{display:block;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);margin-bottom:2px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;color:var(--muted);padding:7px 12px;font-weight:700}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+select{font:inherit;font-size:.85rem;padding:7px 8px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);max-width:100%;min-width:0;flex:1 1 160px}
+button{font:700 .9rem var(--body);border-radius:10px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button:focus-visible,select:focus-visible,.chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.list{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .txt{flex:1;min-width:0}
+.row .say{font-size:1.05rem}
+.row .say.big{font-size:1.15rem;font-family:var(--display);font-weight:600}
+.row .sub{font-family:var(--mono);font-size:.82rem;color:var(--muted)}
+.pair{display:flex;gap:6px;flex-wrap:wrap}
+.pair button{padding:7px 12px;font-size:1rem}
+.vs{color:var(--muted);font-size:.8rem;align-self:center}
+.play{width:42px;height:42px;padding:0;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:var(--teal-soft);border-color:transparent;color:var(--teal)}
+.play svg{width:16px;height:16px;fill:currentColor}
+.play.on{background:var(--accent);color:var(--accent-ink)}
+.rec{border:1px dashed var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.rec p{margin:0;color:var(--muted);font-size:.9rem}
+.recbtn{background:var(--accent);color:var(--accent-ink);border:0;align-self:flex-start}
+.take{display:flex;flex-direction:column;gap:4px}
+.take span{font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+audio{width:100%}
+.done{background:var(--ink);color:var(--bg);border:0;width:100%;padding:13px}
+.done[data-on="1"]{background:var(--teal-soft);color:var(--teal)}
+.timer{font-family:var(--mono);font-size:1.4rem;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:.85rem;margin:0}
+@media (prefers-reduced-motion:no-preference){.play.on svg{animation:pulse .8s ease-in-out infinite}@keyframes pulse{50%{transform:scale(.8)}}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Accent Gym</h1>
+      <p>Ten minutes a day toward clear American English.</p>
+    </div>
+    <div class="streak" id="streak">Streak <b>0</b> days</div>
+  </header>
+
+  <section class="focus" aria-labelledby="fh">
+    <h3 id="fh">Today's routine</h3>
+    <ol>
+      <li>Warm-up: 2 minutes of tongue twisters</li>
+      <li id="todaySound">Sound of the day</li>
+      <li>Meeting lines: record 3, play back, repeat</li>
+    </ol>
+    <button id="startToday">Start with warm-up</button>
+  </section>
+
+  <nav class="chips" id="chips" aria-label="Drills"></nav>
+
+  <main class="panel" id="panel" aria-live="polite"></main>
+
+  <p class="note">The model voice comes from your phone's built-in American English voice, so quality varies by device. On iPhone, the "Samantha" or enhanced voices sound the most natural (Settings › Accessibility › Spoken Content › Voices).</p>
+</div>
+
+<script>
+const PLAY='<svg viewBox="0 0 16 16"><path d="M4 2.5v11l9-5.5z"/></svg>';
+const M=[
+ {id:'warmup',name:'Warm-up',ipa:'jaw · lips · tongue',
+  tip:'Exaggerate every sound. Open the jaw wider than feels normal and move the lips fully. Start slow, then speed up only while staying clean.',
+  timer:120,
+  lines:['Red leather, yellow leather','Unique New York, unique New York, you know you need unique New York','Peter Piper picked a peck of pickled peppers','She sells seashells by the seashore','Truly rural, truly rural, truly rural','Toy boat, toy boat, toy boat']},
+ {id:'vw',name:'V vs W',ipa:'/v/ · /w/',
+  tip:'V: top teeth rest lightly on the lower lip and you buzz. W: teeth never touch; round the lips like "oo", then open them. Check in a mirror.',
+  pairs:[['vest','west'],['vine','wine'],['veil','whale'],['vary','wary'],['verse','worse'],['vent','went']],
+  lines:['We vote on the revised version on Wednesday.','Very well, I will review the workflow.','Our vendor wants a weekly video call.']},
+ {id:'th',name:'TH sounds',ipa:'/θ/ · /ð/',
+  tip:'Put the tongue tip lightly between the teeth and push air past it. "Think" is just air; "this" adds a buzz. It should never become a T or D.',
+  pairs:[['tin','thin'],['tank','thank'],['tree','three'],['dare','there'],['den','then'],['day','they']],
+  lines:['I think the third option is better.',"Thanks, that's worth thinking through.",'Both of them thought the timeline was fine.']},
+ {id:'t',name:'Soft T & D',ipa:'[t] · flap [ɾ]',
+  tip:'Indian T and D curl the tongue back. American T and D tap the ridge just behind the upper teeth. Between vowels, T turns into a fast light tap, close to a soft D: water sounds like "wah-der".',
+  words:[['water','WAH-der'],['better','BEH-der'],['meeting','MEE-ding'],['data','DAY-da'],['matter','MA-der'],['getting','GEH-ding'],['city','SIH-dee'],['a lot of','uh LAH-duv']],
+  lines:["Let's get a better estimate at the meeting.","It doesn't matter a lot.",'What do you think about it?']},
+ {id:'r',name:'American R',ipa:'/ɹ/ · /ɚ/',
+  tip:'Never tap or roll the R. Pull the tongue back so it touches nothing, round the lips a little, and keep the R after vowels too: car, work, server all end with a full R.',
+  words:[['work','WURK'],['first','FURST'],['server','SUR-ver'],['quarter','KWOR-der'],['early','UR-lee'],['order','OR-der'],['report','ri-PORT'],['never','NEH-ver']],
+  lines:['Our third quarter report is over there.','The server error occurred early Thursday.','Further work is required before the merger.']},
+ {id:'vowels',name:'Vowels',ipa:'/æ/ · /ɑ/',
+  tip:'/æ/ in plan, task, can\'t: drop the jaw and spread the lips, between "a" and "e". /ɑ/ in got, project, not: a relaxed open "ah", not a rounded "aw".',
+  pairs:[['bed','bad'],['men','man'],['pen','pan'],['set','sat'],['cut','cot'],['nut','not']],
+  words:[['plan','/plæn/'],['task','/tæsk/'],["can't",'/kænt/'],['project','/ˈprɑdʒɛkt/'],['problem','/ˈprɑbləm/'],['possible','/ˈpɑsəbəl/']],
+  lines:["Can't we ask the client to adjust the plan?",'Got it, the project is not a problem.']},
+ {id:'stress',name:'Stress & schwa',ipa:'/ə/',
+  tip:'English hits one syllable hard and squeezes the others into a short "uh". Make the capital syllable louder, longer and higher. Words often sound wrong only because the stress moved.',
+  words:[['development','de·VEL·op·ment'],['comfortable','COMF·ter·ble'],['technology','tech·NOL·o·gy'],['analysis','a·NAL·y·sis'],['determine','de·TER·mine'],['available','a·VAIL·a·ble'],['interesting','IN·trest·ing'],['colleague','COL·league'],['schedule','SKED·jool'],['category','CAT·e·gor·y']],
+  lines:["I'd like to talk to you about the schedule.",'The analysis is available on Monday.']},
+ {id:'rhythm',name:'Linking',ipa:'stress-timed',
+  tip:'Join a final consonant to the next vowel: "pick it up" becomes "pi-ki-tup". Content words get the beat; small words like to, for, a, the, of stay short and quick.',
+  words:[['pick it up','pi-ki-TUP'],['turn it off','tur-ni-TOFF'],['check it out','che-ki-DOUT'],['an hour ago','a-nau-ra-GO'],['first of all','fir-stuh-VALL'],['as soon as','uh-SOO-nuz']],
+  lines:['Let me think about it and get back to you.','First of all, thanks for an interesting update.']},
+ {id:'meeting',name:'Meeting lines',ipa:'put it together',
+  tip:'Listen at normal speed, then slow. Record yourself, play both back to back, and fix one sound at a time.',
+  lines:["Thanks for joining. Let's get started.",'Could you walk me through the numbers?',"That's a fair point, but I see it a little differently.",'Let me make sure I understood that correctly.',"I'll follow up with a summary by end of day.",'Can we circle back to that after the demo?',"I'd like to flag a risk with the timeline.",'Just to recap, we agreed on three next steps.']}
+];
+const SOUNDS=M.filter(m=>!['warmup','meeting'].includes(m.id));
+const todaySound=SOUNDS[Math.floor(Date.now()/864e5)%SOUNDS.length];
+
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let log=store.get('ag-log',{}); // {"2026-10-21":["vw","th"]}
+let rate=store.get('ag-rate',1), voiceName=store.get('ag-voice',''), cur='warmup', takes={};
+const day=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+const today=day(Date.now());
+
+function streak(){let n=0,t=Date.now();if(!log[day(t)])t-=864e5;while(log[day(t)]&&log[day(t)].length){n++;t-=864e5}
+  document.getElementById('streak').innerHTML='Streak <b>'+n+'</b> day'+(n===1?'':'s')}
+
+/* speech */
+const synth=window.speechSynthesis;let voices=[];
+function loadVoices(){if(!synth)return;voices=synth.getVoices().filter(v=>/^en[-_]US/i.test(v.lang));
+  if(!voices.length)voices=synth.getVoices().filter(v=>/^en/i.test(v.lang));render()}
+if(synth){loadVoices();synth.onvoiceschanged=loadVoices}
+function pickVoice(){return voices.find(v=>v.name===voiceName)||voices.find(v=>/Samantha|Google US English|Aria|Jenny|Ava|Allison/i.test(v.name))||voices[0]}
+let activeBtn=null;
+function speak(text,btn){
+  if(!synth){alertBox('Your browser has no built-in voice. Try Chrome or Safari.');return}
+  synth.cancel();if(activeBtn)activeBtn.classList.remove('on');
+  const u=new SpeechSynthesisUtterance(text);const v=pickVoice();if(v){u.voice=v;u.lang=v.lang}else u.lang='en-US';
+  u.rate=rate*0.95;activeBtn=btn;if(btn)btn.classList.add('on');
+  u.onend=u.onerror=()=>{if(btn)btn.classList.remove('on')};synth.speak(u)}
+function alertBox(m){const p=document.createElement('p');p.className='tip';p.textContent=m;document.getElementById('panel').prepend(p)}
+
+/* chips */
+function chips(){const c=document.getElementById('chips');c.innerHTML='';
+  M.forEach(m=>{const b=document.createElement('button');b.className='chip';b.setAttribute('aria-pressed',m.id===cur);
+    const did=(log[today]||[]).includes(m.id);b.innerHTML=(did?'<span class="dot" aria-hidden="true"></span>':'')+m.name+(did?'<span hidden> (done today)</span>':'');
+    b.onclick=()=>{cur=m.id;render();b.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'})};c.appendChild(b)})}
+
+let tId=null,tLeft=0;
+function render(){
+  chips();streak();
+  document.getElementById('todaySound').textContent='Sound of the day: '+todaySound.name+' (5 minutes)';
+  const m=M.find(x=>x.id===cur),p=document.getElementById('panel');
+  const did=(log[today]||[]).includes(m.id);
+  let h='<div class="ptitle"><h2>'+m.name+'</h2><span class="ipa">'+m.ipa+'</span></div>';
+  h+='<div class="tip"><b>Mouth position</b>'+m.tip+'</div>';
+  h+='<div class="controls"><div class="seg" role="group" aria-label="Speed"><button data-rate="1" aria-pressed="'+(rate===1)+'">Normal</button><button data-rate="0.6" aria-pressed="'+(rate===0.6)+'">Slow</button></div>';
+  if(voices.length>1){h+='<select id="voice" aria-label="Model voice">'+voices.map(v=>'<option'+(v===pickVoice()?' selected':'')+'>'+v.name+'</option>').join('')+'</select>'}
+  h+='</div>';
+  if(m.timer){h+='<div class="controls"><span class="timer" id="timer">'+fmt(tLeft||m.timer)+'</span><button id="tbtn">'+(tId?'Pause':'Start 2-minute timer')+'</button></div>'}
+  if(m.pairs){h+='<div><h3>Minimal pairs: tap each, hear the difference</h3><div class="list">'+m.pairs.map(([a,b])=>'<div class="row"><div class="pair"><button data-say="'+a+'">'+a+'</button><span class="vs">vs</span><button data-say="'+b+'">'+b+'</button></div><div class="txt"></div><button class="play" aria-label="Play both" data-say="'+a+'. '+b+'. '+a+'. '+b+'.">'+PLAY+'</button></div>').join('')+'</div></div>'}
+  if(m.words){h+='<div><h3>Words</h3><div class="list">'+m.words.map(([w,s])=>'<div class="row"><div class="txt"><div class="say">'+w+'</div><div class="sub">'+s+'</div></div><button class="play" aria-label="Play '+w+'" data-say="'+w+'">'+PLAY+'</button></div>').join('')+'</div></div>'}
+  if(m.lines){h+='<div><h3>'+(m.id==='warmup'?'Twisters: say each 3 times':'Sentences')+'</h3><div class="list">'+m.lines.map(l=>'<div class="row"><div class="txt"><div class="say big">'+l+'</div></div><button class="play" aria-label="Play sentence" data-say="'+l.replace(/"/g,'&quot;')+'">'+PLAY+'</button></div>').join('')+'</div></div>'}
+  h+='<div class="rec"><h3>Record and compare</h3><p>Record yourself saying the sentences above, then play the model and your take back to back. Takes stay on this phone and clear when you close the page.</p><label class="recbtn" style="display:inline-block;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer" for="file">Record a take</label><input id="file" type="file" accept="audio/*" capture hidden><div id="takes" class="list"></div></div>';
+  h+='<button class="done" id="done" data-on="'+(did?1:0)+'">'+(did?'Done today ✓ Tap to undo':'Mark '+m.name+' done for today')+'</button>';
+  p.innerHTML=h;
+  drawTakes();
+  p.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>speak(b.dataset.say,b.classList.contains('play')?b:null));
+  p.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{rate=+b.dataset.rate;store.set('ag-rate',rate);render()});
+  const vs=document.getElementById('voice');if(vs)vs.onchange=()=>{voiceName=vs.value;store.set('ag-voice',voiceName);speak('Hello, this is my voice.')};
+  document.getElementById('file').onchange=e=>{const f=e.target.files[0];if(!f)return;(takes[cur]=takes[cur]||[]).unshift({url:URL.createObjectURL(f),t:new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})});drawTakes()};
+  document.getElementById('done').onclick=()=>{const a=log[today]||[];log[today]=a.includes(m.id)?a.filter(x=>x!==m.id):[...a,m.id];store.set('ag-log',log);render()};
+  const tb=document.getElementById('tbtn');if(tb)tb.onclick=()=>toggleTimer(m.timer);
+}
+function drawTakes(){const el=document.getElementById('takes');if(!el)return;const t=takes[cur]||[];
+  el.innerHTML=t.map((x,i)=>'<div class="row take"><span>Take '+(t.length-i)+' · '+x.t+'</span><audio controls src="'+x.url+'"></audio></div>').join('')}
+const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+function toggleTimer(total){if(tId){clearInterval(tId);tId=null;render();return}
+  if(!tLeft)tLeft=total;tId=setInterval(()=>{tLeft--;const el=document.getElementById('timer');if(el)el.textContent=fmt(tLeft);
+    if(tLeft<=0){clearInterval(tId);tId=null;tLeft=0;speak('Time. Nice work.');render()}},1000);render()}
+document.getElementById('startToday').onclick=()=>{cur='warmup';render();document.getElementById('panel').scrollIntoView({behavior:'smooth'})};
+render();
+</script>
+
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+</body>
+</html>
