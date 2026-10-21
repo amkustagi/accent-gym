@@ -1,7 +1,7 @@
 {
-  "name": "Accent Gym",
-  "short_name": "Accent Gym",
-  "description": "Daily American English articulation drills",
+  "name": "Speak Sharp",
+  "short_name": "Speak Sharp",
+  "description": "Speak clearly and confidently in meetings",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

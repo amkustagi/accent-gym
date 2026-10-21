@@ -1,12 +1,16 @@
-# Accent Gym
+# Speak Sharp
 
-A phone-first web app for daily American English articulation practice: warm-up tongue twisters, minimal pairs (V/W, TH, vowels), soft T/D, American R, word stress, linking, and common meeting phrases. Each item plays a model US English voice (your device's text-to-speech), and you can record takes to compare.
+A phone app (installable PWA) for articulation and confident speaking in meetings.
 
-## Run it
-- **On your phone:** open the GitHub Pages URL, then *Add to Home Screen*. It installs like an app and works offline after the first visit.
-- **Locally:** `python3 -m http.server` in this folder, then open http://localhost:8000.
+- **Speak**: answer real meeting scenarios out loud. The app listens live, highlights fillers (um, like, you know, basically) and weak phrases (sorry, just, I think, kindly, do the needful, revert…), and scores your pace, fillers and confidence.
+- **Swaps**: quiz cards that turn weak phrases into strong ones. Pick the better version, hear it, then say it and get a match score.
+- **Clarity**: tongue twisters scored by the speech recognizer for clarity % and words/sec, with personal bests.
+- **Pace**: read-along trainer with a moving highlight and built-in pauses at 100–180 words/min.
+- **Today**: streak, XP, levels and a daily 3-step plan.
 
-## Enable GitHub Pages
-Settings → Pages → Source: *Deploy from a branch* → Branch: `main` / `(root)` → Save.
+## Install on your phone
+1. Repo must be public → Settings → Pages → Deploy from branch `main` / `(root)`.
+2. Open https://amkustagi.github.io/accent-gym on your phone.
+3. iPhone (Safari): Share → Add to Home Screen. Android (Chrome): ⋮ → Install app.
 
-No build step, no dependencies. Progress is stored in the browser's localStorage.
+Allow the microphone when asked. Live listening uses the browser's speech recognition (Chrome on Android, Safari on iPhone). Progress stays on your phone (localStorage). No build step, no dependencies.
