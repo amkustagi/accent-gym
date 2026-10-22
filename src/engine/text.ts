@@ -42,7 +42,7 @@ export const WEAK_RULES: Rule[] = [
 export const FILLER_RULES: Rule[] = [
   { id: 'um', label: 'um / uh', re: /\b(?:u+m+|u+h+|uhm+|e+r+m+|hmm+|ah+)\b/gi, fix: '' },
   { id: 'like', label: 'like', re: /\b(?:was|is|it'?s|and|but|so|just) like\b|\blike,/gi, fix: '' },
-  { id: 'youknow', label: 'you know', re: /\byou know(?! (?:what|how|why|when|where|that|the|if|whether))\b/gi, fix: '' },
+  { id: 'youknow', label: 'you know', re: /(?<!\b(?:let|do|did|does|would|will|if|as|you'll|I'll|we'll)\s)\byou know(?! (?:what|how|why|when|where|who|that|the|if|whether|about|him|her|them|it|this))\b/gi, fix: '' },
   { id: 'basically', label: 'basically', re: /\bbasically\b/gi, fix: '' },
   { id: 'actually', label: 'actually', re: /\bactually\b/gi, fix: '' },
   { id: 'literally', label: 'literally', re: /\bliterally\b/gi, fix: '' },

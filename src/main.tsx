@@ -1,13 +1,19 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { ErrorBoundary } from './ui/ErrorBoundary';
 import { loadState } from './store/store';
+import { startBackend } from './lib/backend';
+import { installErrorCapture } from './lib/feedback';
 import './styles.css';
 
-void loadState();
+installErrorCapture();
+void loadState().then(() => startBackend());
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );
 

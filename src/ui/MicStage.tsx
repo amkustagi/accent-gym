@@ -24,15 +24,17 @@ export interface MicStageProps {
   /** Stop automatically after this many seconds of silence once speech has started. */
   autoStopSilence?: number;
   size?: 'lg' | 'sm';
-  /** Force a listening mode, e.g. transcript-only for word drills. */
+  /** Force a listening mode, e.g. voice-only for pitch drills. */
   modeOverride?: ListeningMode;
+  /** The drill needs words: never run in voice-only mode. */
+  needsTranscript?: boolean;
 }
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 export function MicStage(p: MicStageProps) {
   const setting = useStore((s) => s.settings.listening);
-  const mode = p.modeOverride ?? setting;
+  const mode: ListeningMode = p.modeOverride ?? (p.needsTranscript && setting === 'voice' ? 'full' : setting);
   const [phase, setPhase] = useState<'idle' | 'live' | 'processing'>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [text, setText] = useState('');
@@ -163,6 +165,13 @@ export function MicStage(p: MicStageProps) {
       if (quiet && spoke.current && frames.current.length && frames.current[frames.current.length - 1].t - lastLoud.current > quiet) void finish();
     }, 200);
   }, [mode, p.record, p.continuous, draw, finish]);
+
+  useEffect(() => {
+    // Phones cut the mic when the app goes to the background; score what we have instead of hanging.
+    const onHide = () => document.visibilityState === 'hidden' && sess.current && void finish();
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [finish]);
 
   useEffect(
     () => () => {

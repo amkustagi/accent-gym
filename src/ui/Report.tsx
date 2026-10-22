@@ -1,8 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import type { Scores } from '../engine/score';
-import { coach, type CoachReply } from '../lib/ai';
-import { loadRecording, useStore, type SessionRecord } from '../store/store';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { evaluate, overallOf, type Scores } from '../engine/score';
+import { playBlob, stopSpeaking } from '../engine/tts';
+import { aiAvailable, coach, type CoachReply } from '../lib/ai';
+import { sendFeedback } from '../lib/feedback';
+import { open } from '../lib/nav';
+import { getState, loadRecording, updateSession, useStore, type SessionRecord } from '../store/store';
+import { FixTranscript, RateReport, TipThumbs } from './Feedback';
 import { Icon } from './Icon';
+import { HearButton } from './TakeCompare';
 import { Legend, ScoreRing, SkillBars, Transcript, scoreWord } from './ui';
 
 /** Loudness area, pitch line and pause bands over the whole take. */
@@ -49,22 +54,48 @@ export function VoiceTimeline({ rec }: { rec: SessionRecord }) {
   );
 }
 
-export function AudioPlayer({ id }: { id: string }) {
-  const [url, setUrl] = useState<string | null>(null);
+/** Plays a saved recording through the app's own audio path (fixes silent playback on iPhone). */
+export function RecordingPlayer({ id, label = 'Play my answer' }: { id: string; label?: string }) {
+  const blob = useRef<Blob | null>(null);
+  const [ready, setReady] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [err, setErr] = useState(false);
   useEffect(() => {
-    let u: string | null = null;
     loadRecording(id).then((b) => {
-      if (b) {
-        u = URL.createObjectURL(b);
-        setUrl(u);
-      }
+      blob.current = b ?? null;
+      setReady(!!b);
     });
-    return () => {
-      if (u) URL.revokeObjectURL(u);
-    };
+    return () => stopSpeaking();
   }, [id]);
-  if (!url) return null;
-  return <audio controls src={url} style={{ width: '100%' }} preload="metadata" />;
+  if (!ready) return null;
+  return (
+    <div className="stack-sm">
+      <button
+        className="btn quiet"
+        onClick={() => {
+          if (playing) {
+            stopSpeaking();
+            setPlaying(false);
+            return;
+          }
+          setPlaying(true);
+          setErr(false);
+          const started = Date.now();
+          playBlob(blob.current!, {
+            // An immediate end means the device couldn't decode this recording.
+            onEnd: () => {
+              setPlaying(false);
+              if (Date.now() - started < 300) setErr(true);
+            },
+          });
+        }}
+      >
+        <Icon name={playing ? 'stop' : 'play'} />
+        {playing ? 'Stop' : label}
+      </button>
+      {err && <span className="small muted">This recording can't play on this device.</span>}
+    </div>
+  );
 }
 
 function MetricGrid({ rec }: { rec: SessionRecord }) {
@@ -91,15 +122,26 @@ function MetricGrid({ rec }: { rec: SessionRecord }) {
 }
 
 function Coach({ rec, prompt, frame }: { rec: SessionRecord; prompt: string; frame?: string[] }) {
-  const key = useStore((s) => s.settings.aiKey);
+  const via = useStore((s) => aiAvailable(s));
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [reply, setReply] = useState<CoachReply | null>(null);
   const [err, setErr] = useState('');
-  if (!key || rec.metrics.words < 15) return null;
+  if (rec.metrics.words < 15) return null;
+  if (!via)
+    return (
+      <section className="card sunken">
+        <div className="row spread">
+          <h3>AI coach</h3>
+          <span className="pill">Pro</span>
+        </div>
+        <p className="small muted">Get a rewrite of this answer in your voice plus three specific fixes.</p>
+        <button className="btn quiet" onClick={() => open({ kind: 'paywall', reason: 'AI coach' })}>Unlock the AI coach</button>
+      </section>
+    );
   const run = async () => {
     setState('loading');
     try {
-      setReply(await coach(key, { prompt, frame, transcript: rec.transcript, metrics: { ...rec.metrics, scores: rec.scores } }));
+      setReply(await coach({ prompt, frame, transcript: rec.transcript, metrics: { ...rec.metrics, scores: rec.scores } }));
       setState('done');
     } catch (e) {
       setErr((e as Error).message);
@@ -139,12 +181,33 @@ function Coach({ rec, prompt, frame }: { rec: SessionRecord; prompt: string; fra
             <div className="card sunken tight">
               <span className="eyebrow">Stronger version</span>
               <p>{reply.rewrite}</p>
+              <HearButton text={reply.rewrite} label="Hear it" />
             </div>
           )}
+          <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={() => sendFeedback('content', { target: 'ai-coach', rating: 1, meta: { sessionId: rec.id } })}>👍 Helpful coaching</button>
         </div>
       )}
     </section>
   );
+}
+
+/** Re-scores the word-based skills after the user corrects the transcript. */
+function rescore(rec: SessionRecord, text: string) {
+  const ev = evaluate({ transcript: text, durationSec: rec.durationSec });
+  const scores: Scores = { ...rec.scores };
+  if (ev.scores.fillers !== undefined) scores.fillers = ev.scores.fillers;
+  if (ev.scores.language !== undefined) scores.language = ev.scores.language;
+  const keepTips = (rec.tips ?? []).filter((t) => t.skill !== 'language' && t.skill !== 'fillers');
+  const newTips = ev.tips.filter((t) => t.skill === 'language' || t.skill === 'fillers');
+  updateSession(rec.id, {
+    transcript: text,
+    correctedFrom: rec.correctedFrom ?? rec.transcript,
+    scores,
+    overall: overallOf(scores),
+    tips: [...newTips, ...keepTips],
+    metrics: { ...rec.metrics, fillers: ev.metrics.fillers, weak: ev.metrics.weak, words: ev.metrics.words },
+  });
+  sendFeedback('transcript_fix', { target: rec.id, text, meta: { heard: rec.correctedFrom ?? rec.transcript } });
 }
 
 export interface ReportProps {
@@ -153,15 +216,17 @@ export interface ReportProps {
   frame?: string[];
   compare?: Scores;
   xp?: number;
-  /** Drill-specific section shown under the score. */
   children?: ReactNode;
   onRetry?: () => void;
   onDone?: () => void;
   doneLabel?: string;
   sttNote?: string | null;
+  /** Extra action, e.g. "Answer a follow-up question". */
+  extraAction?: ReactNode;
 }
 
-export function Report({ rec, prompt, frame, compare, xp, children, onRetry, onDone, doneLabel = 'Done', sttNote }: ReportProps) {
+export function Report({ rec: initial, prompt, frame, compare, xp, children, onRetry, onDone, doneLabel = 'Done', sttNote, extraAction }: ReportProps) {
+  const rec = useStore((s) => s.sessions.find((x) => x.id === initial.id)) ?? initial;
   const fixes = (rec.tips ?? []).filter((t) => t.severity !== 'good').slice(0, 4);
   const goods = (rec.tips ?? []).filter((t) => t.severity === 'good');
   const hasScores = Object.keys(rec.scores).length > 0;
@@ -178,6 +243,7 @@ export function Report({ rec, prompt, frame, compare, xp, children, onRetry, onD
         </div>
         {hasScores && <SkillBars scores={rec.scores} compare={compare} />}
         {!hasScores && <p className="muted small">Not enough speech was measured to score skills.</p>}
+        {rec.hasAudio && <RecordingPlayer id={rec.id} />}
       </section>
       {sttNote && <div className="note warn"><b>Partial analysis</b>{sttNote}</div>}
       {children}
@@ -185,18 +251,13 @@ export function Report({ rec, prompt, frame, compare, xp, children, onRetry, onD
         <section className="card">
           <h3>What to work on</h3>
           <div className="list">
-            {fixes.map((t, i) => (
+            {[...fixes, ...goods].map((t, i) => (
               <div key={i} className={`tip ${t.severity}`}>
                 <div>
-                  <b>{t.title}</b>
-                  <span className="small muted">{t.body}</span>
-                </div>
-              </div>
-            ))}
-            {goods.map((t, i) => (
-              <div key={`g${i}`} className="tip good">
-                <div>
-                  <b>{t.title}</b>
+                  <div className="row spread" style={{ alignItems: 'flex-start' }}>
+                    <b>{t.title}</b>
+                    <TipThumbs tip={t.title} sessionId={rec.id} />
+                  </div>
                   <span className="small muted">{t.body}</span>
                 </div>
               </div>
@@ -204,6 +265,7 @@ export function Report({ rec, prompt, frame, compare, xp, children, onRetry, onD
           </div>
         </section>
       )}
+      {extraAction}
       <section className="card">
         <h3>Numbers</h3>
         <MetricGrid rec={rec} />
@@ -213,19 +275,15 @@ export function Report({ rec, prompt, frame, compare, xp, children, onRetry, onD
         <section className="card">
           <div className="row spread">
             <h3>What you said</h3>
+            {rec.correctedFrom && <span className="pill">Corrected</span>}
           </div>
           <Transcript text={rec.transcript} />
           <Legend />
-          {rec.hasAudio && <AudioPlayer id={rec.id} />}
-        </section>
-      )}
-      {!rec.transcript && rec.hasAudio && (
-        <section className="card">
-          <h3>Listen back</h3>
-          <AudioPlayer id={rec.id} />
+          <FixTranscript value={rec.transcript} onSave={(t) => t && rescore(getState().sessions.find((x) => x.id === rec.id) ?? rec, t)} />
         </section>
       )}
       {prompt && <Coach rec={rec} prompt={prompt} frame={frame} />}
+      <RateReport sessionId={rec.id} drill={rec.drill} />
       <div className="foot">
         {onRetry && (
           <button className="btn signal block" onClick={onRetry}>

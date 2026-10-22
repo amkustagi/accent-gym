@@ -1,4 +1,5 @@
 // Meeting simulator scenarios. Each has a frame (the structure to follow) and a time limit.
+import { MORE_CONCISION, MORE_SCENARIOS } from './more';
 
 export interface Scenario {
   id: string;
@@ -10,7 +11,7 @@ export interface Scenario {
   secs: number;
 }
 
-export type CategoryId = 'update' | 'pushback' | 'influence' | 'problem' | 'intro' | 'interview' | 'impromptu';
+export type CategoryId = 'update' | 'pushback' | 'influence' | 'problem' | 'intro' | 'interview' | 'impromptu' | 'client' | 'present' | 'negotiate' | 'feedback' | 'network';
 
 export const CATEGORIES: { id: CategoryId; name: string; blurb: string }[] = [
   { id: 'update', name: 'Updates', blurb: 'Status, progress, decisions' },
@@ -18,11 +19,16 @@ export const CATEGORIES: { id: CategoryId; name: string; blurb: string }[] = [
   { id: 'influence', name: 'Disagree & persuade', blurb: 'Make the case, change minds' },
   { id: 'problem', name: 'Bad news', blurb: 'Delays, incidents, mistakes' },
   { id: 'intro', name: 'Introductions', blurb: 'New team, new client' },
+  { id: 'client', name: 'Clients', blurb: 'Calls, pricing, expectations' },
+  { id: 'present', name: 'Presenting', blurb: 'Openings, charts, Q&A' },
+  { id: 'negotiate', name: 'Negotiate', blurb: 'Raises, offers, trade-offs' },
+  { id: 'feedback', name: 'Feedback', blurb: 'Give it, take it, praise' },
+  { id: 'network', name: 'Small talk', blurb: 'Networking, openers' },
   { id: 'interview', name: 'Interviews', blurb: 'Classic questions, STAR stories' },
   { id: 'impromptu', name: 'Cold questions', blurb: 'Answer on the spot' },
 ];
 
-export const SCENARIOS: Scenario[] = [
+const BASE_SCENARIOS: Scenario[] = [
   { id: 'u1', category: 'update', context: 'Weekly team sync', prompt: 'Give a status update on the project you are working on.', frame: ['Where it stands', 'What\'s next', 'What you need'], secs: 60 },
   { id: 'u2', category: 'update', context: 'Your director joins the call late', prompt: 'Summarize the last 20 minutes of discussion in under 30 seconds.', frame: ['Decision made', 'Open question', 'Next step'], secs: 30 },
   { id: 'u3', category: 'update', context: 'End of the meeting', prompt: 'Close the meeting with clear next steps.', frame: ['Decision', 'Owners', 'Dates'], secs: 30 },
@@ -75,7 +81,7 @@ export const BASELINE: Scenario = {
 };
 
 /** Short concision challenges: say it within a word budget. */
-export const CONCISION: { id: string; prompt: string; secs: number; maxWords: number }[] = [
+const BASE_CONCISION: { id: string; prompt: string; secs: number; maxWords: number }[] = [
   { id: 'k1', prompt: 'Explain what you do at work.', secs: 15, maxWords: 40 },
   { id: 'k2', prompt: 'Give your opinion on the last meeting you attended.', secs: 20, maxWords: 50 },
   { id: 'k3', prompt: 'Summarize your current project for a busy executive.', secs: 20, maxWords: 50 },
@@ -85,3 +91,6 @@ export const CONCISION: { id: string; prompt: string; secs: number; maxWords: nu
   { id: 'k7', prompt: 'Describe your ideal team in one breath.', secs: 15, maxWords: 35 },
   { id: 'k8', prompt: 'Explain the biggest risk in your project.', secs: 20, maxWords: 45 },
 ];
+
+export const SCENARIOS: Scenario[] = [...BASE_SCENARIOS, ...MORE_SCENARIOS];
+export const CONCISION = [...BASE_CONCISION, ...MORE_CONCISION];

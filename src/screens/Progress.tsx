@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { drillById } from '../content/catalog';
+import { DRILLS, drillById } from '../content/catalog';
+import { LEVEL_LABEL, habits, levelFor } from '../learn/adapt';
 import { SKILLS, type Skill } from '../engine/score';
 import { open } from '../lib/nav';
 import { baseline, bestStreak, skillAverages, streak, useStore } from '../store/store';
@@ -70,6 +71,43 @@ export function Progress() {
         )}
       </section>
 
+      <section className="card">
+        <h3>Habits in your own words</h3>
+        <p className="small muted">Last 14 days, counted from your transcripts.</p>
+        {habits(s, 14).length ? (
+          <div className="stack-sm">
+            {habits(s, 14).slice(0, 8).map((h) => (
+              <div key={h.ruleId} className="row spread small">
+                <span>"{h.label}"</span>
+                <span className="row" style={{ gap: 8 }}>
+                  <span className="muted">last week {h.lastWeek}</span>
+                  <b style={{ color: h.thisWeek <= h.lastWeek ? 'var(--good)' : 'var(--bad)' }}>this week {h.thisWeek}</b>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="small">No habits detected yet. Nice.</p>
+        )}
+      </section>
+
+      <section className="card">
+        <h3>Difficulty, adapted to you</h3>
+        <p className="small muted">Two strong rounds in a row move a drill up a level; two weak ones move it down.</p>
+        <div className="stack-sm">
+          {DRILLS.filter((d) => s.adapt[d.id]).map((d) => (
+            <div key={d.id} className="row spread small">
+              <span>{d.name}</span>
+              <span className="row" style={{ gap: 4 }} aria-label={`Level ${levelFor(s, d.id)}`}>
+                {[1, 2, 3, 4, 5].map((n) => <i key={n} style={{ width: 14, height: 6, borderRadius: 3, background: n <= levelFor(s, d.id) ? 'var(--brand)' : 'var(--line)' }} />)}
+                <span className="muted" style={{ marginLeft: 6, minWidth: 82, textAlign: 'right' }}>{LEVEL_LABEL[levelFor(s, d.id) - 1]}</span>
+              </span>
+            </div>
+          ))}
+          {!Object.keys(s.adapt).length && <p className="small">Levels appear after a few scored rounds.</p>}
+        </div>
+      </section>
+
       <section className="stack-sm">
         <h2>History</h2>
         {history.length ? (
@@ -81,7 +119,7 @@ export function Progress() {
                   <span className="grow" style={{ minWidth: 0 }}>
                     <b style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.title}</b>
                     <span className="small muted">
-                      {x.drill === 'baseline' ? 'Baseline' : drillById(x.drill).name} · {fmtDate(x.t)} · {x.durationSec}s
+                      {x.drill === 'baseline' ? 'Baseline' : drillById(x.drill)?.name ?? x.drill} · {fmtDate(x.t)} · {x.durationSec}s
                     </span>
                   </span>
                   {x.hasAudio && <Icon name="speaker" className="chev" />}

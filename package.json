@@ -1,7 +1,8 @@
 {
   "name": "speak-sharp",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.2",
+  "appVersion": "0.02",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +13,9 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
     "idb-keyval": "6.2.1",
+    "kokoro-js": "1.2.1",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },

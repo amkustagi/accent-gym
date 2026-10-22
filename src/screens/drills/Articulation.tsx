@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { SOUNDS, TWISTERS, WARMUP, type SoundModule } from '../../content/drills';
 import { heardWord, matchTarget, tokenize, type MatchResult } from '../../engine/text';
-import { speak, stopSpeaking } from '../../engine/speech';
+import { speak, stopSpeaking } from '../../engine/tts';
+import { levelFor, recordScore, reviewCard } from '../../learn/adapt';
+import { getState } from '../../store/store';
+import { HearButton, TakeCompare } from '../../ui/TakeCompare';
 import { logActivity, setBest, useStore } from '../../store/store';
 import { quickRecord } from '../../lib/session';
 import { Icon } from '../../ui/Icon';
@@ -20,7 +23,7 @@ export function WarmupDrill({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (i < 0 || i >= WARMUP.length) return;
     setLeft(WARMUP[i].secs);
-    speak(`${WARMUP[i].title}. ${WARMUP[i].how}`, 1.02);
+    void speak(`${WARMUP[i].title}. ${WARMUP[i].how}`, { rate: 1.02 });
   }, [i]);
 
   useEffect(() => {
@@ -39,7 +42,7 @@ export function WarmupDrill({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (i === WARMUP.length) {
       logActivity('warmup', 10);
-      speak('Warm-up done. Your voice is ready.');
+      void speak('Warm-up done. Your voice is ready.');
     }
   }, [i]);
 
@@ -95,7 +98,7 @@ export function WarmupDrill({ onClose }: { onClose: () => void }) {
       <div className="foot">
         <div className="row">
           <button className="btn quiet grow" onClick={() => setPaused((p) => !p)}>{paused ? 'Resume' : 'Pause'}</button>
-          <button className="btn quiet grow" onClick={() => speak(step.say ?? step.how)}><Icon name="speaker" />Repeat</button>
+          <button className="btn quiet grow" onClick={() => void speak(step.say ?? step.how)}><Icon name="speaker" />Repeat</button>
           <button className="btn primary grow" onClick={() => setI(i + 1)}>Next</button>
         </div>
       </div>
@@ -107,20 +110,23 @@ export function WarmupDrill({ onClose }: { onClose: () => void }) {
 
 export function ClarityDrill({ onClose }: { onClose: () => void }) {
   const best = useStore((s) => s.best);
-  const [lvl, setLvl] = useState<1 | 2 | 3>(1);
+  const [lvl, setLvl] = useState<1 | 2 | 3>(() => (Math.min(3, Math.max(1, Math.ceil(levelFor(getState(), 'clarity') * 0.6))) as 1 | 2 | 3));
   const list = TWISTERS.filter((t) => t.level === lvl);
   const [k, setK] = useState(0);
   const tw = list[k % list.length];
   const key = `tw:${tw.text}`;
   const [res, setRes] = useState<(MatchResult & { wps: number; newBest: boolean }) | null>(null);
+  const [take, setTake] = useState<Blob | null>(null);
 
-  const done = (r: { transcript: string; durationSec: number }) => {
+  const done = (r: { transcript: string; durationSec: number; audio: Blob | null }) => {
+    setTake(r.audio);
     const m = matchTarget(tw.text, r.transcript);
     const secs = Math.max(0.8, r.durationSec - 1.6);
     const wps = Math.round((tw.text.split(/\s+/).length / secs) * 10) / 10;
     const score = m.accuracy >= 90 ? Math.min(100, m.accuracy + Math.round(wps * 2)) : m.accuracy;
     const newBest = m.accuracy > 0 && setBest(key, score);
     void quickRecord('clarity', tw.text, { clarity: m.accuracy }, r.transcript, m.accuracy >= 90 ? 10 : 4);
+    recordScore('clarity', m.accuracy);
     setRes({ ...m, wps, newBest });
   };
 
@@ -135,7 +141,7 @@ export function ClarityDrill({ onClose }: { onClose: () => void }) {
         <p className="script" style={{ color: 'var(--ink)' }}>
           {res ? res.words.map((w, j) => <span key={j} className={`w ${w.hit ? 'hit' : 'miss'}`}>{w.word} </span>) : tw.text}
         </p>
-        <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => speak(tw.text, 0.85)}><Icon name="speaker" />Hear it slowly</button>
+        {res ? <TakeCompare text={tw.text} take={take} rate={0.85} /> : <HearButton text={tw.text} rate={0.85} label="Hear it slowly" />}
       </section>
       {res && (
         <section className="card">
@@ -154,8 +160,7 @@ export function ClarityDrill({ onClose }: { onClose: () => void }) {
         key={`${lvl}-${k}-${res ? 1 : 0}`}
         size="sm"
         maxSec={15}
-        modeOverride="transcript"
-        record={false}
+        needsTranscript
         showCanvas={false}
         showCounters={false}
         showTranscript={false}
@@ -164,7 +169,7 @@ export function ClarityDrill({ onClose }: { onClose: () => void }) {
         idleHint={res ? 'Tap to go again' : 'Tap, say it once clearly'}
       />
       <div className="foot">
-        <button className="btn block" onClick={() => { setK(k + 1); setRes(null); }}>Next twister</button>
+        <button className="btn block" onClick={() => { setK(k + 1); setRes(null); setTake(null); }}>Next twister</button>
       </div>
     </SessionShell>
   );
@@ -235,7 +240,7 @@ function ListenTest({ mod, rate, onPoint }: { mod: SoundModule; rate: number; on
     const answer = pair[Math.random() < 0.5 ? 0 : 1];
     setQ({ pair, answer });
     setPicked(null);
-    setTimeout(() => speak(answer, rate), 150);
+    setTimeout(() => void speak(answer, { rate }), 150);
   };
   return (
     <div className="stack">
@@ -245,9 +250,9 @@ function ListenTest({ mod, rate, onPoint }: { mod: SoundModule; rate: number; on
         <div className="stack-sm">
           {mod.pairs.map(([a, b]) => (
             <div className="row" key={a}>
-              <button className="btn quiet pairbtn" onClick={() => speak(a, rate)}>{a}</button>
+              <button className="btn quiet pairbtn" onClick={() => void speak(a, { rate })}>{a}</button>
               <span className="muted small">vs</span>
-              <button className="btn quiet pairbtn" onClick={() => speak(b, rate)}>{b}</button>
+              <button className="btn quiet pairbtn" onClick={() => void speak(b, { rate })}>{b}</button>
             </div>
           ))}
         </div>
@@ -279,7 +284,7 @@ function ListenTest({ mod, rate, onPoint }: { mod: SoundModule; rate: number; on
               ))}
             </div>
             <div className="row">
-              <button className="btn quiet grow" onClick={() => speak(q.answer, rate)}><Icon name="speaker" />Play again</button>
+              <button className="btn quiet grow" onClick={() => void speak(q.answer, { rate })}><Icon name="speaker" />Play again</button>
               {picked && <button className="btn primary grow" onClick={ask}>Next</button>}
             </div>
           </>
@@ -293,6 +298,7 @@ function WordSay({ mod, rate, onPoint }: { mod: SoundModule; rate: number; onPoi
   const targets = [...mod.words.map((w) => ({ w: w.w, hint: w.hint })), ...mod.pairs.flat().map((w) => ({ w, hint: '' }))];
   const [i, setI] = useState(0);
   const [result, setResult] = useState<{ ok: boolean; heard: string } | null>(null);
+  const [take, setTake] = useState<Blob | null>(null);
   const alts = useRef<string[]>([]);
   const t = targets[i % targets.length];
   return (
@@ -300,7 +306,7 @@ function WordSay({ mod, rate, onPoint }: { mod: SoundModule; rate: number; onPoi
       <span className="eyebrow">Word {(i % targets.length) + 1} of {targets.length}</span>
       <div className="bigword">{t.w}</div>
       {t.hint && <span className="pill brand">{t.hint}</span>}
-      <button className="btn quiet sm" onClick={() => speak(t.w, rate)}><Icon name="speaker" />Hear it</button>
+      {take ? <TakeCompare text={t.w} take={take} rate={rate} /> : <HearButton text={t.w} rate={rate} className="btn quiet sm" />}
       {result && (
         <div className={`note ${result.ok ? 'good' : 'warn'}`} style={{ width: '100%' }}>
           <b>{result.ok ? 'Understood.' : 'Not quite.'}</b>
@@ -311,8 +317,7 @@ function WordSay({ mod, rate, onPoint }: { mod: SoundModule; rate: number; onPoi
         key={`${i}-${result ? 1 : 0}`}
         size="sm"
         maxSec={6}
-        modeOverride="transcript"
-        record={false}
+        needsTranscript
         showCanvas={false}
         showCounters={false}
         showTranscript={false}
@@ -323,12 +328,14 @@ function WordSay({ mod, rate, onPoint }: { mod: SoundModule; rate: number; onPoi
         onDone={(r) => {
           const all = [...alts.current, r.transcript];
           const ok = heardWord(t.w, all) || tokenize(r.transcript).join(' ') === tokenize(t.w).join(' ');
+          setTake(r.audio);
+          reviewCard(`word:${t.w}`, ok);
           if (ok) onPoint();
           setResult({ ok, heard: r.transcript });
         }}
         idleHint="Tap and say the word"
       />
-      <button className="btn block" onClick={() => { setI(i + 1); setResult(null); }}>Next word</button>
+      <button className="btn block" onClick={() => { setI(i + 1); setResult(null); setTake(null); }}>Next word</button>
     </section>
   );
 }
@@ -336,13 +343,14 @@ function WordSay({ mod, rate, onPoint }: { mod: SoundModule; rate: number; onPoi
 function LineSay({ mod, rate, onPoint }: { mod: SoundModule; rate: number; onPoint: () => void }) {
   const [i, setI] = useState(0);
   const [m, setM] = useState<MatchResult | null>(null);
+  const [take, setTake] = useState<Blob | null>(null);
   const line = mod.lines[i % mod.lines.length];
   return (
     <section className="card">
       <p className="script" style={{ color: 'var(--ink)' }}>
         {m ? m.words.map((w, k) => <span key={k} className={`w ${w.hit ? 'hit' : 'miss'}`}>{w.word} </span>) : line}
       </p>
-      <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => speak(line, rate)}><Icon name="speaker" />Hear it</button>
+      {take ? <TakeCompare text={line} take={take} rate={rate} /> : <HearButton text={line} rate={rate} />}
       {m && (
         <div className="row">
           <ScoreRing value={m.accuracy} label="understood" size={96} />
@@ -353,20 +361,20 @@ function LineSay({ mod, rate, onPoint }: { mod: SoundModule; rate: number; onPoi
         key={`${i}-${m ? 1 : 0}`}
         size="sm"
         maxSec={12}
-        modeOverride="transcript"
-        record={false}
+        needsTranscript
         showCanvas={false}
         showCounters={false}
         showTranscript={false}
         autoStopSilence={1.5}
         onDone={(r) => {
+          setTake(r.audio);
           const res = matchTarget(line, r.transcript);
           if (res.accuracy >= 80) onPoint();
           setM(res);
         }}
         idleHint="Tap and say the sentence"
       />
-      <button className="btn block" onClick={() => { setI(i + 1); setM(null); }}>Next sentence</button>
+      <button className="btn block" onClick={() => { setI(i + 1); setM(null); setTake(null); }}>Next sentence</button>
     </section>
   );
 }

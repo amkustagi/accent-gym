@@ -24,6 +24,12 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_PRICE_MONTHLY_LABEL: ${{ secrets.VITE_PRICE_MONTHLY_LABEL }}
+          VITE_PRICE_LIFETIME_LABEL: ${{ secrets.VITE_PRICE_LIFETIME_LABEL }}
+          VITE_FEEDBACK_EMAIL: ${{ secrets.VITE_FEEDBACK_EMAIL }}
       - name: Publish dist to the gh-pages branch
         run: |
           cd dist

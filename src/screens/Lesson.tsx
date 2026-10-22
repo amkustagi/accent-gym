@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { LESSONS } from '../content/lessons';
 import { drillById } from '../content/catalog';
-import { speak } from '../engine/speech';
+import { HearButton } from '../ui/TakeCompare';
 import { open } from '../lib/nav';
 import { markLesson } from '../store/store';
 import { Icon } from '../ui/Icon';
@@ -39,7 +39,7 @@ export function LessonView({ id, onClose }: { id: string; onClose: () => void })
               <p className="strike" style={{ fontSize: '1.05rem' }}>{e.weak}</p>
               <div className="row">
                 <p className="grow" style={{ fontWeight: 700, color: 'var(--good)' }}>{e.strong}</p>
-                <button className="iconbtn" onClick={() => speak(e.strong)} aria-label="Hear the strong version"><Icon name="speaker" /></button>
+                <HearButton text={e.strong} label="" className="iconbtn" />
               </div>
             </div>
           ))}

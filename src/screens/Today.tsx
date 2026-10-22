@@ -3,7 +3,14 @@ import { drillById } from '../content/catalog';
 import { LESSONS } from '../content/lessons';
 import { SWAPS } from '../content/drills';
 import { open } from '../lib/nav';
-import { baseline, level, levelName, skillAverages, streak, todayPlan, useStore } from '../store/store';
+import { baseline, level, levelName, skillAverages, streak, useStore } from '../store/store';
+import { dueCount, habits, todayPlan, weeklyDelta } from '../learn/adapt';
+import { FREE_DAILY_ROUNDS, isPro } from '../lib/backend';
+import { checkinDue } from '../lib/feedback';
+import { scoredToday } from '../store/store';
+import { CheckinCard } from './FeedbackScreen';
+import { NaturalVoiceCard } from './NaturalVoiceCard';
+import { skillName } from '../ui/ui';
 import { Icon } from '../ui/Icon';
 import { Radar } from '../ui/ui';
 
@@ -78,8 +85,13 @@ export function Today() {
   const base = baseline(s);
   const lv = level(s.xp);
   const st = streak(s);
-  const doneCount = plan.filter((p) => p.done >= p.target).length;
-  const next = plan.find((p) => p.done < p.target);
+  const doneCount = plan.filter((p) => p.done).length;
+  const next = plan.find((p) => !p.done);
+  const myHabits = useMemo(() => habits(s, 7).slice(0, 3), [s]);
+  const due = dueCount(s);
+  const pro = isPro(s);
+  const left = FREE_DAILY_ROUNDS - scoredToday(s);
+  const delta = useMemo(() => weeklyDelta(s).sort((a, b) => Math.abs(b.now - b.prev) - Math.abs(a.now - a.prev))[0], [s]);
   const rule = SWAPS[Math.floor(Date.now() / 864e5) % SWAPS.length];
   const lesson = LESSONS.find((l) => !s.lessonsDone.includes(l.id)) ?? LESSONS[Math.floor(Date.now() / 864e5) % LESSONS.length];
   const hasData = Object.keys(avgs).length >= 3;
@@ -109,7 +121,7 @@ export function Today() {
         <div className="stack-sm" style={{ gap: 4 }}>
           {plan.map((p, i) => {
             const d = drillById(p.drill);
-            const ok = p.done >= p.target;
+            const ok = p.done;
             return (
               <button key={i} className="item" style={{ color: 'inherit', borderTopColor: 'rgba(255,255,255,0.12)', padding: '10px 0' }} onClick={() => open({ kind: 'drill', id: p.drill, param: p.param })}>
                 <span className="ic" style={{ background: ok ? 'var(--signal)' : 'rgba(255,255,255,0.12)', color: ok ? 'var(--signal-ink)' : '#fff' }}>
@@ -131,6 +143,56 @@ export function Today() {
           </button>
         )}
       </section>
+
+      {!pro && (
+        <div className="note" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span className="grow">{left > 0 ? `${left} of ${FREE_DAILY_ROUNDS} free speaking rounds left today.` : 'You\'ve used today\'s free speaking rounds. Drills are still unlimited.'}</span>
+          <button className="btn sm signal" onClick={() => open({ kind: 'paywall' })}>Go Pro</button>
+        </div>
+      )}
+
+      <NaturalVoiceCard />
+
+      {checkinDue() && <CheckinCard />}
+
+      {myHabits.length > 0 && (
+        <section className="card">
+          <div className="row spread">
+            <h3>Your habits this week</h3>
+            <span className="small muted">from your own words</span>
+          </div>
+          <div className="stack-sm">
+            {myHabits.map((h) => (
+              <div key={h.ruleId} className="row spread">
+                <span><b>"{h.label}"</b> <span className="small muted">{h.kind === 'filler' ? 'filler' : 'weak phrase'}</span></span>
+                <span className="row" style={{ gap: 6 }}>
+                  <span className="pill warn">×{h.thisWeek}</span>
+                  {h.lastWeek > 0 && <span className="small" style={{ color: h.thisWeek < h.lastWeek ? 'var(--good)' : 'var(--bad)' }}>{h.thisWeek < h.lastWeek ? '▼' : '▲'} {h.lastWeek}</span>}
+                </span>
+              </div>
+            ))}
+          </div>
+          <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => open({ kind: 'drill', id: 'swaps', param: `habit:${myHabits[0].ruleId}` })}>
+            <Icon name="target" />Drill "{myHabits[0].label}"
+          </button>
+        </section>
+      )}
+
+      {(due > 0 || delta) && (
+        <section className="grid2">
+          {due > 0 && (
+            <button className="card tight" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }} onClick={() => open({ kind: 'drill', id: 'swaps' })}>
+              <span className="stat"><b>{due}</b><span>cards due for review</span></span>
+            </button>
+          )}
+          {delta && (
+            <div className="card tight stat">
+              <b style={{ color: delta.now >= delta.prev ? 'var(--good)' : 'var(--bad)' }}>{delta.now >= delta.prev ? '+' : ''}{delta.now - delta.prev}</b>
+              <span>{skillName(delta.skill)} vs last week</span>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="card">
         <div className="row spread">

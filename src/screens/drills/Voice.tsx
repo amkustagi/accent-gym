@@ -4,7 +4,10 @@ import type { CaptureResult } from '../../engine/capture';
 import { overallOf, scorePace, scoreVariety } from '../../engine/score';
 import { matchTarget } from '../../engine/text';
 import { semitones, summarize, type Frame } from '../../engine/voice';
-import { speak } from '../../engine/speech';
+import { playBlob } from '../../engine/tts';
+import { levelFor, recordScore } from '../../learn/adapt';
+import { getState } from '../../store/store';
+import { HearButton } from '../../ui/TakeCompare';
 import { scoreAndSave, tooShort } from '../../lib/session';
 import { logActivity, setBest, useStore, type SessionRecord } from '../../store/store';
 import { Icon } from '../../ui/Icon';
@@ -40,7 +43,7 @@ function PassagePicker({ value, onChange }: { value: number; onChange: (i: numbe
 
 export function PaceDrill({ onClose }: { onClose: () => void }) {
   const [pi, setPi] = useState(0);
-  const [wpm, setWpm] = useState(145);
+  const [wpm, setWpm] = useState(() => [130, 145, 145, 160, 160][levelFor(getState(), 'pace') - 1]);
   const [guide, setGuide] = useState(-1);
   const [read, setRead] = useState(0);
   const [res, setRes] = useState<{ rec: SessionRecord; xp: number } | null>(null);
@@ -90,6 +93,7 @@ export function PaceDrill({ onClose }: { onClose: () => void }) {
     const { rec, xp } = await scoreAndSave(r, {
       drill: 'pace',
       title: `Pace: ${PASSAGES[pi].title}`,
+      itemId: PASSAGES[pi].id,
       scripted: true,
       clarity: m?.accuracy ?? null,
       extra: { 'target wpm': wpm },
@@ -104,6 +108,7 @@ export function PaceDrill({ onClose }: { onClose: () => void }) {
       },
     });
     setBest('pace', rec.overall);
+    recordScore('pace', rec.overall);
     setRes({ rec, xp });
   };
 
@@ -129,11 +134,9 @@ export function PaceDrill({ onClose }: { onClose: () => void }) {
             ),
           )}
         </p>
-        <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => speak(PASSAGES[pi].text.replace(/\s\/\s?/g, '. '), wpm / 150)}>
-          <Icon name="speaker" />Hear the model
-        </button>
+        <HearButton text={PASSAGES[pi].text.replace(/\s\/\s?/g, '. ')} rate={wpm / 150} label="Hear the model" />
       </section>
-      <MicStage maxSec={60} onStart={onStart} onTranscript={onTranscript} onDone={done} showTranscript={false} showCounters={false} autoStopSilence={3} idleHint="Tap, then read with the highlight" />
+      <MicStage maxSec={60} needsTranscript onStart={onStart} onTranscript={onTranscript} onDone={done} showTranscript={false} showCounters={false} autoStopSilence={3} idleHint="Tap, then read with the highlight" />
       {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
     </SessionShell>
   );
@@ -194,6 +197,7 @@ export function PausesDrill({ onClose }: { onClose: () => void }) {
     const { rec, xp } = await scoreAndSave(r, {
       drill: 'pauses',
       title: `Pauses: ${PASSAGES[pi].title}`,
+      itemId: PASSAGES[pi].id,
       scripted: true,
       extra: { 'pauses held': `${hit}/${markers}`, 'avg pause': `${v?.avgPauseSec ?? 0}s` },
       adjust: (ev) => {
@@ -207,6 +211,7 @@ export function PausesDrill({ onClose }: { onClose: () => void }) {
       },
     });
     setBest('pauses', rec.overall);
+    recordScore('pauses', rec.overall);
     setRes({ rec, xp });
   };
 
@@ -280,8 +285,8 @@ export function VarietyDrill({ onClose }: { onClose: () => void }) {
   );
   const [li, setLi] = useState(0);
   const [step, setStep] = useState<0 | 1 | 2>(0);
-  const [flat, setFlat] = useState<{ frames: Frame[]; range: number } | null>(null);
-  const [lively, setLively] = useState<{ frames: Frame[]; range: number } | null>(null);
+  const [flat, setFlat] = useState<{ frames: Frame[]; range: number; audio: Blob | null } | null>(null);
+  const [lively, setLively] = useState<{ frames: Frame[]; range: number; audio: Blob | null } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const line = lines[li];
   const best = useStore((s) => s.best.variety);
@@ -293,7 +298,7 @@ export function VarietyDrill({ onClose }: { onClose: () => void }) {
       return;
     }
     setErr(null);
-    const got = { frames: r.frames, range: v.pitchRangeSt };
+    const got = { frames: r.frames, range: v.pitchRangeSt, audio: r.audio };
     if (step === 0) {
       setFlat(got);
       setStep(1);
@@ -302,6 +307,7 @@ export function VarietyDrill({ onClose }: { onClose: () => void }) {
       setStep(2);
       const score = scoreVariety(got.range);
       logActivity('variety', 8 + Math.round(score / 10));
+      recordScore('variety', score);
       setBest('variety', Math.round(got.range * 10) / 10);
     }
   };
@@ -337,7 +343,7 @@ export function VarietyDrill({ onClose }: { onClose: () => void }) {
           </p>
         )}
       </section>
-      {step < 2 && <MicStage key={step} maxSec={15} modeOverride="voice" record={false} showTranscript={false} showCounters={false} autoStopSilence={1.8} onDone={take} idleHint={step === 0 ? 'Tap, then say it in one flat tone' : 'Tap, then say it with energy'} />}
+      {step < 2 && <MicStage key={step} maxSec={15} modeOverride="voice" showTranscript={false} showCounters={false} autoStopSilence={1.8} onDone={take} idleHint={step === 0 ? 'Tap, then say it in one flat tone' : 'Tap, then say it with energy'} />}
       {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
       {step === 2 && flat && lively && (
         <div className="stack">
@@ -347,11 +353,13 @@ export function VarietyDrill({ onClose }: { onClose: () => void }) {
               <span className="pill">{flat.range} semitones</span>
             </div>
             <PitchMini frames={flat.frames} color="var(--faint)" />
+            {flat.audio && <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => playBlob(flat.audio!)}><Icon name="play" />Play flat take</button>}
             <div className="row spread">
               <span className="eyebrow">Lively</span>
               <span className={`pill ${lively.range >= 5 ? 'good' : 'warn'}`}>{lively.range} semitones</span>
             </div>
             <PitchMini frames={lively.frames} color="var(--signal)" />
+            {lively.audio && <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => playBlob(lively.audio!)}><Icon name="play" />Play lively take</button>}
             <div className={`note ${lively.range >= 5 && gain >= 2 ? 'good' : 'warn'}`}>
               <b>{lively.range >= 5 && gain >= 2 ? `+${gain} semitones. That's real range.` : gain > 0 ? `+${gain} semitones. Push further.` : 'Not much difference yet.'}</b>
               Confident speakers use 5 or more semitones. {best ? `Your best: ${best}.` : ''}

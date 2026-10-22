@@ -1,6 +1,7 @@
 // One recording session: microphone → voice analyzer + recorder, plus speech-to-text, with graceful fallbacks.
 import { closeMic, listen, openMic, Recorder, sttSupported, type SttError, type SttHandle } from './speech';
 import { summarize, VoiceAnalyzer, type Frame, type VoiceSummary } from './voice';
+import { stopSpeaking } from './tts';
 
 export type ListeningMode = 'full' | 'transcript' | 'voice';
 
@@ -36,6 +37,8 @@ export class CaptureSession {
   constructor(private mode: ListeningMode, private cb: CaptureCallbacks = {}, private opts: { record?: boolean; continuous?: boolean } = {}) {}
 
   async start(): Promise<{ ok: boolean; error?: string }> {
+    // Never let the model voice leak into the microphone.
+    stopSpeaking();
     this.t0 = performance.now();
     this.running = true;
     const wantVoice = this.mode !== 'transcript';
