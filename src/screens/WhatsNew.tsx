@@ -4,12 +4,9 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['globe', 'Accent Coach', 'Pick American, British, Australian or Canadian English and say how you speak today. You get a sound map built for your starting point.'],
-  ['mic', '2-minute accent check', 'Read 9 short sentences and see which sounds to fix first, scored in your target accent.'],
-  ['mouth', 'Two dozen sound lessons per accent', 'How to make each sound in that accent, listening tests, words and sentences, with a model voice in the accent you chose.'],
-  ['wave', 'Shadowing', 'Repeat a native speaker and see your melody drawn over theirs.'],
-  ['target', 'Precise accent scoring (Pro)', 'Every word, and for American English every sound, scored against native speakers by Microsoft.'],
-  ['trophy', 'Weekly report card', 'Your week in one shareable image: progress, habits, sounds and next week\'s focus.'],
+  ['refresh', 'A new passage every time', 'Pace trainer and Pause power now give you a fresh script each time, written for your role across 16 meeting situations. Pick a topic or tap New passage.'],
+  ['mouth', 'Fresh starts everywhere', 'Tongue twisters and Vocal variety start at a different line each time.'],
+  ['sparkle', 'Updates install themselves', 'New versions switch over quietly the next time you leave the app. No more closing it twice.'],
 ];
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {

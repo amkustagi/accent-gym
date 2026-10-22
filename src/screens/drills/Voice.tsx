@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EMPHASIS, EXPRESSIVE_LINES, PASSAGES } from '../../content/drills';
+import { EMPHASIS, EXPRESSIVE_LINES, type Passage } from '../../content/drills';
+import { PASSAGE_KINDS, nextPassage, type PassageKind } from '../../content/passages';
 import type { CaptureResult } from '../../engine/capture';
 import { overallOf, scorePace, scoreVariety } from '../../engine/score';
 import { matchTarget } from '../../engine/text';
@@ -9,7 +10,7 @@ import { levelFor, recordScore } from '../../learn/adapt';
 import { getState } from '../../store/store';
 import { HearButton } from '../../ui/TakeCompare';
 import { scoreAndSave, tooShort } from '../../lib/session';
-import { logActivity, setBest, useStore, type SessionRecord } from '../../store/store';
+import { logActivity, markSeen, setBest, useStore, type SessionRecord } from '../../store/store';
 import { Icon } from '../../ui/Icon';
 import { MicStage } from '../../ui/MicStage';
 import { Report } from '../../ui/Report';
@@ -27,29 +28,50 @@ function tokenizePassage(text: string): Tok[] {
   return text.split(/\s+/).filter(Boolean).map((w) => (w === '/' ? { word: '/', pause: true, wi: -1 } : { word: w, pause: false, wi: wi++ }));
 }
 
-function PassagePicker({ value, onChange }: { value: number; onChange: (i: number) => void }) {
+/** A fresh passage each time: hand-written or generated for the user's role, never one just read. */
+function usePassage() {
+  const [kind, setKind] = useState<PassageKind | 'any'>('any');
+  const fresh = (k: PassageKind | 'any', exclude?: string) => {
+    const st = getState();
+    const p = nextPassage({ roleId: st.profile.role, seen: st.seen, kind: k, exclude });
+    markSeen(p.id);
+    return p;
+  };
+  const [passage, setPassage] = useState<Passage>(() => fresh('any'));
+  return {
+    passage,
+    kind,
+    setKind: (k: PassageKind | 'any') => { setKind(k); setPassage(fresh(k, passage.id)); },
+    another: () => setPassage(fresh(kind, passage.id)),
+  };
+}
+
+function PassageTopics({ value, onChange }: { value: PassageKind | 'any'; onChange: (k: PassageKind | 'any') => void }) {
   return (
-    <div className="chips" role="group" aria-label="Passage">
-      {PASSAGES.map((p, i) => (
-        <button key={p.id} className="chip" aria-pressed={i === value} onClick={() => onChange(i)}>
-          {p.title}
-        </button>
+    <div className="chips" role="group" aria-label="Topic">
+      <button className="chip" aria-pressed={value === 'any'} onClick={() => onChange('any')}>Any topic</button>
+      {PASSAGE_KINDS.map((k) => (
+        <button key={k.id} className="chip" aria-pressed={value === k.id} onClick={() => onChange(k.id)}>{k.title}</button>
       ))}
     </div>
   );
 }
 
+function NewPassageButton({ onClick }: { onClick: () => void }) {
+  return <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={onClick}><Icon name="refresh" />New passage</button>;
+}
+
 // ---------------- Pace ----------------
 
 export function PaceDrill({ onClose }: { onClose: () => void }) {
-  const [pi, setPi] = useState(0);
+  const { passage, kind, setKind, another } = usePassage();
   const [wpm, setWpm] = useState(() => [130, 145, 145, 160, 160][levelFor(getState(), 'pace') - 1]);
   const [guide, setGuide] = useState(-1);
   const [read, setRead] = useState(0);
   const [res, setRes] = useState<{ rec: SessionRecord; xp: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const timer = useRef(0);
-  const toks = useMemo(() => tokenizePassage(PASSAGES[pi].text), [pi]);
+  const toks = useMemo(() => tokenizePassage(passage.text), [passage]);
   const words = toks.filter((t) => !t.pause).map((t) => t.word);
   const schedule = useMemo(() => {
     let t = 0;
@@ -92,8 +114,8 @@ export function PaceDrill({ onClose }: { onClose: () => void }) {
     const myWpm = Math.round((wordsRead / Math.max(speakSec, 3)) * 60);
     const { rec, xp } = await scoreAndSave(r, {
       drill: 'pace',
-      title: `Pace: ${PASSAGES[pi].title}`,
-      itemId: PASSAGES[pi].id,
+      title: `Pace: ${passage.title}`,
+      itemId: passage.id,
       scripted: true,
       clarity: m?.accuracy ?? null,
       extra: { 'target wpm': wpm },
@@ -121,10 +143,11 @@ export function PaceDrill({ onClose }: { onClose: () => void }) {
 
   return (
     <SessionShell title="Pace trainer" onClose={onClose}>
-      <PassagePicker value={pi} onChange={(i) => { setPi(i); setRead(0); }} />
+      <PassageTopics value={kind} onChange={(k) => { setKind(k); setRead(0); }} />
       <Seg label="Target pace" value={wpm} onChange={setWpm} options={[{ v: 130, label: '130 calm' }, { v: 145, label: '145 natural' }, { v: 160, label: '160 brisk' }]} />
       <section className="card">
-        <span className="eyebrow">Read along. Stop fully at each /</span>
+        <span className="eyebrow">{passage.title}</span>
+        <span className="small muted">Read with the highlight and stop fully at each /</span>
         <p className="script">
           {toks.map((t, k) =>
             t.pause ? (
@@ -134,7 +157,10 @@ export function PaceDrill({ onClose }: { onClose: () => void }) {
             ),
           )}
         </p>
-        <HearButton text={PASSAGES[pi].text.replace(/\s\/\s?/g, '. ')} rate={wpm / 150} label="Hear the model" />
+        <div className="row wrap">
+          <HearButton text={passage.text.replace(/\s\/\s?/g, '. ')} rate={wpm / 150} label="Hear the model" />
+          <NewPassageButton onClick={() => { another(); setRead(0); }} />
+        </div>
       </section>
       <MicStage maxSec={60} needsTranscript onStart={onStart} onTranscript={onTranscript} onDone={done} showTranscript={false} showCounters={false} autoStopSilence={3} idleHint="Tap, then read with the highlight" />
       {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
@@ -145,12 +171,12 @@ export function PaceDrill({ onClose }: { onClose: () => void }) {
 // ---------------- Pauses ----------------
 
 export function PausesDrill({ onClose }: { onClose: () => void }) {
-  const [pi, setPi] = useState(1);
+  const { passage, kind, setKind, another } = usePassage();
   const [held, setHeld] = useState(0);
   const [silence, setSilence] = useState(0);
   const [res, setRes] = useState<{ rec: SessionRecord; xp: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const toks = useMemo(() => tokenizePassage(PASSAGES[pi].text), [pi]);
+  const toks = useMemo(() => tokenizePassage(passage.text), [passage]);
   const markers = toks.filter((t) => t.pause).length;
   const live = useRef({ floor: 0, n: 0, quietSince: -1, spoke: false, counted: false, held: 0 });
 
@@ -196,8 +222,8 @@ export function PausesDrill({ onClose }: { onClose: () => void }) {
     const wpm = v?.hadSpeech ? Math.round((words / Math.max(v.speakingSec, 3)) * 60) : null;
     const { rec, xp } = await scoreAndSave(r, {
       drill: 'pauses',
-      title: `Pauses: ${PASSAGES[pi].title}`,
-      itemId: PASSAGES[pi].id,
+      title: `Pauses: ${passage.title}`,
+      itemId: passage.id,
       scripted: true,
       extra: { 'pauses held': `${hit}/${markers}`, 'avg pause': `${v?.avgPauseSec ?? 0}s` },
       adjust: (ev) => {
@@ -225,10 +251,10 @@ export function PausesDrill({ onClose }: { onClose: () => void }) {
   let seen = 0;
   return (
     <SessionShell title="Pause power" onClose={onClose}>
-      <PassagePicker value={pi} onChange={setPi} />
+      <PassageTopics value={kind} onChange={(k) => { setKind(k); setHeld(0); }} />
       <section className="card">
         <div className="row spread">
-          <span className="eyebrow">Hold a full beat at each /</span>
+          <span className="eyebrow">{passage.title}</span>
           <span className={`pill ${held >= markers ? 'good' : 'brand'}`}>{Math.min(held, markers)}/{markers} held</span>
         </div>
         <p className="script">
@@ -239,11 +265,12 @@ export function PausesDrill({ onClose }: { onClose: () => void }) {
           })}
         </p>
         <div className="stack-sm">
-          <span className="small muted">Silence meter: fill it to about one second</span>
+          <span className="small muted">Hold a beat at each /. Fill the silence meter to about one second.</span>
           <div className="progress" style={{ height: 12 }}>
             <i style={{ width: `${Math.min(100, (silence / 1.2) * 100)}%`, background: silence >= 0.45 ? 'var(--good)' : 'var(--signal)', transition: 'none' }} />
           </div>
         </div>
+        <NewPassageButton onClick={() => { another(); setHeld(0); }} />
       </section>
       <MicStage maxSec={60} modeOverride="voice" onStart={onStart} onFrame={onFrame} onDone={done} showTranscript={false} showCounters={false} autoStopSilence={3.5} idleHint="Tap and read it aloud" />
       {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
@@ -283,12 +310,12 @@ export function VarietyDrill({ onClose }: { onClose: () => void }) {
     ],
     [],
   );
-  const [li, setLi] = useState(0);
+  const [li, setLi] = useState(() => Math.floor(Math.random() * 1000));
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [flat, setFlat] = useState<{ frames: Frame[]; range: number; audio: Blob | null } | null>(null);
   const [lively, setLively] = useState<{ frames: Frame[]; range: number; audio: Blob | null } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const line = lines[li];
+  const line = lines[li % lines.length];
   const best = useStore((s) => s.best.variety);
 
   const take = (r: CaptureResult) => {
@@ -313,7 +340,7 @@ export function VarietyDrill({ onClose }: { onClose: () => void }) {
   };
 
   const next = () => {
-    setLi((li + 1) % lines.length);
+    setLi(li + 1);
     setStep(0);
     setFlat(null);
     setLively(null);

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.04 (branch release_0.04)
+- Pace trainer and Pause power no longer open on the same passage. Each visit gives you a new script: either a hand-written one you haven't read in 3 weeks, or one generated for your role. There are 16 meeting situations (update, push back, stand-up, bad news, escalation, saying no and more) and thousands of combinations. You can also pick a topic or tap **New passage**.
+- Tongue twisters and Vocal variety start at a random line.
+- App updates apply automatically: a new version switches over the next time the app goes to the background, or at launch.
+
 ## v0.03 (branch release_0.03)
 **New**
 - Accent Coach tab: choose American, British, Australian or Canadian English and say how you speak English today (20 first-language profiles plus Indian, Nigerian, Filipino and other English accents). Your sound map puts the sounds that matter most for that pair first.
