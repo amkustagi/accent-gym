@@ -83,16 +83,39 @@ function Lesson({ f, target, from, onClose }: { f: SoundFeature; target: AccentI
   );
 }
 
+const ROUND = 10;
+
+/** A round of 10 questions that cycles through every pair before repeating one. */
+function questions(pairs: [string, string][]): { pair: [string, string]; answer: string }[] {
+  const out: { pair: [string, string]; answer: string }[] = [];
+  while (out.length < ROUND) {
+    const deck = [...pairs].sort(() => Math.random() - 0.5);
+    for (const pair of deck) if (out.length < ROUND) out.push({ pair, answer: pair[Math.random() < 0.5 ? 0 : 1] });
+  }
+  return out;
+}
+
 function ListenTest({ f, rate, target }: { f: SoundFeature; rate: number; target: AccentId }) {
-  const [q, setQ] = useState<{ pair: [string, string]; answer: string } | null>(null);
+  const [qs, setQs] = useState<{ pair: [string, string]; answer: string }[] | null>(null);
+  const [n, setN] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
-  const [score, setScore] = useState({ right: 0, total: 0 });
-  const ask = () => {
-    const pair = f.pairs[Math.floor(Math.random() * f.pairs.length)];
-    const answer = pair[Math.random() < 0.5 ? 0 : 1];
-    setQ({ pair, answer });
+  const [right, setRight] = useState(0);
+  const q = qs && n < qs.length ? qs[n] : null;
+  const done = !!qs && n >= qs.length;
+  const say = (w: string) => setTimeout(() => void speak(w, { rate, accent: target }), 150);
+  const start = () => {
+    const list = questions(f.pairs);
+    setQs(list);
+    setN(0);
+    setRight(0);
     setPicked(null);
-    setTimeout(() => void speak(answer, { rate, accent: target }), 150);
+    say(list[0].answer);
+  };
+  const next = () => {
+    setPicked(null);
+    const k = n + 1;
+    setN(k);
+    if (qs && k < qs.length) say(qs[k].answer);
   };
   return (
     <div className="stack">
@@ -112,25 +135,41 @@ function ListenTest({ f, rate, target }: { f: SoundFeature; rate: number; target
       <section className="card">
         <div className="row spread">
           <h3>Listening test</h3>
-          {score.total > 0 && <span className="pill brand">{score.right}/{score.total}</span>}
+          {qs && !done && <span className="pill brand">{Math.min(n + 1, ROUND)} of {ROUND}</span>}
         </div>
-        {!q ? (
-          <button className="btn signal block" onClick={ask}><Icon name="ear" />Start the test</button>
-        ) : (
+        {!qs && <button className="btn signal block" onClick={start}><Icon name="ear" />Start the test</button>}
+        {q && (
           <>
             <div className="row">
               {q.pair.map((w) => (
                 <button key={w} className={`btn pairbtn ${picked ? (w === q.answer ? 'opt right' : w === picked ? 'opt wrong' : '') : ''}`} disabled={!!picked} onClick={() => {
                   setPicked(w);
-                  setScore((s) => ({ right: s.right + (w === q.answer ? 1 : 0), total: s.total + 1 }));
+                  if (w === q.answer) setRight((r) => r + 1);
                 }}>{w}</button>
               ))}
             </div>
+            {picked && picked !== q.answer && <p className="small muted">It was <b>{q.answer}</b>. Tap both words above to compare them.</p>}
             <div className="row">
               <button className="btn quiet grow" onClick={() => void speak(q.answer, { rate, accent: target })}><Icon name="speaker" />Play again</button>
-              {picked && <button className="btn primary grow" onClick={ask}>Next</button>}
+              {picked && <button className="btn primary grow" onClick={next}>{n + 1 >= ROUND ? 'See result' : 'Next'}</button>}
             </div>
           </>
+        )}
+        {done && (
+          <div className="stack-sm">
+            <div className="row spread">
+              <b className="num" style={{ fontSize: '1.6rem' }}>{right} / {ROUND}</b>
+              <span className={`pill ${right >= 9 ? 'good' : right >= 7 ? 'brand' : 'warn'}`}>{right >= 9 ? 'You hear it' : right >= 7 ? 'Almost there' : 'Keep listening'}</span>
+            </div>
+            <p className="small muted">
+              {right >= 9
+                ? 'Your ear has it. Next, practice saying it in Words.'
+                : right >= 7
+                  ? 'Close. Replay the pairs above, then try another round.'
+                  : 'These sound alike at first. Play each pair a few times, slowly, then try again.'}
+            </p>
+            <button className="btn quiet" style={{ alignSelf: 'flex-start' }} onClick={start}><Icon name="refresh" />Another round</button>
+          </div>
         )}
       </section>
     </div>

@@ -4,8 +4,8 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['mic', 'Fewer microphone prompts', 'The microphone stays ready between takes instead of asking again every round. It closes by itself when you leave the app or stop practicing.'],
-  ['target', 'One tap to start', 'After "I\'m ready", Start or the prepare countdown, the app starts listening right away. The accent check moves through its sentences on its own.'],
+  ['ear', 'Listening tests have an end', 'Each test is now a round of 10 that covers every word pair, then shows your score and what to do next.'],
+  ['mic', 'Fewer microphone prompts', 'The microphone stays ready between takes, and Ready or Start buttons begin listening right away.'],
 ];
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {
