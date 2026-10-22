@@ -119,6 +119,15 @@ function syncPayload(s: State) {
   return { ...rest, settings: { ...rest.settings, aiKey: '' }, sessions: rest.sessions.map(({ trace: _t, ...x }) => (void _t, x)) };
 }
 
+function mergeSounds(a: State['sounds'], b: State['sounds']): State['sounds'] {
+  const out: State['sounds'] = { ...b };
+  (Object.keys(a) as (keyof State['sounds'])[]).forEach((k) => {
+    const all = [...(b[k] ?? []), ...(a[k] ?? [])];
+    out[k] = [...new Map(all.map((x) => [`${x.t}:${x.src}`, x])).values()].sort((x, y) => x.t - y.t).slice(-30);
+  });
+  return out;
+}
+
 /** Merges two states: union of history, max of counters, newer profile wins. */
 export function mergeStates(local: State, remote: Partial<State>): State {
   const byId = new Map(local.sessions.map((x) => [x.id, x]));
@@ -148,6 +157,8 @@ export function mergeStates(local: State, remote: Partial<State>): State {
     seen: { ...(remote.seen ?? {}), ...local.seen },
     votes: { ...(remote.votes ?? {}), ...local.votes },
     feedback: [...fb.values()].sort((a, b) => a.t - b.t).slice(-1000),
+    sounds: mergeSounds(local.sounds, remote.sounds ?? {}),
+    accentChecks: [...new Map([...(remote.accentChecks ?? []), ...local.accentChecks].map((c) => [c.t, c])).values()].sort((a, b) => a.t - b.t).slice(-50),
   };
 }
 
@@ -238,4 +249,18 @@ export async function deleteAccountRequest(reason: string): Promise<void> {
   if (!backendEnabled || !s.account) return;
   const c = await client();
   await c.from('feedback').insert({ user_id: s.account.userId, kind: 'other', target: 'account-deletion', text: reason || 'Please delete my account and data.', tags: ['delete-account'] });
+}
+
+// ---------- precise accent scoring through the server (Pro accounts) ----------
+
+export async function assessViaServer(audioBase64: string, reference: string, locale: string): Promise<unknown> {
+  const c = await client();
+  const { data, error } = await c.functions.invoke('pronunciation', { body: { audio: audioBase64, reference, locale } });
+  if (error) {
+    const status = (error as { context?: { status?: number } }).context?.status;
+    if (status === 402) throw new Error('Precise accent scoring is part of Pro.');
+    if (status === 429) throw new Error('Daily accent-scoring limit reached. It resets tomorrow.');
+    throw new Error('Accent scoring is unavailable right now.');
+  }
+  return data;
 }

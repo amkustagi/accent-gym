@@ -1,6 +1,6 @@
 import type { Skill } from '../engine/score';
 
-export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure' | 'roleplay';
+export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure' | 'roleplay' | 'accentcheck' | 'shadow';
 export type Area = 'content' | 'voice' | 'articulation' | 'presence';
 
 export interface DrillInfo {
@@ -16,7 +16,7 @@ export interface DrillInfo {
   pro?: boolean;
 }
 
-export type IconName = 'swap' | 'blocks' | 'scissors' | 'metronome' | 'pause' | 'wave' | 'flame' | 'sparkle' | 'mouth' | 'mic' | 'bolt' | 'chat';
+export type IconName = 'swap' | 'blocks' | 'scissors' | 'metronome' | 'pause' | 'wave' | 'flame' | 'sparkle' | 'mouth' | 'mic' | 'bolt' | 'chat' | 'globe';
 
 export const AREAS: { id: Area; name: string; question: string }[] = [
   { id: 'content', name: 'Content', question: 'What you say' },
@@ -34,7 +34,9 @@ export const DRILLS: DrillInfo[] = [
   { id: 'variety', name: 'Vocal variety', area: 'voice', skill: 'variety', blurb: 'Flat vs. lively: see your pitch move.', minutes: 2, icon: 'wave' },
   { id: 'warmup', name: 'Warm-up', area: 'articulation', skill: 'clarity', blurb: 'Two guided minutes before any meeting.', minutes: 2, icon: 'flame' },
   { id: 'clarity', name: 'Tongue twisters', area: 'articulation', skill: 'clarity', blurb: 'Scored on how clearly you\'re understood.', minutes: 2, icon: 'sparkle' },
-  { id: 'pronunciation', name: 'Pronunciation', area: 'articulation', skill: 'clarity', blurb: 'V/W, TH, R, soft T, vowels, stress.', minutes: 4, icon: 'mouth', optional: true },
+  { id: 'accentcheck', name: 'Accent check', area: 'articulation', skill: 'clarity', blurb: 'Find the sounds to fix for your target accent.', minutes: 2, icon: 'globe' },
+  { id: 'pronunciation', name: 'Sound lessons', area: 'articulation', skill: 'clarity', blurb: 'American, British, Australian or Canadian sounds.', minutes: 4, icon: 'mouth', optional: true },
+  { id: 'shadow', name: 'Shadowing', area: 'articulation', skill: 'variety', blurb: 'Repeat a native speaker and match their melody.', minutes: 3, icon: 'wave' },
   { id: 'simulator', name: 'Meeting simulator', area: 'presence', skill: 'language', blurb: 'Endless scenarios from your own job, with a full voice report.', minutes: 2, icon: 'mic' },
   { id: 'pressure', name: 'Pressure round', area: 'presence', skill: 'language', blurb: 'Random question, 10 seconds to prepare.', minutes: 2, icon: 'bolt' },
   { id: 'roleplay', name: 'AI conversation', area: 'presence', skill: 'language', blurb: 'Answer, then handle real follow-up questions.', minutes: 4, icon: 'chat', pro: true },

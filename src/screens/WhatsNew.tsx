@@ -4,13 +4,12 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['speaker', 'A human-sounding voice', 'A natural AI voice that runs on your phone, plus playback that now works on iPhone after you record.'],
-  ['play', 'Hear yourself next to the model', 'Every "say it" drill records your take: tap My take, then Model, and compare.'],
-  ['refresh', 'Never-ending scenarios', 'Thousands of prompts written for your role and industry, and 12 meeting categories.'],
-  ['target', 'It learns you', 'Difficulty adapts to your scores, cards you miss come back sooner, and your own habits ("just", "basically") become targeted drills.'],
-  ['chat', 'AI conversations', 'Answer, then handle realistic follow-up questions spoken out loud.'],
-  ['message', 'Tell us what you think', 'Rate every report, thumbs on tips and questions, fix a transcript, report problems with one tap.'],
-  ['user', 'Accounts and Pro', 'Sign in with your email to sync across devices. Pro monthly or lifetime.'],
+  ['globe', 'Accent Coach', 'Pick American, British, Australian or Canadian English and say how you speak today. You get a sound map built for your starting point.'],
+  ['mic', '2-minute accent check', 'Read 9 short sentences and see which sounds to fix first, scored in your target accent.'],
+  ['mouth', 'Two dozen sound lessons per accent', 'How to make each sound in that accent, listening tests, words and sentences, with a model voice in the accent you chose.'],
+  ['wave', 'Shadowing', 'Repeat a native speaker and see your melody drawn over theirs.'],
+  ['target', 'Precise accent scoring (Pro)', 'Every word, and for American English every sound, scored against native speakers by Microsoft.'],
+  ['trophy', 'Weekly report card', 'Your week in one shareable image: progress, habits, sounds and next week\'s focus.'],
 ];
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {

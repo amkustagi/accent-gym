@@ -6,6 +6,7 @@ import { Seg, Switch } from '../ui/ui';
 import { SignInForm } from './Account';
 import { ProfileFields } from './Profile';
 import { BaselineRound } from './drills/Simulator';
+import { AccentSetup } from './accent/AccentSetup';
 
 type Step = 'welcome' | 'work' | 'needs' | 'setup' | 'account' | 'baseline';
 
@@ -85,15 +86,7 @@ export function Onboarding() {
                 <label>Time per day</label>
                 <Seg label="Daily minutes" value={p.minutes} onChange={(v) => updateProfile({ minutes: v })} options={[{ v: 5, label: '5 min' }, { v: 10, label: '10 min' }, { v: 15, label: '15 min' }]} />
               </div>
-              <div className="card">
-                <div className="row spread">
-                  <div className="stack-sm grow">
-                    <b>Pronunciation track</b>
-                    <span className="small muted">Sounds that often trip up non-native speakers: V/W, TH, R, soft T, vowels, word stress. Optional.</span>
-                  </div>
-                  <Switch label="Pronunciation track" checked={p.pronunciation} onChange={(v) => updateProfile({ pronunciation: v })} />
-                </div>
-              </div>
+              <AccentSetup />
               <div className="card">
                 <div className="row spread">
                   <div className="stack-sm grow">

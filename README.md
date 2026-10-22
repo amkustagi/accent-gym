@@ -1,4 +1,4 @@
-# Speak Sharp  ·  v0.02
+# Speak Sharp  ·  v0.03
 
 A phone app that coaches you to speak with confidence in meetings, with an optional pronunciation track. It listens while you talk and scores **what you say** (fillers, hedges, apologies, regional phrases), **how your voice sounds** (pace, pauses, pitch variety, uptalk), and **how clearly you're understood**.
 
@@ -15,6 +15,9 @@ Installable web app (PWA): free, works offline, no App Store needed. All analysi
 - **Report** after every round: overall score, six skill bars, prioritized tips, voice timeline (pitch, loudness, pauses), highlighted transcript, playback of your recording, optional AI coach rewrite
 - **Progress**: trends per skill, now vs. baseline radar, full history with recordings
 - **Settings**: listening mode, model voice, optional Claude API key for the AI coach, calendar reminder, backup/restore, erase
+
+## What's in v0.03
+**Accent Coach**: pick American, British, Australian or Canadian English and your starting point, such as Indian English, Mandarin or Spanish. You then get a personal sound map, a 2-minute accent check, 25 sound lessons, and shadowing with melody overlay. Scoring is free clarity scoring, plus precise Azure scoring for Pro. Also new: a weekly report card. See [CHANGELOG.md](CHANGELOG.md); to turn on precise scoring, see [SETUP.md](SETUP.md#7-precise-accent-scoring-azure).
 
 ## What's in v0.02
 Natural AI voice, playback fixes for iPhone, never-ending scenarios built from your role, adaptive difficulty and spaced repetition, AI follow-up conversations, feedback everywhere, and accounts with Pro monthly/lifetime (dormant until configured). See [CHANGELOG.md](CHANGELOG.md) and, to turn on accounts and payments, [SETUP.md](SETUP.md).
@@ -40,11 +43,12 @@ Stack: React 18, TypeScript, Vite, IndexedDB (idb-keyval). Speech-to-text uses t
 ### Project layout
 ```
 src/engine/   speech-to-text, voice analyzer, scorer, capture session (+ tests)
-src/content/  scenarios, swap cards, lessons, twisters, passages, pronunciation sets
+src/content/  scenarios, swap cards, lessons, twisters, passages, accents (targets, sounds, first-language profiles)
 src/store/    persisted app state, daily plan, streaks, levels
 src/ui/       design system components, live mic stage, report
-src/screens/  tabs, settings, onboarding, account, paywall, feedback, and the 12 drills
+src/screens/  tabs, settings, onboarding, account, paywall, feedback, weekly report, and the drills
+src/screens/accent/  accent setup, sound map, accent check, sound lessons, shadowing
 src/learn/    adaptive difficulty, spaced repetition, habits, personalized plan
 src/lib/      backend (accounts, sync, Stripe), AI, feedback, gating
-supabase/     database schema and server functions (checkout, webhook, portal, AI)
+supabase/     database schema and server functions (checkout, webhook, portal, AI, pronunciation)
 ```

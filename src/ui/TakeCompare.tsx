@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { playBlob, speak, stopSpeaking } from '../engine/tts';
+import type { AccentId } from '../content/accents';
 import { Icon } from './Icon';
 
 /** Side-by-side buttons: hear the model, hear your own last take. */
-export function TakeCompare({ text, take, rate = 1, modelLabel = 'Model' }: { text: string; take: Blob | null; rate?: number; modelLabel?: string }) {
+export function TakeCompare({ text, take, rate = 1, modelLabel = 'Model', accent }: { text: string; take: Blob | null; rate?: number; modelLabel?: string; accent?: AccentId }) {
   const [playing, setPlaying] = useState<'model' | 'mine' | null>(null);
   useEffect(() => () => stopSpeaking(), []);
   const model = () => {
     if (playing === 'model') return stopSpeaking();
     setPlaying('model');
-    void speak(text, { rate, onEnd: () => setPlaying(null) });
+    void speak(text, { rate, accent, onEnd: () => setPlaying(null) });
   };
   const mine = () => {
     if (!take) return;
@@ -32,7 +33,7 @@ export function TakeCompare({ text, take, rate = 1, modelLabel = 'Model' }: { te
 }
 
 /** One "hear it" button that toggles. */
-export function HearButton({ text, rate = 1, label = 'Hear it', className = 'btn quiet sm' }: { text: string; rate?: number; label?: string; className?: string }) {
+export function HearButton({ text, rate = 1, label = 'Hear it', className = 'btn quiet sm', accent }: { text: string; rate?: number; label?: string; className?: string; accent?: AccentId }) {
   const [on, setOn] = useState(false);
   useEffect(() => () => stopSpeaking(), []);
   return (
@@ -47,7 +48,7 @@ export function HearButton({ text, rate = 1, label = 'Hear it', className = 'btn
           return;
         }
         setOn(true);
-        void speak(text, { rate, onEnd: () => setOn(false) });
+        void speak(text, { rate, accent, onEnd: () => setOn(false) });
       }}
     >
       <Icon name={on ? 'stop' : 'speaker'} />

@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.03 (branch release_0.03)
+**New**
+- Accent Coach tab: choose American, British, Australian or Canadian English and say how you speak English today (20 first-language profiles plus Indian, Nigerian, Filipino and other English accents). Your sound map puts the sounds that matter most for that pair first.
+- 2-minute accent check: 9 sentences (10 for Canadian), each sound scored, "fix these first", tracked over time.
+- 25 sound lessons with tips, minimal-pair listening tests, words and sentences written for each target accent. The model voice speaks in the accent you chose: natural voice for American, British and Canadian; system voice for Australian.
+- Shadowing: hear a native line, repeat it, and see your melody drawn over the model's.
+- Two levels of scoring: free clarity scoring, using a recognizer set to your target accent; Pro precise scoring using Microsoft Azure Pronunciation Assessment, word by word for every accent and sound by sound for American English.
+- Weekly report card: your week compared with the previous one, with a shareable image.
+- When you have an accent goal, the daily plan includes a sound lesson or shadowing.
+
+**Changes**
+- The old Pronunciation drill is replaced by Sound lessons in the Accent tab.
+- Settings: accent goal and starting point; optional Azure key for precise scoring.
+
 ## v0.02 (branch release_0.02)
 **Fixes**
 - iPhone: model voice and playback were silent or very quiet after recording (audio session stayed in record mode).

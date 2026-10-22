@@ -1,6 +1,6 @@
 import { AREAS, DRILLS } from '../content/catalog';
 import { LESSONS } from '../content/lessons';
-import { open } from '../lib/nav';
+import { go, open } from '../lib/nav';
 import { useStore } from '../store/store';
 import { isPro } from '../lib/backend';
 import { Icon } from '../ui/Icon';
@@ -25,7 +25,7 @@ export function Practice() {
           <div className="card" style={{ paddingBlock: 4 }}>
             <div className="list">
               {DRILLS.filter((d) => d.area === a.id).map((d) => (
-                <button key={d.id} className="item" onClick={() => open({ kind: 'drill', id: d.id })}>
+                <button key={d.id} className="item" onClick={() => (d.id === 'pronunciation' ? go('accent') : open({ kind: 'drill', id: d.id }))}>
                   <span className="ic" style={d.area === 'presence' ? { background: 'var(--signal-soft)', color: 'var(--warn)' } : undefined}>
                     <Icon name={d.icon} />
                   </span>

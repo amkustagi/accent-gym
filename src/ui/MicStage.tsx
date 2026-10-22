@@ -28,6 +28,8 @@ export interface MicStageProps {
   modeOverride?: ListeningMode;
   /** The drill needs words: never run in voice-only mode. */
   needsTranscript?: boolean;
+  /** Speech recognition locale (accent target). */
+  lang?: string;
 }
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -140,7 +142,7 @@ export function MicStage(p: MicStageProps) {
         onAlternatives: (a) => cbs.current.onAlternatives?.(a),
         onWarning: (w) => setWarning(STT_HELP[w as SttError] ?? w),
       },
-      { record: p.record, continuous: p.continuous },
+      { record: p.record, continuous: p.continuous, lang: p.lang },
     );
     sess.current = s;
     setPhase('live');
@@ -164,7 +166,7 @@ export function MicStage(p: MicStageProps) {
       const quiet = cbs.current.autoStopSilence;
       if (quiet && spoke.current && frames.current.length && frames.current[frames.current.length - 1].t - lastLoud.current > quiet) void finish();
     }, 200);
-  }, [mode, p.record, p.continuous, draw, finish]);
+  }, [mode, p.record, p.continuous, p.lang, draw, finish]);
 
   useEffect(() => {
     // Phones cut the mic when the app goes to the background; score what we have instead of hanging.

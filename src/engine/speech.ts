@@ -20,6 +20,8 @@ export interface SttOptions {
   /** Return several guesses per phrase (used for single-word pronunciation checks). */
   alternatives?: (alts: string[]) => void;
   continuous?: boolean;
+  /** Recognition locale, e.g. en-GB for a British accent target. */
+  lang?: string;
 }
 
 /**
@@ -47,7 +49,7 @@ export function listen(opts: SttOptions): SttHandle {
   };
   const start = () => {
     rec = new SRClass();
-    rec.lang = 'en-US';
+    rec.lang = opts.lang ?? 'en-US';
     rec.continuous = opts.continuous ?? true;
     rec.interimResults = true;
     rec.maxAlternatives = opts.alternatives ? 5 : 1;

@@ -9,6 +9,11 @@ import { Today } from './screens/Today';
 import { Practice } from './screens/Practice';
 import { Speak } from './screens/Speak';
 import { Progress } from './screens/Progress';
+import { AccentHome } from './screens/accent/AccentHome';
+import { AccentCheckDrill } from './screens/accent/AccentCheck';
+import { SoundLessonDrill } from './screens/accent/SoundLesson';
+import { ShadowDrill } from './screens/accent/Shadow';
+import { WeeklyReport } from './screens/WeeklyReport';
 import { Settings } from './screens/Settings';
 import { Onboarding } from './screens/Onboarding';
 import { LessonView } from './screens/Lesson';
@@ -21,12 +26,13 @@ import { WhatsNew } from './screens/WhatsNew';
 import { SwapsDrill } from './screens/drills/Swaps';
 import { ConcisionDrill, StructureDrill } from './screens/drills/Content';
 import { PaceDrill, PausesDrill, VarietyDrill } from './screens/drills/Voice';
-import { ClarityDrill, PronunciationDrill, WarmupDrill } from './screens/drills/Articulation';
+import { ClarityDrill, WarmupDrill } from './screens/drills/Articulation';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'today', label: 'Today', icon: 'home' },
   { id: 'practice', label: 'Practice', icon: 'grid' },
   { id: 'speak', label: 'Simulator', icon: 'mic' },
+  { id: 'accent', label: 'Accent', icon: 'globe' },
   { id: 'progress', label: 'Progress', icon: 'chart' },
 ];
 
@@ -53,6 +59,7 @@ function OverlayHost() {
   else if (o.kind === 'feedback') el = <FeedbackScreen type={o.type} onClose={done} />;
   else if (o.kind === 'profile') el = <ProfileScreen onClose={done} />;
   else if (o.kind === 'whatsnew') el = <WhatsNew onClose={done} />;
+  else if (o.kind === 'weekly') el = <WeeklyReport onClose={done} />;
   else if (o.kind === 'drill') {
     const k = `${o.id}-${o.param ?? ''}`;
     switch (o.id) {
@@ -67,7 +74,9 @@ function OverlayHost() {
       case 'variety': el = <VarietyDrill key={k} onClose={done} />; break;
       case 'warmup': el = <WarmupDrill key={k} onClose={done} />; break;
       case 'clarity': el = <ClarityDrill key={k} onClose={done} />; break;
-      case 'pronunciation': el = <PronunciationDrill key={k} param={o.param} onClose={done} />; break;
+      case 'pronunciation': el = <SoundLessonDrill key={k} param={o.param} onClose={done} />; break;
+      case 'accentcheck': el = <AccentCheckDrill key={k} onClose={done} />; break;
+      case 'shadow': el = <ShadowDrill key={k} param={o.param} onClose={done} />; break;
     }
   }
   return <>{el}</>;
@@ -102,6 +111,7 @@ export function App() {
         {tab === 'today' && <Today />}
         {tab === 'practice' && <Practice />}
         {tab === 'speak' && <Speak />}
+        {tab === 'accent' && <AccentHome />}
         {tab === 'progress' && <Progress />}
       </main>
       <div className="tabbar">

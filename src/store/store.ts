@@ -5,6 +5,7 @@ import type { ListeningMode } from '../engine/capture';
 import type { VoiceEngine } from '../engine/tts';
 import type { Metrics, Scores, Skill, Tip } from '../engine/score';
 import type { DrillId } from '../content/catalog';
+import type { AccentGoal, FeatureId } from '../content/accents';
 
 export type Goal = 'meetings' | 'interviews' | 'presenting' | 'everyday';
 export type Plan = 'free' | 'pro_monthly' | 'pro_lifetime';
@@ -25,6 +26,10 @@ export interface Profile {
   challenges: string[];
   nativeLanguage: string;
   consentAnalytics: boolean;
+  /** Accent the user wants to sound like, or 'none' to keep their own. */
+  accentGoal: AccentGoal;
+  /** Starting point id from content/accents STARTING. */
+  accentFrom: string;
 }
 
 export interface Settings {
@@ -35,6 +40,9 @@ export interface Settings {
   aiKey: string;
   reminderTime: string;
   keepRecordings: boolean;
+  /** Owner testing: own Microsoft Azure Speech key and region for precise accent scoring. */
+  azureKey: string;
+  azureRegion: string;
 }
 
 export interface SessionRecord {
@@ -99,6 +107,22 @@ export interface Account {
   syncedAt: number;
 }
 
+export interface SoundScore {
+  t: number;
+  score: number;
+  src: 'free' | 'pro';
+}
+
+export interface AccentCheckRecord {
+  t: number;
+  target: string;
+  src: 'free' | 'pro';
+  overall: number;
+  scores: Partial<Record<FeatureId, number>>;
+  fluency?: number;
+  prosody?: number | null;
+}
+
 export interface State {
   loaded: boolean;
   profile: Profile;
@@ -120,6 +144,9 @@ export interface State {
   lastCheckin: number;
   lastSeenVersion: string;
   account: Account | null;
+  /** Score history per sound. */
+  sounds: Partial<Record<FeatureId, SoundScore[]>>;
+  accentChecks: AccentCheckRecord[];
   updatedAt: number;
   version: number;
 }
@@ -127,12 +154,13 @@ export interface State {
 export const DEFAULT_PROFILE: Profile = {
   name: '', goal: 'meetings', pronunciation: false, minutes: 10, onboarded: false, createdAt: 0,
   role: 'general', customRole: '', industry: '', seniority: 'mid', situations: [], challenges: [], nativeLanguage: '', consentAnalytics: true,
+  accentGoal: 'none', accentFrom: '',
 };
 
 const DEFAULT: State = {
   loaded: false,
   profile: DEFAULT_PROFILE,
-  settings: { voiceEngine: 'natural', naturalVoice: 'af_heart', systemVoice: '', listening: 'full', aiKey: '', reminderTime: '08:30', keepRecordings: true },
+  settings: { voiceEngine: 'natural', naturalVoice: 'af_heart', systemVoice: '', listening: 'full', aiKey: '', reminderTime: '08:30', keepRecordings: true, azureKey: '', azureRegion: '' },
   xp: 0,
   days: {},
   sessions: [],
@@ -148,8 +176,10 @@ const DEFAULT: State = {
   lastCheckin: 0,
   lastSeenVersion: '',
   account: null,
+  sounds: {},
+  accentChecks: [],
   updatedAt: 0,
-  version: 2,
+  version: 3,
 };
 
 let state: State = DEFAULT;
@@ -200,7 +230,12 @@ export function migrate(saved: Record<string, unknown> | undefined): State {
   return {
     ...DEFAULT,
     ...s,
-    profile: { ...DEFAULT_PROFILE, ...s.profile },
+    profile: {
+      ...DEFAULT_PROFILE,
+      ...s.profile,
+      // v0.02 had a pronunciation on/off switch (American sounds); carry it over as the accent goal.
+      accentGoal: s.profile?.accentGoal ?? (s.profile?.pronunciation ? 'us' : 'none'),
+    },
     settings,
     adapt: s.adapt ?? {},
     srs: s.srs ?? {},
@@ -210,7 +245,9 @@ export function migrate(saved: Record<string, unknown> | undefined): State {
     errors: s.errors ?? [],
     counters: s.counters ?? {},
     account: s.account ?? null,
-    version: 2,
+    sounds: s.sounds ?? {},
+    accentChecks: s.accentChecks ?? [],
+    version: 3,
     loaded: true,
   } as State;
 }
@@ -429,4 +466,31 @@ export const SCORED_DRILLS: (DrillId | 'baseline')[] = ['simulator', 'pressure',
 export function scoredToday(s: State): number {
   const k = todayKey();
   return SCORED_DRILLS.reduce((a, d) => a + (s.days[k]?.[d] ?? 0), 0);
+}
+
+// ---------- accent ----------
+
+export function recordSounds(scores: Partial<Record<FeatureId, number>>, src: 'free' | 'pro') {
+  setState((s) => {
+    const sounds = { ...s.sounds };
+    (Object.keys(scores) as FeatureId[]).forEach((k) => {
+      sounds[k] = [...(sounds[k] ?? []), { t: Date.now(), score: scores[k]!, src }].slice(-30);
+    });
+    return { ...s, sounds };
+  });
+}
+
+export function saveAccentCheck(c: Omit<AccentCheckRecord, 't'>) {
+  setState((s) => ({ ...s, accentChecks: [...s.accentChecks, { ...c, t: Date.now() }].slice(-50) }));
+  recordSounds(c.scores, c.src);
+}
+
+/** Current score for a sound: a recent precise score wins; otherwise the average of the last three. */
+export function soundScore(s: State, id: FeatureId): { score: number; src: 'free' | 'pro'; first: number } | null {
+  const h = s.sounds[id];
+  if (!h?.length) return null;
+  const recentPro = [...h].reverse().find((x) => x.src === 'pro' && Date.now() - x.t < 14 * 864e5);
+  const last = h.slice(-3);
+  const score = recentPro ? recentPro.score : Math.round(last.reduce((a, x) => a + x.score, 0) / last.length);
+  return { score, src: recentPro ? 'pro' : 'free', first: h[0].score };
 }
