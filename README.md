@@ -1,4 +1,4 @@
-# Speak Sharp
+# Speak Sharp  ·  v0.02
 
 A phone app that coaches you to speak with confidence in meetings, with an optional pronunciation track. It listens while you talk and scores **what you say** (fillers, hedges, apologies, regional phrases), **how your voice sounds** (pace, pauses, pitch variety, uptalk), and **how clearly you're understood**.
 
@@ -15,6 +15,9 @@ Installable web app (PWA): free, works offline, no App Store needed. All analysi
 - **Report** after every round: overall score, six skill bars, prioritized tips, voice timeline (pitch, loudness, pauses), highlighted transcript, playback of your recording, optional AI coach rewrite
 - **Progress**: trends per skill, now vs. baseline radar, full history with recordings
 - **Settings**: listening mode, model voice, optional Claude API key for the AI coach, calendar reminder, backup/restore, erase
+
+## What's in v0.02
+Natural AI voice, playback fixes for iPhone, never-ending scenarios built from your role, adaptive difficulty and spaced repetition, AI follow-up conversations, feedback everywhere, and accounts with Pro monthly/lifetime (dormant until configured). See [CHANGELOG.md](CHANGELOG.md) and, to turn on accounts and payments, [SETUP.md](SETUP.md).
 
 ## Install on your phone
 1. GitHub repo **Settings → Pages → Build and deployment**: Source *Deploy from a branch*, Branch **gh-pages** / **(root)**, Save. (On a free GitHub plan the repo must be public.)
@@ -40,5 +43,8 @@ src/engine/   speech-to-text, voice analyzer, scorer, capture session (+ tests)
 src/content/  scenarios, swap cards, lessons, twisters, passages, pronunciation sets
 src/store/    persisted app state, daily plan, streaks, levels
 src/ui/       design system components, live mic stage, report
-src/screens/  tabs, settings, onboarding, and the 11 drills
+src/screens/  tabs, settings, onboarding, account, paywall, feedback, and the 12 drills
+src/learn/    adaptive difficulty, spaced repetition, habits, personalized plan
+src/lib/      backend (accounts, sync, Stripe), AI, feedback, gating
+supabase/     database schema and server functions (checkout, webhook, portal, AI)
 ```

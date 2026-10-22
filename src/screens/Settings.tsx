@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { englishVoices, setPreferredVoice, speak } from '../engine/speech';
 import type { ListeningMode } from '../engine/capture';
+import { NATURAL_VOICES, configureVoice, englishVoices, loadNatural, naturalState, onNaturalState, speak, systemVoiceIsBasic, type NaturalState } from '../engine/tts';
+import { isIOS } from '../engine/speech';
 import { testKey } from '../lib/ai';
-import { exportData, importData, resetAll, updateProfile, updateSettings, useStore, type Goal } from '../store/store';
+import { backendEnabled, isPro, planName } from '../lib/backend';
+import { open } from '../lib/nav';
+import { exportData, importData, resetAll, updateProfile, updateSettings, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
 import { Seg, SessionShell, Switch, toast } from '../ui/ui';
 
-function download(name: string, type: string, text: string) {
+export function download(name: string, type: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
   const a = document.createElement('a');
   a.href = url;
@@ -25,7 +28,7 @@ function reminderIcs(time: string) {
   const start = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(h)}${pad(m)}00`;
   const endD = new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m + 10);
   const end = `${endD.getFullYear()}${pad(endD.getMonth() + 1)}${pad(endD.getDate())}T${pad(endD.getHours())}${pad(endD.getMinutes())}00`;
-  const url = location.href.split('#')[0];
+  const url = location.href.split('#')[0].split('?')[0];
   return [
     'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Speak Sharp//EN', 'BEGIN:VEVENT',
     `UID:speak-sharp-daily-${Date.now()}@speak-sharp`, `DTSTAMP:${start}`,
@@ -36,40 +39,114 @@ function reminderIcs(time: string) {
   ].join('\r\n');
 }
 
-export function Settings({ onClose }: { onClose: () => void }) {
-  const s = useStore((x) => x);
-  const [voices, setVoices] = useState(englishVoices());
-  const [key, setKey] = useState(s.settings.aiKey);
-  const [keyState, setKeyState] = useState<'idle' | 'testing' | 'ok' | 'bad'>('idle');
-  const [confirmReset, setConfirmReset] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+function useNatural(): NaturalState {
+  const [s, set] = useState(naturalState());
+  useEffect(() => onNaturalState(set), []);
+  return s;
+}
 
+function VoiceSection() {
+  const st = useStore((x) => x.settings);
+  const natural = useNatural();
+  const [voices, setVoices] = useState(englishVoices());
   useEffect(() => {
     if (typeof speechSynthesis === 'undefined') return;
     const l = () => setVoices(englishVoices());
     speechSynthesis.addEventListener('voiceschanged', l);
     return () => speechSynthesis.removeEventListener('voiceschanged', l);
   }, []);
+  const set = (p: Parameters<typeof updateSettings>[0]) => {
+    updateSettings(p);
+    configureVoice({ engine: p.voiceEngine, naturalVoice: p.naturalVoice, systemVoice: p.systemVoice });
+  };
+  const sample = 'Thanks for joining. Let\'s get started with the quarterly update.';
+  return (
+    <section className="card">
+      <h3>Model voice</h3>
+      <Seg label="Voice type" value={st.voiceEngine} onChange={(v) => set({ voiceEngine: v })} options={[{ v: 'natural', label: 'Natural (AI)' }, { v: 'system', label: 'Phone voice' }]} />
+      {st.voiceEngine === 'natural' && (
+        <div className="stack">
+          {natural.status !== 'ready' && (
+            <div className="note">
+              <b>{natural.status === 'loading' ? `Downloading natural voice… ${Math.round(natural.progress * 100)}%` : 'Human-sounding voice, runs on your phone'}</b>
+              {natural.status === 'loading' ? (
+                <div className="progress" style={{ marginTop: 8 }}><i style={{ width: `${Math.round(natural.progress * 100)}%` }} /></div>
+              ) : natural.status === 'error' ? (
+                <span>{natural.message}</span>
+              ) : (
+                <span>A one-time download of about 90 MB (use Wi-Fi). After that it works offline. Until it's ready, the phone voice is used.</span>
+              )}
+              {natural.status !== 'loading' && (
+                <button className="btn primary sm" style={{ marginTop: 10 }} onClick={() => void loadNatural().then(() => { toast('Natural voice ready'); void speak(sample); }).catch(() => undefined)}>
+                  <Icon name="download" />{natural.status === 'error' ? 'Try again' : 'Download natural voice'}
+                </button>
+              )}
+            </div>
+          )}
+          <div className="grid2">
+            {NATURAL_VOICES.map((v) => (
+              <button key={v.id} className={`opt${st.naturalVoice === v.id ? ' right' : ''}`} style={{ padding: '10px 12px' }} onClick={() => { set({ naturalVoice: v.id }); if (natural.status === 'ready') void speak(sample); }}>
+                <b>{v.name}</b>
+                <br />
+                <span className="small muted">{v.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {st.voiceEngine === 'system' && (
+        <div className="field">
+          <label htmlFor="sysvoice">Phone voice</label>
+          <div className="row">
+            <select id="sysvoice" className="input grow" value={st.systemVoice} onChange={(e) => set({ systemVoice: e.target.value })}>
+              <option value="">Best available</option>
+              {voices.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}
+            </select>
+            <button className="iconbtn" onClick={() => void speak(sample)} aria-label="Test voice"><Icon name="speaker" /></button>
+          </div>
+          {systemVoiceIsBasic() && (
+            <span className="small muted">
+              {isIOS() ? 'For a far better phone voice: iPhone Settings › Accessibility › Spoken Content › Voices › English › download "Ava (Premium)" or "Evan (Enhanced)", then reopen this app.' : 'Install a better voice in your phone\'s text-to-speech settings (Google: "Speech Services by Google").'}
+            </span>
+          )}
+        </div>
+      )}
+      <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => void speak(sample)}><Icon name="speaker" />Test the voice</button>
+    </section>
+  );
+}
 
+export function Settings({ onClose }: { onClose: () => void }) {
+  const s = useStore((x) => x);
+  const [key, setKey] = useState(s.settings.aiKey);
+  const [keyState, setKeyState] = useState<'idle' | 'testing' | 'ok' | 'bad'>('idle');
+  const [confirmReset, setConfirmReset] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pro = isPro(s);
   const modes: { v: ListeningMode; label: string }[] = [{ v: 'full', label: 'Full' }, { v: 'transcript', label: 'Words only' }, { v: 'voice', label: 'Voice only' }];
 
   return (
     <SessionShell title="Settings" onClose={onClose}>
+      <button className="card" style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit', color: 'inherit' }} onClick={() => open({ kind: 'account' })}>
+        <div className="row">
+          <span className="ic" style={{ width: 48, height: 48, borderRadius: 14, display: 'grid', placeItems: 'center', background: pro ? 'var(--signal-soft)' : 'var(--brand-soft)', color: pro ? 'var(--warn)' : 'var(--brand)' }}>
+            <Icon name={pro ? 'crown' : 'user'} />
+          </span>
+          <span className="grow">
+            <b>{s.account ? s.account.email : backendEnabled ? 'Sign in or create an account' : 'Account'}</b>
+            <br />
+            <span className="small muted">{!backendEnabled ? 'Owner mode: all Pro features unlocked' : s.account ? planName(s.account.plan) : 'Sync progress and unlock Pro'}</span>
+          </span>
+          <Icon name="chevron" className="chev" />
+        </div>
+      </button>
+
       <section className="card">
-        <h3>You</h3>
-        <div className="field">
-          <label htmlFor="name">First name</label>
-          <input id="name" className="input" value={s.profile.name} onChange={(e) => updateProfile({ name: e.target.value.slice(0, 30) })} autoComplete="given-name" />
+        <div className="row spread">
+          <h3>Your profile</h3>
+          <button className="btn quiet sm" onClick={() => open({ kind: 'profile' })}><Icon name="edit" />Edit</button>
         </div>
-        <div className="field">
-          <label htmlFor="goal">Main goal</label>
-          <select id="goal" className="input" value={s.profile.goal} onChange={(e) => updateProfile({ goal: e.target.value as Goal })}>
-            <option value="meetings">Speak up in meetings</option>
-            <option value="interviews">Ace interviews</option>
-            <option value="presenting">Present with impact</option>
-            <option value="everyday">Everyday confidence</option>
-          </select>
-        </div>
+        <p className="small muted">Role, industry, situations and challenges shape your scenarios and daily plan.</p>
         <div className="field">
           <label>Daily practice</label>
           <Seg label="Daily minutes" value={s.profile.minutes} onChange={(v) => updateProfile({ minutes: v })} options={[{ v: 5, label: '5 min' }, { v: 10, label: '10 min' }, { v: 15, label: '15 min' }]} />
@@ -83,33 +160,24 @@ export function Settings({ onClose }: { onClose: () => void }) {
         </div>
       </section>
 
+      <VoiceSection />
+
       <section className="card">
         <h3>Listening</h3>
         <Seg label="Listening mode" value={s.settings.listening} onChange={(v) => updateSettings({ listening: v })} options={modes} />
         <p className="small muted">
           {s.settings.listening === 'full' && 'Transcript and voice analysis together. Best results.'}
-          {s.settings.listening === 'transcript' && 'Only speech-to-text. Use this if your phone won\'t share the mic between the two. Pauses and pitch are not measured.'}
-          {s.settings.listening === 'voice' && 'Only voice analysis (pace from audio, pauses, pitch). No transcript, fillers or weak words.'}
+          {s.settings.listening === 'transcript' && 'Only speech-to-text. Use this if your phone won\'t share the mic between the two. Pauses, pitch and playback are not available.'}
+          {s.settings.listening === 'voice' && 'Only voice analysis (pauses, pitch, playback). Drills that need your words still turn on speech-to-text.'}
         </p>
-        <div className="field">
-          <label htmlFor="voice">Model voice</label>
-          <div className="row">
-            <select id="voice" className="input grow" value={s.settings.voice} onChange={(e) => { updateSettings({ voice: e.target.value }); setPreferredVoice(e.target.value); }}>
-              <option value="">Automatic (best available)</option>
-              {voices.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)}
-            </select>
-            <button className="iconbtn" onClick={() => speak('Thanks for joining. Let\'s get started.')} aria-label="Test voice"><Icon name="speaker" /></button>
-          </div>
-          <span className="small muted">On iPhone, download better voices in Settings › Accessibility › Spoken Content › Voices.</span>
-        </div>
       </section>
 
       <section className="card">
         <div className="row spread">
           <h3>AI coach</h3>
-          <span className="pill">Optional</span>
+          <span className="pill">{pro && backendEnabled ? 'Included in Pro' : 'Optional'}</span>
         </div>
-        <p className="small muted">Adds a "Coach this answer" button to simulator reports: Claude rewrites your answer and gives three specific fixes. Uses your own Anthropic API key, billed per use (about a cent per answer). The key stays on this phone.</p>
+        <p className="small muted">Powers the AI coach, follow-up questions and fresh scenarios. {backendEnabled ? 'Included with Pro, or use' : 'Use'} your own Anthropic API key (about a cent per answer). The key stays on this phone.</p>
         <div className="field">
           <label htmlFor="key">Anthropic API key</label>
           <input id="key" className="input mono" type="password" placeholder="sk-ant-…" value={key} onChange={(e) => { setKey(e.target.value.trim()); setKeyState('idle'); }} autoComplete="off" />
@@ -130,6 +198,22 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </section>
 
       <section className="card">
+        <h3>Help us improve</h3>
+        <div className="grid2">
+          <button className="btn quiet" onClick={() => open({ kind: 'feedback', type: 'bug' })}><Icon name="info" />Report a problem</button>
+          <button className="btn quiet" onClick={() => open({ kind: 'feedback', type: 'idea' })}><Icon name="sparkle" />Suggest an idea</button>
+        </div>
+        <div className="row spread">
+          <div className="stack-sm grow">
+            <b>Share anonymous usage</b>
+            <span className="small muted">Counts of drills used and error messages, never your recordings or transcripts</span>
+          </div>
+          <Switch label="Share anonymous usage" checked={s.profile.consentAnalytics} onChange={(v) => updateProfile({ consentAnalytics: v })} />
+        </div>
+        <p className="small muted">{s.feedback.length} pieces of feedback given so far. Thank you.</p>
+      </section>
+
+      <section className="card">
         <h3>Daily reminder</h3>
         <p className="small muted">Adds a repeating 10-minute practice event to your calendar app, with an alert.</p>
         <div className="row">
@@ -142,11 +226,11 @@ export function Settings({ onClose }: { onClose: () => void }) {
 
       <section className="card">
         <h3>Your data</h3>
-        <p className="small muted">Everything stays on this phone. Back it up before switching phones or clearing your browser.</p>
+        <p className="small muted">{s.account ? 'Progress syncs to your account. Recordings stay on this phone.' : 'Everything stays on this phone. Back it up before switching phones or clearing your browser.'}</p>
         <div className="row spread">
           <div className="stack-sm grow">
             <b>Keep recordings</b>
-            <span className="small muted">Last 40 takes, for playback</span>
+            <span className="small muted">Last 60 takes, for playback</span>
           </div>
           <Switch label="Keep recordings" checked={s.settings.keepRecordings} onChange={(v) => updateSettings({ keepRecordings: v })} />
         </div>
@@ -165,7 +249,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
           e.target.value = '';
         }} />
         {!confirmReset ? (
-          <button className="btn ghost" style={{ color: 'var(--bad)' }} onClick={() => setConfirmReset(true)}>Erase all data</button>
+          <button className="btn ghost" style={{ color: 'var(--bad)' }} onClick={() => setConfirmReset(true)}>Erase all data on this phone</button>
         ) : (
           <div className="note bad">
             <b>Erase everything?</b>
@@ -178,8 +262,9 @@ export function Settings({ onClose }: { onClose: () => void }) {
         )}
       </section>
 
+      <button className="btn ghost" onClick={() => open({ kind: 'whatsnew' })}>What's new in v{__APP_VERSION__}</button>
       <p className="small muted" style={{ textAlign: 'center' }}>
-        Speak Sharp {__APP_VERSION__} · Your voice is analyzed on this phone. Speech-to-text uses your browser's built-in service.
+        Speak Sharp v{__APP_VERSION__} · Your voice is analyzed on this phone. Speech-to-text uses your browser's built-in service.
       </p>
     </SessionShell>
   );

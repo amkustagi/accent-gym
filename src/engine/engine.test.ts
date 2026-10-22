@@ -27,8 +27,10 @@ describe('analyzeText', () => {
     expect(r.fillerCount).toBe(4);
   });
 
-  it('does not flag "you know what"', () => {
+  it('does not flag "you know what" or "let you know"', () => {
     expect(analyzeText('You know what the plan is').fillerCount).toBe(0);
+    expect(analyzeText("I'll let you know by Friday. Do you know the date?").fillerCount).toBe(0);
+    expect(analyzeText('It was, you know, slow.').fillerCount).toBe(1);
   });
 
   it('counts words and sentences', () => {

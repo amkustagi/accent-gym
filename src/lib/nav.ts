@@ -7,6 +7,11 @@ export type Overlay =
   | { kind: 'lesson'; id: string }
   | { kind: 'session'; id: string }
   | { kind: 'settings' }
+  | { kind: 'account' }
+  | { kind: 'paywall'; reason?: string }
+  | { kind: 'feedback'; type?: 'bug' | 'idea' | 'other' }
+  | { kind: 'profile' }
+  | { kind: 'whatsnew' }
   | null;
 
 let tab: Tab = 'today';

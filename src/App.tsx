@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { close, go, useOverlay, useTab, type Tab } from './lib/nav';
-import { setPreferredVoice } from './engine/speech';
+import { configureVoice } from './engine/tts';
+import { open as openOverlay } from './lib/nav';
 import { useStore } from './store/store';
 import { Icon } from './ui/Icon';
 import { ToastHost } from './ui/ui';
@@ -12,7 +13,11 @@ import { Settings } from './screens/Settings';
 import { Onboarding } from './screens/Onboarding';
 import { LessonView } from './screens/Lesson';
 import { SessionView } from './screens/SessionView';
-import { SimulatorDrill } from './screens/drills/Simulator';
+import { RolePlayDrill, SimulatorDrill } from './screens/drills/Simulator';
+import { AccountScreen, Paywall } from './screens/Account';
+import { ProfileScreen } from './screens/Profile';
+import { FeedbackScreen } from './screens/FeedbackScreen';
+import { WhatsNew } from './screens/WhatsNew';
 import { SwapsDrill } from './screens/drills/Swaps';
 import { ConcisionDrill, StructureDrill } from './screens/drills/Content';
 import { PaceDrill, PausesDrill, VarietyDrill } from './screens/drills/Voice';
@@ -43,12 +48,18 @@ function OverlayHost() {
   if (o.kind === 'settings') el = <Settings onClose={done} />;
   else if (o.kind === 'lesson') el = <LessonView id={o.id} onClose={done} />;
   else if (o.kind === 'session') el = <SessionView id={o.id} onClose={done} />;
+  else if (o.kind === 'account') el = <AccountScreen onClose={done} />;
+  else if (o.kind === 'paywall') el = <Paywall reason={o.reason} onClose={done} />;
+  else if (o.kind === 'feedback') el = <FeedbackScreen type={o.type} onClose={done} />;
+  else if (o.kind === 'profile') el = <ProfileScreen onClose={done} />;
+  else if (o.kind === 'whatsnew') el = <WhatsNew onClose={done} />;
   else if (o.kind === 'drill') {
     const k = `${o.id}-${o.param ?? ''}`;
     switch (o.id) {
       case 'simulator': el = <SimulatorDrill key={k} param={o.param} onClose={done} />; break;
       case 'pressure': el = <SimulatorDrill key={k} pressure onClose={done} />; break;
-      case 'swaps': el = <SwapsDrill key={k} onClose={done} />; break;
+      case 'swaps': el = <SwapsDrill key={k} param={o.param} onClose={done} />; break;
+      case 'roleplay': el = <RolePlayDrill key={k} onClose={done} />; break;
       case 'structure': el = <StructureDrill key={k} onClose={done} />; break;
       case 'concision': el = <ConcisionDrill key={k} onClose={done} />; break;
       case 'pace': el = <PaceDrill key={k} onClose={done} />; break;
@@ -65,9 +76,17 @@ function OverlayHost() {
 export function App() {
   const loaded = useStore((s) => s.loaded);
   const onboarded = useStore((s) => s.profile.onboarded);
-  const voice = useStore((s) => s.settings.voice);
+  const voiceEngine = useStore((s) => s.settings.voiceEngine);
+  const naturalVoice = useStore((s) => s.settings.naturalVoice);
+  const systemVoice = useStore((s) => s.settings.systemVoice);
+  const lastSeen = useStore((s) => s.lastSeenVersion);
   const tab = useTab();
-  useEffect(() => setPreferredVoice(voice), [voice]);
+  useEffect(() => configureVoice({ engine: voiceEngine, naturalVoice, systemVoice }), [voiceEngine, naturalVoice, systemVoice]);
+  useEffect(() => {
+    // Existing users see what changed once after an update.
+    if (loaded && onboarded && lastSeen !== __APP_VERSION__) openOverlay({ kind: 'whatsnew' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, onboarded]);
 
   if (!loaded)
     return (

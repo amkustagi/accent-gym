@@ -272,3 +272,17 @@ textarea.input { min-height: 120px; resize: vertical; }
 @media (min-width: 720px) {
   .page { padding-top: 32px; }
 }
+
+/* ---------- v0.02: feedback controls ---------- */
+a.btn { text-decoration: none; }
+.btn.on { background: var(--signal-soft); border-color: var(--signal); }
+.chip.sm { padding: 5px 11px; font-size: 0.8rem; }
+.face { width: 52px; height: 52px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); font-size: 1.6rem; cursor: pointer; display: grid; place-items: center; transition: transform 0.1s; }
+.face.on { border-color: var(--signal); background: var(--signal-soft); transform: scale(1.08); }
+.thumbs { display: inline-flex; gap: 4px; flex: 0 0 auto; }
+.thumbs button { width: 34px; height: 30px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 0.95rem; filter: grayscale(0.7); opacity: 0.75; }
+.thumbs button.on { filter: none; opacity: 1; border-color: var(--brand); background: var(--brand-soft); }
+.nps { display: grid; grid-template-columns: repeat(11, 1fr); gap: 4px; }
+.nps button { aspect-ratio: 1; max-width: 100%; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: 0.85rem; cursor: pointer; padding: 0; }
+.nps button.on { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+button.card:disabled { opacity: 0.6; }

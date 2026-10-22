@@ -1,6 +1,6 @@
 import type { Skill } from '../engine/score';
 
-export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure';
+export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure' | 'roleplay';
 export type Area = 'content' | 'voice' | 'articulation' | 'presence';
 
 export interface DrillInfo {
@@ -12,9 +12,11 @@ export interface DrillInfo {
   minutes: number;
   icon: IconName;
   optional?: boolean;
+  /** Needs Pro (or the owner build with payments not connected). */
+  pro?: boolean;
 }
 
-export type IconName = 'swap' | 'blocks' | 'scissors' | 'metronome' | 'pause' | 'wave' | 'flame' | 'sparkle' | 'mouth' | 'mic' | 'bolt';
+export type IconName = 'swap' | 'blocks' | 'scissors' | 'metronome' | 'pause' | 'wave' | 'flame' | 'sparkle' | 'mouth' | 'mic' | 'bolt' | 'chat';
 
 export const AREAS: { id: Area; name: string; question: string }[] = [
   { id: 'content', name: 'Content', question: 'What you say' },
@@ -33,8 +35,9 @@ export const DRILLS: DrillInfo[] = [
   { id: 'warmup', name: 'Warm-up', area: 'articulation', skill: 'clarity', blurb: 'Two guided minutes before any meeting.', minutes: 2, icon: 'flame' },
   { id: 'clarity', name: 'Tongue twisters', area: 'articulation', skill: 'clarity', blurb: 'Scored on how clearly you\'re understood.', minutes: 2, icon: 'sparkle' },
   { id: 'pronunciation', name: 'Pronunciation', area: 'articulation', skill: 'clarity', blurb: 'V/W, TH, R, soft T, vowels, stress.', minutes: 4, icon: 'mouth', optional: true },
-  { id: 'simulator', name: 'Meeting simulator', area: 'presence', skill: 'language', blurb: '34 real scenarios with a full voice report.', minutes: 2, icon: 'mic' },
+  { id: 'simulator', name: 'Meeting simulator', area: 'presence', skill: 'language', blurb: 'Endless scenarios from your own job, with a full voice report.', minutes: 2, icon: 'mic' },
   { id: 'pressure', name: 'Pressure round', area: 'presence', skill: 'language', blurb: 'Random question, 10 seconds to prepare.', minutes: 2, icon: 'bolt' },
+  { id: 'roleplay', name: 'AI conversation', area: 'presence', skill: 'language', blurb: 'Answer, then handle real follow-up questions.', minutes: 4, icon: 'chat', pro: true },
 ];
 
 export const drillById = (id: DrillId) => DRILLS.find((d) => d.id === id)!;

@@ -1,0 +1,12 @@
+# Supabase project settings used by `supabase functions deploy`.
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.billing-portal]
+verify_jwt = true
+
+[functions.ai]
+verify_jwt = true

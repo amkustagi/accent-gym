@@ -1,10 +1,12 @@
-// Browser speech services: speech-to-text, text-to-speech, microphone, recording.
+// Browser speech input: speech-to-text, microphone, recording, and the iPhone audio session.
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type SR = any;
 const SRClass: SR = typeof window !== 'undefined' ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : undefined;
 
 export const sttSupported = (): boolean => !!SRClass;
+export const isSafari = (): boolean => typeof navigator !== 'undefined' && /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+export const isIOS = (): boolean => typeof navigator !== 'undefined' && (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 export type SttError = 'not-allowed' | 'service-not-allowed' | 'audio-capture' | 'network' | 'unsupported';
 
@@ -20,21 +22,28 @@ export interface SttOptions {
   continuous?: boolean;
 }
 
-/** Continuous recognition that restarts itself when the browser ends a phrase early. */
+/**
+ * Continuous recognition that restarts itself when the browser ends a phrase early.
+ * The transcript is rebuilt from the full result list on every event, because Safari
+ * re-sends earlier results and reading only `resultIndex` onward duplicated words.
+ */
 export function listen(opts: SttOptions): SttHandle {
   if (!SRClass) {
     queueMicrotask(() => opts.onEnd('', 'unsupported'));
     return { stop() {} };
   }
-  let finalText = '';
+  let committed = ''; // finals from earlier recognizer sessions (before a restart)
+  let sessionFinal = '';
   let stopped = false;
   let ended = false;
   let rec: SR;
   let restarts = 0;
+  const seenAlts = new Set<number>();
+  const all = () => `${committed} ${sessionFinal}`.replace(/\s+/g, ' ').trim();
   const finish = (err?: SttError) => {
     if (ended) return;
     ended = true;
-    opts.onEnd(finalText.trim(), err);
+    opts.onEnd(all(), err);
   };
   const start = () => {
     rec = new SRClass();
@@ -42,28 +51,33 @@ export function listen(opts: SttOptions): SttHandle {
     rec.continuous = opts.continuous ?? true;
     rec.interimResults = true;
     rec.maxAlternatives = opts.alternatives ? 5 : 1;
+    seenAlts.clear();
     rec.onresult = (e: any) => {
+      let fin = '';
       let interim = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
+      for (let i = 0; i < e.results.length; i++) {
         const r = e.results[i];
         if (r.isFinal) {
-          finalText += r[0].transcript + ' ';
-          if (opts.alternatives) opts.alternatives(Array.from(r as ArrayLike<{ transcript: string }>).map((a) => a.transcript));
-        } else interim += r[0].transcript;
+          fin += r[0].transcript + ' ';
+          if (opts.alternatives && !seenAlts.has(i)) {
+            seenAlts.add(i);
+            opts.alternatives(Array.from(r as ArrayLike<{ transcript: string }>).map((a) => a.transcript));
+          }
+        } else interim += r[0].transcript + ' ';
       }
-      opts.onText(`${finalText} ${interim}`.replace(/\s+/g, ' ').trim(), !interim);
+      sessionFinal = fin;
+      opts.onText(`${all()} ${interim}`.replace(/\s+/g, ' ').trim(), !interim.trim());
     };
     rec.onerror = (e: any) => {
-      const fatal: SttError[] = ['not-allowed', 'service-not-allowed', 'audio-capture'];
+      const fatal: SttError[] = ['not-allowed', 'service-not-allowed', 'audio-capture', 'network'];
       if (fatal.includes(e.error)) {
         stopped = true;
         finish(e.error);
-      } else if (e.error === 'network') {
-        stopped = true;
-        finish('network');
       }
     };
     rec.onend = () => {
+      committed = all();
+      sessionFinal = '';
       if (stopped || !(opts.continuous ?? true) || restarts > 60) finish();
       else {
         restarts++;
@@ -99,15 +113,32 @@ export function listen(opts: SttOptions): SttHandle {
 export const STT_HELP: Record<SttError, string> = {
   'not-allowed': 'The microphone is blocked. Allow it for this site in your browser settings.',
   'service-not-allowed': 'Speech recognition is off. On iPhone, turn on Settings › General › Keyboard › Enable Dictation, and Siri.',
-  'audio-capture': 'Another feature is using the microphone. Try Settings › Listening mode › Transcript only.',
+  'audio-capture': 'Another feature is using the microphone. Try Settings › Listening › Words only.',
   network: 'Speech recognition needs an internet connection on this phone.',
   unsupported: 'This browser can\'t turn speech into text. Use Chrome on Android or Safari on iPhone.',
 };
+
+// ---------- audio session (iPhone) ----------
+
+/**
+ * iPhone keeps audio in "record" mode after the mic closes, which makes the model voice and
+ * playback silent or route to the earpiece. Safari 16.4+ exposes navigator.audioSession to fix it.
+ */
+export function setAudioMode(mode: 'record' | 'playback'): void {
+  const s = (navigator as any).audioSession;
+  if (!s) return;
+  try {
+    s.type = mode === 'record' ? 'play-and-record' : 'playback';
+  } catch {
+    /* unsupported */
+  }
+}
 
 // ---------- microphone & recording ----------
 
 export async function openMic(): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
+  setAudioMode('record');
   return navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false, channelCount: 1 },
   });
@@ -115,6 +146,22 @@ export async function openMic(): Promise<MediaStream> {
 
 export function closeMic(stream: MediaStream | null): void {
   stream?.getTracks().forEach((t) => t.stop());
+  setAudioMode('playback');
+}
+
+/** Container types in order of preference: Safari can only play back what it records as MP4/AAC. */
+export function recorderMimeTypes(safari = isSafari() || isIOS()): string[] {
+  const mp4 = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/aac'];
+  const webm = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
+  return safari ? [...mp4, ...webm] : [...webm, ...mp4];
+}
+
+export function pickRecorderMime(): string | undefined {
+  if (typeof MediaRecorder === 'undefined') return undefined;
+  const probe = typeof document !== 'undefined' ? document.createElement('audio') : null;
+  const ok = recorderMimeTypes().filter((t) => MediaRecorder.isTypeSupported?.(t));
+  // Prefer a type this browser can also play back.
+  return ok.find((t) => !probe || probe.canPlayType(t.split(';')[0]) !== '') ?? ok[0];
 }
 
 export class Recorder {
@@ -123,16 +170,19 @@ export class Recorder {
 
   start(stream: MediaStream): boolean {
     if (typeof MediaRecorder === 'undefined') return false;
-    const types = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm', 'audio/ogg'];
-    const mimeType = types.find((t) => MediaRecorder.isTypeSupported?.(t));
+    const mimeType = pickRecorderMime();
     try {
-      this.rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      this.rec = new MediaRecorder(stream, mimeType ? { mimeType, audioBitsPerSecond: 64000 } : undefined);
     } catch {
-      return false;
+      try {
+        this.rec = new MediaRecorder(stream);
+      } catch {
+        return false;
+      }
     }
     this.chunks = [];
     this.rec.ondataavailable = (e) => e.data.size && this.chunks.push(e.data);
-    this.rec.start(1000);
+    this.rec.start(500);
     return true;
   }
 
@@ -140,49 +190,13 @@ export class Recorder {
     const rec = this.rec;
     if (!rec || rec.state === 'inactive') return Promise.resolve(null);
     return new Promise((resolve) => {
-      rec.onstop = () => resolve(this.chunks.length ? new Blob(this.chunks, { type: rec.mimeType || 'audio/webm' }) : null);
-      rec.stop();
+      const done = () => resolve(this.chunks.length ? new Blob(this.chunks, { type: (rec.mimeType || 'audio/mp4').split(';')[0] }) : null);
+      rec.onstop = done;
+      try {
+        rec.stop();
+      } catch {
+        done();
+      }
     });
   }
 }
-
-// ---------- text-to-speech ----------
-
-let preferredVoice = '';
-export const setPreferredVoice = (name: string) => {
-  preferredVoice = name;
-};
-
-export function englishVoices(): SpeechSynthesisVoice[] {
-  if (typeof speechSynthesis === 'undefined') return [];
-  const all = speechSynthesis.getVoices().filter((v) => /^en[-_]/i.test(v.lang));
-  const us = all.filter((v) => /^en[-_]US/i.test(v.lang));
-  return (us.length ? us : all).sort((a, b) => Number(/enhanced|premium|natural|neural/i.test(b.name)) - Number(/enhanced|premium|natural|neural/i.test(a.name)));
-}
-
-function pickVoice(): SpeechSynthesisVoice | undefined {
-  const vs = englishVoices();
-  return vs.find((v) => v.name === preferredVoice) ?? vs.find((v) => /Samantha|Ava|Google US English|Aria|Jenny|Allison|Natural/i.test(v.name)) ?? vs[0];
-}
-
-export function speak(text: string, rate = 1, onEnd?: () => void): void {
-  if (typeof speechSynthesis === 'undefined') {
-    onEnd?.();
-    return;
-  }
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  const v = pickVoice();
-  if (v) u.voice = v;
-  u.lang = v?.lang ?? 'en-US';
-  u.rate = rate;
-  u.onend = () => onEnd?.();
-  u.onerror = () => onEnd?.();
-  speechSynthesis.speak(u);
-}
-
-export const stopSpeaking = () => {
-  if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
-};
-
-if (typeof speechSynthesis !== 'undefined') speechSynthesis.getVoices();

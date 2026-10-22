@@ -1,4 +1,5 @@
 // Practice content: swap cards, tongue twisters, reading passages, emphasis lines, warm-up, pronunciation.
+import { MORE_EMPHASIS, MORE_EXPRESSIVE, MORE_PASSAGES, MORE_SWAPS, MORE_TWISTERS } from './more';
 
 export interface SwapCard {
   weak: string;
@@ -6,9 +7,11 @@ export interface SwapCard {
   wrong: [string, string];
   why: string;
   tag: 'apology' | 'hedge' | 'regional' | 'filler' | 'permission';
+  /** Weak-language rule this card trains (links cards to the user's habits). */
+  rule?: string;
 }
 
-export const SWAPS: SwapCard[] = [
+const BASE_SWAPS: SwapCard[] = [
   { tag: 'apology', weak: 'Sorry to bother you, but do you have a minute?', strong: 'Do you have a minute?', wrong: ['Sorry, sorry, quick question?', "I'm sorry if this is a bad time, but…"], why: 'Asking a question is not an offense. Drop the apology.' },
   { tag: 'apology', weak: 'Sorry for the late reply.', strong: 'Thanks for your patience.', wrong: ['Sorry sorry, I was very busy.', 'So sorry, apologies for the delay.'], why: 'Thank people for what they gave you instead of apologizing.' },
   { tag: 'apology', weak: 'Sorry, I didn\'t understand.', strong: 'Could you say that another way?', wrong: ['Sorry sorry, what?', "Sorry, I'm confused, sorry."], why: 'Ask for what you need.' },
@@ -44,7 +47,7 @@ export interface Twister {
   focus: string;
 }
 
-export const TWISTERS: Twister[] = [
+const BASE_TWISTERS: Twister[] = [
   { level: 1, text: 'Red leather, yellow leather', focus: 'R and L' },
   { level: 1, text: 'Toy boat, toy boat, toy boat', focus: 'T and B' },
   { level: 1, text: 'Truly rural, truly rural', focus: 'R' },
@@ -69,7 +72,7 @@ export interface Passage {
   text: string;
 }
 
-export const PASSAGES: Passage[] = [
+const BASE_PASSAGES: Passage[] = [
   { id: 'pa1', title: 'Project update', text: 'Here is where we stand. / The integration is ninety percent complete. / We finish testing on Thursday, / and we launch on Monday. / The one risk is the vendor API. / I need a decision on the backup plan by Wednesday.' },
   { id: 'pa2', title: 'Pushing back', text: 'I understand why Friday matters. / With the current team, / Friday means we skip testing. / I recommend we ship the core features Friday / and the reports the following week. / That keeps quality where it needs to be.' },
   { id: 'pa3', title: 'Introduction', text: 'Hi everyone. / I lead the data platform work. / My focus this quarter is cutting report time in half. / If you need anything from the platform, / message me directly. / I\'m glad to be on this team.' },
@@ -84,14 +87,14 @@ export interface EmphasisLine {
   variants: { word: number; meaning: string }[];
 }
 
-export const EMPHASIS: EmphasisLine[] = [
+const BASE_EMPHASIS: EmphasisLine[] = [
   { text: 'I never said she stole the money', variants: [{ word: 0, meaning: 'Someone else said it.' }, { word: 1, meaning: 'I deny saying it at all.' }, { word: 3, meaning: 'Someone else did.' }, { word: 4, meaning: 'She borrowed it, maybe.' }, { word: 6, meaning: 'She stole something else.' }] },
   { text: 'We need this done by Friday', variants: [{ word: 0, meaning: 'Our team, not yours.' }, { word: 2, meaning: 'This, not the other thing.' }, { word: 5, meaning: 'Friday, not Monday.' }] },
   { text: 'This is the most important decision we make this year', variants: [{ word: 3, meaning: 'Nothing matters more.' }, { word: 5, meaning: 'A decision, not a discussion.' }, { word: 8, meaning: 'This year in particular.' }] },
   { text: 'Our customers want faster answers', variants: [{ word: 1, meaning: 'Customers, not partners.' }, { word: 3, meaning: 'Speed is the issue.' }, { word: 4, meaning: 'Answers, not more features.' }] },
 ];
 
-export const EXPRESSIVE_LINES = [
+const BASE_EXPRESSIVE = [
   'We doubled revenue in six months, and we did it without adding a single person.',
   'This is not a small problem. It touches every customer we have.',
   'I have good news and bad news. The good news is we\'re early.',
@@ -133,4 +136,18 @@ export const SOUNDS: SoundModule[] = [
   { id: 'vowels', name: 'Vowels', ipa: '/æ/ · /ɑ/', tip: '/æ/ in plan, task, can\'t: drop the jaw and spread the lips. /ɑ/ in got, project, not: a relaxed, open "ah", not a rounded "aw".', pairs: [['bed', 'bad'], ['men', 'man'], ['pen', 'pan'], ['set', 'sat'], ['cut', 'cot'], ['nut', 'not']], words: [{ w: 'plan', hint: 'open, spread' }, { w: 'task', hint: 'open, spread' }, { w: 'project', hint: 'PRAH-ject' }, { w: 'problem', hint: 'PRAH-blem' }], lines: ["Can't we ask the client to adjust the plan?", 'Got it, the project is not a problem.'] },
   { id: 'stress', name: 'Word stress', ipa: 'ˈstress', tip: 'Hit one syllable hard (louder, longer, higher) and squeeze the rest into a short "uh". Words often sound wrong only because the stress moved.', pairs: [], words: [{ w: 'development', hint: 'de-VEL-op-ment' }, { w: 'comfortable', hint: 'COMF-ter-ble' }, { w: 'technology', hint: 'tech-NOL-o-gy' }, { w: 'analysis', hint: 'a-NAL-y-sis' }, { w: 'determine', hint: 'de-TER-mine' }, { w: 'available', hint: 'a-VAIL-a-ble' }, { w: 'colleague', hint: 'COL-league' }, { w: 'category', hint: 'CAT-e-gor-y' }], lines: ["I'd like to talk to you about the schedule.", 'The analysis is available on Monday.'] },
   { id: 'linking', name: 'Linking', ipa: 'connected speech', tip: 'Join a final consonant to the next vowel: "pick it up" becomes "pi-ki-tup". Content words get the beat; small words stay short.', pairs: [], words: [{ w: 'pick it up', hint: 'pi-ki-TUP' }, { w: 'turn it off', hint: 'tur-ni-TOFF' }, { w: 'check it out', hint: 'che-ki-DOUT' }, { w: 'first of all', hint: 'fir-stuh-VALL' }], lines: ['Let me think about it and get back to you.', 'First of all, thanks for an interesting update.'] },
+  { id: 'sz', name: 'S vs Z endings', ipa: '/s/ · /z/', tip: 'Plurals and verbs ending in a voiced sound take a buzzing Z: plans, needs, goes. After voiceless sounds it is a hiss: tasks, costs, helps. Put your hand on your throat: Z vibrates.', pairs: [['price', 'prize'], ['bus', 'buzz'], ['place', 'plays'], ['loss', 'laws'], ['ice', 'eyes']], words: [{ w: 'plans', hint: 'planz' }, { w: 'needs', hint: 'needz' }, { w: 'reports', hint: 'hiss: s' }, { w: 'is', hint: 'iz' }, { w: 'was', hint: 'wuz' }, { w: 'goals', hint: 'goalz' }], lines: ['Our plans and goals change as the business grows.', 'It\'s easy: the team needs three days.'] },
+  { id: 'shs', name: 'SH vs S', ipa: '/ʃ/ · /s/', tip: 'S: tongue tip near the top teeth, lips relaxed, a thin hiss. SH: tongue pulled back, lips pushed forward and rounded, a wider hush.', pairs: [['see', 'she'], ['sell', 'shell'], ['sip', 'ship'], ['sort', 'short'], ['save', 'shave']], words: [{ w: 'session', hint: 'SESH-un' }, { w: 'issue', hint: 'ISH-oo' }, { w: 'machine', hint: 'muh-SHEEN' }, { w: 'special', hint: 'SPESH-ul' }], lines: ['She should share the short session notes.', 'The issue is social, not technical.'] },
+  { id: 'finals', name: 'Final consonants', ipa: 'word endings', tip: 'English meaning lives in word endings: asked, helped, tests, months. Finish every final consonant clearly, especially -ed and -ts. Don\'t add a vowel after it.', pairs: [['ask', 'asked'], ['test', 'tests'], ['help', 'helped'], ['month', 'months']], words: [{ w: 'asked', hint: 'askt' }, { w: 'tests', hint: 'tests, all of it' }, { w: 'months', hint: 'munths' }, { w: 'texts', hint: 'teksts' }, { w: 'developed', hint: 'de-VEL-upt' }, { w: 'world', hint: 'wurld' }], lines: ['We tested it for six months and fixed most bugs.', 'She asked what happened to the last two drafts.'] },
+  { id: 'schwa', name: 'Reduced words', ipa: '/ə/ schwa', tip: 'Small words go weak in fast speech: "to" sounds like "tuh", "for" like "fer", "and" like "n", "of" like "uv". Stressing every word sounds robotic; reducing them sounds fluent.', pairs: [], words: [{ w: 'going to', hint: 'GO-in-tuh' }, { w: 'want to', hint: 'WAN-tuh' }, { w: 'a lot of', hint: 'uh-LAH-duv' }, { w: 'cup of coffee', hint: 'CUP-uh-COF-fee' }, { w: 'rock and roll', hint: 'ROCK-n-ROLL' }], lines: ['I\'m going to send it to you in a minute.', 'We have a lot of work to do for the client.'] },
+  { id: 'intonation', name: 'Statement intonation', ipa: '↘ falling', tip: 'Statements end with your pitch going down. Questions with yes or no answers go up. Ending statements high makes you sound unsure.', pairs: [], words: [{ w: 'We launch on Monday.', hint: 'fall at the end' }, { w: 'Are we ready?', hint: 'rise at the end' }, { w: 'That\'s my recommendation.', hint: 'fall' }, { w: 'Any questions?', hint: 'rise' }], lines: ['The budget is approved. We start next week.', 'This is the right decision for the team.'] },
 ];
+
+export const SWAPS: SwapCard[] = [...BASE_SWAPS, ...MORE_SWAPS];
+export const TWISTERS: Twister[] = [...BASE_TWISTERS, ...MORE_TWISTERS];
+export const PASSAGES: Passage[] = [...BASE_PASSAGES, ...MORE_PASSAGES];
+export const EMPHASIS: EmphasisLine[] = [...BASE_EMPHASIS, ...MORE_EMPHASIS];
+export const EXPRESSIVE_LINES: string[] = [...BASE_EXPRESSIVE, ...MORE_EXPRESSIVE];
+
+/** Stable key for a swap card (used by spaced repetition). */
+export const swapKey = (c: SwapCard) => `swap:${c.weak}`;

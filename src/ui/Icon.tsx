@@ -31,6 +31,13 @@ const P: Record<string, JSX.Element> = {
   target: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" fill="currentColor" /></>,
   ear: <path d="M7 9a5 5 0 1 1 10 0c0 3-2.5 4-3.5 6-.6 1.3-.8 3-2.5 4.5a3 3 0 0 1-4.5-1M10 9a2 2 0 1 1 4 0" />,
   lock: <><rect x="5" y="10.5" width="14" height="10" rx="2.5" /><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" /></>,
+  chat: <path d="M4 5.5h16v10H9l-4.5 4v-4H4z M8 9.5h8M8 12.5h5" />,
+  edit: <path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" />,
+  user: <><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4.5 4.5-6.5 8-6.5s7 2 8 6.5" /></>,
+  crown: <path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" />,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M3.5 6.5 12 13l8.5-6.5" /></>,
+  message: <path d="M4 4.5h16v11H8.5L4 19.5z" />,
+  gift: <><rect x="3.5" y="8" width="17" height="4" rx="1" /><path d="M5 12v8.5h14V12M12 8v12.5M12 8C10 4 6.5 4.5 7 7c.3 1.3 2.5 1 5 1zm0 0c2-4 5.5-3.5 5-1-.3 1.3-2.5 1-5 1z" /></>,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5M12 7.5v.5" /></>,
 };
 

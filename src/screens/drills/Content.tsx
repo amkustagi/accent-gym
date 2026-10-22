@@ -1,8 +1,13 @@
 import { useState } from 'react';
-import { CONCISION, SCENARIOS, type Scenario } from '../../content/scenarios';
+import { CONCISION, type CategoryId, type Scenario } from '../../content/scenarios';
 import type { CaptureResult } from '../../engine/capture';
 import { overallOf } from '../../engine/score';
 import { scoreAndSave, tooShort } from '../../lib/session';
+import { levelFor, nextScenario, recordScore } from '../../learn/adapt';
+import { isPro } from '../../lib/backend';
+import { canStartRound } from '../../lib/gate';
+import { getState, useStore } from '../../store/store';
+import { ContentVote } from '../../ui/Feedback';
 import type { SessionRecord } from '../../store/store';
 import { Icon } from '../../ui/Icon';
 import { MicStage } from '../../ui/MicStage';
@@ -23,9 +28,10 @@ export function StructureDrill({ onClose }: { onClose: () => void }) {
   const [scenario, setScenario] = useState<Scenario | null>(null);
   const [n, setN] = useState(0);
   const fw = FRAMEWORKS.find((f) => f.id === fwId)!;
+  const pro = useStore((s) => isPro(s));
   const pick = () => {
-    const pool = SCENARIOS.filter((s) => (fw.cats as readonly string[]).includes(s.category));
-    const s = pool[Math.floor(Math.random() * pool.length)];
+    const category = fw.cats[Math.floor(Math.random() * fw.cats.length)] as CategoryId;
+    const s = nextScenario({ category, allowGenerated: pro, drill: 'structure', exclude: scenario?.id });
     setScenario({ ...s, frame: [...fw.steps] });
     setN((k) => k + 1);
   };
@@ -55,10 +61,19 @@ export function StructureDrill({ onClose }: { onClose: () => void }) {
 }
 
 export function ConcisionDrill({ onClose }: { onClose: () => void }) {
-  const [idx, setIdx] = useState(() => Math.floor(Math.random() * CONCISION.length));
+  const [idx, setIdx] = useState(() => {
+    const seen = getState().seen;
+    const fresh = CONCISION.map((_, i) => i).filter((i) => !seen[CONCISION[i].id]);
+    const pool = fresh.length ? fresh : CONCISION.map((_, i) => i);
+    return pool[Math.floor(Math.random() * pool.length)];
+  });
   const [res, setRes] = useState<{ rec: SessionRecord; xp: number; words: number } | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const c = CONCISION[idx];
+  const [started, setStarted] = useState(false);
+  const level = useStore((s) => levelFor(s, 'concision'));
+  const base = CONCISION[idx];
+  // Higher levels tighten the word budget.
+  const c = { ...base, maxWords: Math.round(base.maxWords * [1.2, 1, 0.9, 0.8, 0.7][level - 1]) };
 
   const done = async (r: CaptureResult) => {
     const short = tooShort(r);
@@ -69,6 +84,7 @@ export function ConcisionDrill({ onClose }: { onClose: () => void }) {
     const { rec, xp } = await scoreAndSave(r, {
       drill: 'concision',
       title: c.prompt,
+      itemId: c.id,
       extra: { 'word budget': `${words}/${c.maxWords}` },
       adjust: (ev) => {
         const scores = { ...ev.scores, language: Math.max(0, (ev.scores.language ?? 100) - over * 3) };
@@ -78,7 +94,9 @@ export function ConcisionDrill({ onClose }: { onClose: () => void }) {
         return { ...ev, scores, overall: overallOf(scores), tips };
       },
     });
+    recordScore('concision', rec.overall);
     setRes({ rec, xp, words });
+    setStarted(false);
   };
 
   return (
@@ -88,7 +106,7 @@ export function ConcisionDrill({ onClose }: { onClose: () => void }) {
           rec={res.rec}
           xp={res.xp}
           prompt={c.prompt}
-          onRetry={() => setRes(null)}
+          onRetry={() => canStartRound() && (setRes(null), setStarted(true))}
           onDone={() => {
             setIdx((idx + 1) % CONCISION.length);
             setRes(null);
@@ -109,8 +127,13 @@ export function ConcisionDrill({ onClose }: { onClose: () => void }) {
             <span className="eyebrow">{c.secs} seconds · max {c.maxWords} words</span>
             <h2>{c.prompt}</h2>
             <p className="small muted">Point first. One reason. Stop.</p>
+            <ContentVote id={c.id} drill="concision" label="this challenge" />
           </section>
-          <MicStage maxSec={c.secs} onDone={done} />
+          {started ? (
+            <MicStage maxSec={c.secs} onDone={done} needsTranscript />
+          ) : (
+            <button className="btn signal block" onClick={() => canStartRound() && setStarted(true)}><Icon name="mic" />I'm ready</button>
+          )}
           {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
         </div>
       )}

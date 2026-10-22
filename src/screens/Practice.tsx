@@ -2,12 +2,14 @@ import { AREAS, DRILLS } from '../content/catalog';
 import { LESSONS } from '../content/lessons';
 import { open } from '../lib/nav';
 import { useStore } from '../store/store';
+import { isPro } from '../lib/backend';
 import { Icon } from '../ui/Icon';
 import { skillName } from '../ui/ui';
 
 export function Practice() {
   const done = useStore((s) => s.lessonsDone);
   const pron = useStore((s) => s.profile.pronunciation);
+  const pro = useStore((s) => isPro(s));
   return (
     <div className="page">
       <header className="stack-sm">
@@ -24,12 +26,13 @@ export function Practice() {
             <div className="list">
               {DRILLS.filter((d) => d.area === a.id).map((d) => (
                 <button key={d.id} className="item" onClick={() => open({ kind: 'drill', id: d.id })}>
-                  <span className="ic" style={d.id === 'simulator' || d.id === 'pressure' ? { background: 'var(--signal-soft)', color: 'var(--warn)' } : undefined}>
+                  <span className="ic" style={d.area === 'presence' ? { background: 'var(--signal-soft)', color: 'var(--warn)' } : undefined}>
                     <Icon name={d.icon} />
                   </span>
                   <span className="grow">
                     <b>{d.name}</b>
                     {d.optional && <span className="pill" style={{ marginLeft: 8 }}>{pron ? 'Your track' : 'Optional'}</span>}
+                    {d.pro && !pro && <span className="pill" style={{ marginLeft: 8 }}>Pro</span>}
                     <br />
                     <span className="small muted">{d.blurb}</span>
                   </span>
