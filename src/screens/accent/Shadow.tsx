@@ -158,7 +158,7 @@ function Shadow({ target, feature, onClose }: { target: AccentId; feature?: Feat
           <Icon name="mic" />{heard === 0 ? 'Listen first' : 'I\'m ready to repeat'}
         </button>
       )}
-      {phase === 'speak' && <MicStage maxSec={15} lang={t.locale} needsTranscript showCounters={false} showTranscript={false} autoStopSilence={1.6} idleHint="Tap and repeat the line" onDone={done} />}
+      {phase === 'speak' && <MicStage autoStart={!miss} maxSec={15} lang={t.locale} needsTranscript showCounters={false} showTranscript={false} autoStopSilence={1.6} idleHint="Tap and repeat the line" onDone={done} />}
       {phase === 'speak' && miss && <div className="note bad"><b>I didn't hear you</b>Check the microphone, hold the phone closer, and try again.</div>}
 
       {phase === 'result' && res && (

@@ -1,6 +1,6 @@
 // Model voice: a natural neural voice (Kokoro, on-device) with the best system voice as fallback.
 import { get, set } from 'idb-keyval';
-import { setAudioMode } from './speech';
+import { releaseMicForPlayback, setAudioMode } from './speech';
 import type { AccentId } from '../content/accents';
 
 export type VoiceEngine = 'natural' | 'system';
@@ -112,6 +112,7 @@ export function stopSpeaking() {
 /** Plays a recording or synthesized clip; returns a stop function. */
 export function playBlob(blob: Blob, opts: { rate?: number; onEnd?: () => void } = {}): () => void {
   stopSpeaking();
+  releaseMicForPlayback();
   setAudioMode('playback');
   const url = URL.createObjectURL(blob);
   const a = new Audio(url);
@@ -135,6 +136,7 @@ export function playBlob(blob: Blob, opts: { rate?: number; onEnd?: () => void }
 
 function speakSystem(text: string, rate: number, onEnd?: () => void, accent?: AccentId) {
   if (typeof speechSynthesis === 'undefined') return onEnd?.();
+  releaseMicForPlayback();
   setAudioMode('playback');
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);

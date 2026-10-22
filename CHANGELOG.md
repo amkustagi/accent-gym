@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.06 (branch release_0.06)
+**Fixes**
+- Microphone prompts every round: the microphone stayed closed between takes, so the phone asked again each time. It now stays open between takes and closes after 90 seconds of no use, when the app goes to the background, or (on iPhone) before playback, so the model voice stays loud.
+- Two taps to record: after "I'm ready", the accent check Start, shadowing's "I'm ready to repeat", or the 10-second prepare countdown, the app now starts listening right away. The accent check moves to the next sentence and keeps listening. If the browser doesn't allow an automatic start, the mic button simply waits for a tap.
+- If the app still has to ask more than once in a session, a one-time tip explains how to set the microphone to Allow permanently.
+- Simulator tab: "A fresh scenario for a other / general" now reads "A fresh scenario about your work".
+
 ## v0.05 (branch release_0.05)
 **A coach that gets to know you.** The coach learns in the background and adds no new steps:
 - **Learns your world from what you say.** Projects ("the Atlas migration"), clients and products ("Northwind Bank") and people ("Priya") are picked up from free-speaking rounds. A name is used once it has come up in two rounds. Past rounds are learned from too.

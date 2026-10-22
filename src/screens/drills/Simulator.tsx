@@ -141,7 +141,7 @@ export function SpeakRound({ scenario, pressure, drill, onClose, onNext, closeLa
       )}
       {phase === 'speak' && (
         <>
-          <MicStage maxSec={scenario.secs} onDone={done} needsTranscript idleHint="Tap the mic and answer out loud" />
+          <MicStage maxSec={scenario.secs} onDone={done} needsTranscript autoStart idleHint="Tap the mic and answer out loud" />
           {error && <div className="note bad"><b>Let's try that again</b>{error}</div>}
         </>
       )}

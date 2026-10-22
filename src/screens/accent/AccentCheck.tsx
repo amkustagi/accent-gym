@@ -108,7 +108,7 @@ export function AccentCheckDrill({ onClose }: { onClose: () => void }) {
           <span className="eyebrow">Sentence {i + 1} of {items.length}</span>
           <p className="script" style={{ color: 'var(--ink)' }}>{items[i].text}</p>
         </section>
-        <MicStage key={i} maxSec={15} lang={locale} needsTranscript showCounters={false} showTranscript={false} autoStopSilence={1.8} idleHint="Tap the mic and read the sentence" onDone={onTake} />
+        <MicStage key={i} autoStart maxSec={15} lang={locale} needsTranscript showCounters={false} showTranscript={false} autoStopSilence={1.8} idleHint="Tap the mic and read the sentence" onDone={onTake} />
         <button className="btn ghost" onClick={() => onTake({ transcript: '', durationSec: 0, frames: [], voice: null, audio: null })}>Skip this sentence</button>
       </SessionShell>
     );
