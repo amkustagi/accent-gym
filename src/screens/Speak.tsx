@@ -28,7 +28,7 @@ export function Speak() {
           <span className="eyebrow">From your world</span>
           {!pro && <span className="pill">Pro</span>}
         </div>
-        <b style={{ fontFamily: 'var(--display)', fontSize: '1.35rem', color: '#fff' }}>A fresh scenario for a {roleName}</b>
+        <b style={{ fontFamily: 'var(--display)', fontSize: '1.35rem', color: '#fff' }}>{role === 'general' || (role === 'custom' && !custom) ? 'A fresh scenario about your work' : `A fresh scenario for ${/^[aeiou]/i.test(roleName) ? 'an' : 'a'} ${roleName}`}</b>
         <span className="small muted">Never the same twice. Gets harder as you improve.</span>
       </button>
       <section className="grid2">

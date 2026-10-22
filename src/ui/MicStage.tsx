@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CaptureSession, type CaptureResult, type ListeningMode } from '../engine/capture';
 import { analyzeText } from '../engine/text';
-import { STT_HELP, type SttError } from '../engine/speech';
+import { STT_HELP, isIOS, promptCount, type SttError } from '../engine/speech';
 import { semitones, type Frame } from '../engine/voice';
 import { useStore } from '../store/store';
 import { Icon } from './Icon';
@@ -30,7 +30,25 @@ export interface MicStageProps {
   needsTranscript?: boolean;
   /** Speech recognition locale (accent target). */
   lang?: string;
+  /** Start listening as soon as this appears (the user just tapped "I'm ready" or similar). */
+  autoStart?: boolean;
 }
+
+const TIP_KEY = 'mic-allow-tip';
+const dismissedTip = () => {
+  try {
+    return localStorage.getItem(TIP_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+const dismissTip = () => {
+  try {
+    localStorage.setItem(TIP_KEY, '1');
+  } catch {
+    /* private mode */
+  }
+};
 
 const css = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -41,6 +59,8 @@ export function MicStage(p: MicStageProps) {
   const [elapsed, setElapsed] = useState(0);
   const [text, setText] = useState('');
   const [warning, setWarning] = useState<string | null>(null);
+  const [showAllowTip, setShowAllowTip] = useState(false);
+  const auto = useRef(false);
   const sess = useRef<CaptureSession | null>(null);
   const frames = useRef<Frame[]>([]);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -140,7 +160,19 @@ export function MicStage(p: MicStageProps) {
           cbs.current.onFrame?.(f);
         },
         onAlternatives: (a) => cbs.current.onAlternatives?.(a),
-        onWarning: (w) => setWarning(STT_HELP[w as SttError] ?? w),
+        onWarning: (w) => {
+          // If an automatic start isn't allowed (some browsers need a tap), quietly wait for one.
+          if (auto.current && (w === 'not-allowed' || w === 'service-not-allowed')) {
+            auto.current = false;
+            cancelAnimationFrame(raf.current);
+            clearInterval(tick.current);
+            sess.current?.cancel();
+            sess.current = null;
+            setPhase('idle');
+            return;
+          }
+          setWarning(STT_HELP[w as SttError] ?? w);
+        },
       },
       { record: p.record, continuous: p.continuous, lang: p.lang },
     );
@@ -150,9 +182,13 @@ export function MicStage(p: MicStageProps) {
     if (!res.ok) {
       sess.current = null;
       setPhase('idle');
-      setWarning(res.error ?? 'Could not start the microphone.');
+      if (!auto.current) setWarning(res.error ?? 'Could not start the microphone.');
+      auto.current = false;
       return;
     }
+    // Asked for permission again in the same session: offer the one-time "always allow" fix.
+    if (promptCount() >= 2) setShowAllowTip(!dismissedTip());
+    setTimeout(() => (auto.current = false), 2000);
     cbs.current.onStart?.();
     const loop = () => {
       draw();
@@ -174,6 +210,13 @@ export function MicStage(p: MicStageProps) {
     document.addEventListener('visibilitychange', onHide);
     return () => document.removeEventListener('visibilitychange', onHide);
   }, [finish]);
+
+  useEffect(() => {
+    if (!p.autoStart) return;
+    auto.current = true;
+    void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(
     () => () => {
@@ -197,7 +240,11 @@ export function MicStage(p: MicStageProps) {
       <button
         className={`micbtn${live ? ' live' : ''}`}
         style={big ? undefined : { width: 84, height: 84 }}
-        onClick={() => (live ? finish() : phase === 'idle' ? start() : undefined)}
+        onClick={() => {
+          auto.current = false;
+          if (live) void finish();
+          else if (phase === 'idle') void start();
+        }}
         aria-label={live ? 'Stop recording' : 'Start recording'}
         disabled={phase === 'processing'}
       >
@@ -219,6 +266,15 @@ export function MicStage(p: MicStageProps) {
           <span className={`pill ${counts.fillerCount ? 'warn' : 'good'}`}>{counts.fillerCount} fillers</span>
           <span className={`pill ${counts.weakCount ? 'bad' : 'good'}`}>{counts.weakCount} weak phrases</span>
           <span className="pill">{counts.words} words</span>
+        </div>
+      )}
+      {showAllowTip && (
+        <div className="note" style={{ width: '100%' }}>
+          <b>Stop the repeated microphone prompts</b>
+          {isIOS()
+            ? 'On iPhone: Settings › Apps › Safari › Microphone › Allow. If you use the app inside Safari, you can also tap aA › Website Settings › Microphone › Allow.'
+            : 'Tap the lock or settings icon next to the address, set Microphone to Allow, and it will stop asking.'}
+          <button className="btn ghost sm" style={{ alignSelf: 'flex-start', marginTop: 6 }} onClick={() => { dismissTip(); setShowAllowTip(false); }}>Got it</button>
         </div>
       )}
       {warning && (

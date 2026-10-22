@@ -138,17 +138,58 @@ export function setAudioMode(mode: 'record' | 'playback'): void {
 
 // ---------- microphone & recording ----------
 
+// The microphone stays open between takes for a short while, so the browser doesn't ask for
+// permission again on every round. It's released when idle, when the app goes to the background,
+// and (on iPhone) before playback, which is quiet while the mic is open.
+const KEEP_WARM_MS = 90_000;
+let warm: MediaStream | null = null;
+let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+let prompts: { t: number }[] = [];
+
+const live = (s: MediaStream | null): s is MediaStream => !!s && s.getAudioTracks().some((t) => t.readyState === 'live' && !t.muted);
+
 export async function openMic(): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia) throw new Error('unsupported');
+  clearTimeout(releaseTimer);
   setAudioMode('record');
-  return navigator.mediaDevices.getUserMedia({
+  if (live(warm)) return warm;
+  releaseMic();
+  const t0 = performance.now();
+  const s = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false, channelCount: 1 },
   });
+  // A slow grant means the browser showed a permission prompt.
+  if (performance.now() - t0 > 600) prompts.push({ t: Date.now() });
+  warm = s;
+  return s;
 }
 
+/** Ends a take. The stream stays open briefly for the next take, then closes on its own. */
 export function closeMic(stream: MediaStream | null): void {
-  stream?.getTracks().forEach((t) => t.stop());
+  if (stream && stream !== warm) stream.getTracks().forEach((t) => t.stop());
   setAudioMode('playback');
+  clearTimeout(releaseTimer);
+  if (warm) releaseTimer = setTimeout(releaseMic, KEEP_WARM_MS);
+}
+
+/** Closes the microphone completely (the recording indicator turns off). */
+export function releaseMic(): void {
+  clearTimeout(releaseTimer);
+  warm?.getTracks().forEach((t) => t.stop());
+  warm = null;
+}
+
+/** Before playing audio: iPhone plays quietly through the earpiece route while the mic is open. */
+export function releaseMicForPlayback(): void {
+  if (isIOS() || isSafari()) releaseMic();
+}
+
+/** Number of permission prompts seen in this app session (used to offer the "always allow" tip). */
+export const promptCount = () => prompts.length;
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && releaseMic());
+  window.addEventListener('pagehide', releaseMic);
 }
 
 /** Container types in order of preference: Safari can only play back what it records as MP4/AAC. */

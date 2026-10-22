@@ -4,10 +4,8 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['sparkle', 'Your coach gets to know you', 'The app now learns quietly as you practice: the projects, clients and people you mention, the skill to focus on this week, and the drills you prefer.'],
-  ['chat', 'Practice about your real work', 'Scenarios and read-aloud passages start using your own projects and people once the coach has heard them a couple of times.'],
-  ['target', 'A plan that adapts', 'A weekly focus skill, a plan sized to what you usually do, and practice for an important meeting you mention.'],
-  ['user', 'You stay in control', 'See and edit everything in Settings › What your coach knows. It all stays on your phone.'],
+  ['mic', 'Fewer microphone prompts', 'The microphone stays ready between takes instead of asking again every round. It closes by itself when you leave the app or stop practicing.'],
+  ['target', 'One tap to start', 'After "I\'m ready", Start or the prepare countdown, the app starts listening right away. The accent check moves through its sentences on its own.'],
 ];
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {

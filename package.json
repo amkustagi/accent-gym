@@ -1,8 +1,8 @@
 {
   "name": "speak-sharp",
   "private": true,
-  "version": "0.0.5",
-  "appVersion": "0.05",
+  "version": "0.0.6",
+  "appVersion": "0.06",
   "type": "module",
   "scripts": {
     "dev": "vite",
