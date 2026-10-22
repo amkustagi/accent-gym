@@ -112,7 +112,8 @@ export function ClarityDrill({ onClose }: { onClose: () => void }) {
   const best = useStore((s) => s.best);
   const [lvl, setLvl] = useState<1 | 2 | 3>(() => (Math.min(3, Math.max(1, Math.ceil(levelFor(getState(), 'clarity') * 0.6))) as 1 | 2 | 3));
   const list = TWISTERS.filter((t) => t.level === lvl);
-  const [k, setK] = useState(0);
+  // Start somewhere new each time instead of always on the first twister.
+  const [k, setK] = useState(() => Math.floor(Math.random() * 1000));
   const tw = list[k % list.length];
   const key = `tw:${tw.text}`;
   const [res, setRes] = useState<(MatchResult & { wps: number; newBest: boolean }) | null>(null);
@@ -132,7 +133,7 @@ export function ClarityDrill({ onClose }: { onClose: () => void }) {
 
   return (
     <SessionShell title="Tongue twisters" onClose={onClose}>
-      <Seg label="Level" value={lvl} onChange={(v) => { setLvl(v); setK(0); setRes(null); }} options={[{ v: 1, label: 'Level 1' }, { v: 2, label: 'Level 2' }, { v: 3, label: 'Level 3' }]} />
+      <Seg label="Level" value={lvl} onChange={(v) => { setLvl(v); setK(Math.floor(Math.random() * 1000)); setRes(null); }} options={[{ v: 1, label: 'Level 1' }, { v: 2, label: 'Level 2' }, { v: 3, label: 'Level 3' }]} />
       <section className="card">
         <div className="row spread">
           <span className="eyebrow">Focus: {tw.focus}</span>
