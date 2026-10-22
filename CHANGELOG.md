@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.07 (branch release_0.07)
+- Fix: the sound-lesson listening test never ended and its counter kept growing (5, 10, 20, 26…). It is now a round of 10 questions that cycles through every word pair, shows "It was ___" after a miss, and ends with a score, a next step, and **Another round**.
+
 ## v0.06 (branch release_0.06)
 **Fixes**
 - Microphone prompts every round: the microphone stayed closed between takes, so the phone asked again each time. It now stays open between takes and closes after 90 seconds of no use, when the app goes to the background, or (on iPhone) before playback, so the model voice stays loud.
