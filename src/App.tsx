@@ -2,7 +2,8 @@ import { useEffect, type ReactNode } from 'react';
 import { close, go, useOverlay, useTab, type Tab } from './lib/nav';
 import { configureVoice } from './engine/tts';
 import { open as openOverlay } from './lib/nav';
-import { useStore } from './store/store';
+import { noteDrillOpened, useStore } from './store/store';
+import { CoachScreen } from './screens/CoachScreen';
 import { Icon } from './ui/Icon';
 import { ToastHost } from './ui/ui';
 import { Today } from './screens/Today';
@@ -45,6 +46,9 @@ function OverlayHost() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [o]);
+  useEffect(() => {
+    if (o?.kind === 'drill') noteDrillOpened(o.id);
+  }, [o]);
   if (!o) return null;
   const done = () => {
     if (history.state?.overlay) history.back();
@@ -60,6 +64,7 @@ function OverlayHost() {
   else if (o.kind === 'profile') el = <ProfileScreen onClose={done} />;
   else if (o.kind === 'whatsnew') el = <WhatsNew onClose={done} />;
   else if (o.kind === 'weekly') el = <WeeklyReport onClose={done} />;
+  else if (o.kind === 'coach') el = <CoachScreen onClose={done} />;
   else if (o.kind === 'drill') {
     const k = `${o.id}-${o.param ?? ''}`;
     switch (o.id) {

@@ -2,6 +2,7 @@
 // Uses the user's own Claude API key, or the server proxy for signed-in Pro accounts.
 import type { Scenario } from '../content/scenarios';
 import { roleById } from '../content/roles';
+import { worldLine } from '../learn/learner';
 import { getState, type State } from '../store/store';
 import { aiViaServer, backendEnabled, isPro } from './backend';
 
@@ -45,7 +46,8 @@ function json<T>(text: string): T {
 function profileLine(s: State): string {
   const p = s.profile;
   const role = p.role === 'custom' ? p.customRole : roleById(p.role).name;
-  return `Speaker: ${role || 'professional'}${p.industry ? ` in ${p.industry}` : ''}, ${p.seniority} level${p.nativeLanguage ? `, native language ${p.nativeLanguage}` : ''}. Goal: ${p.goal}.`;
+  const world = worldLine(s);
+  return `Speaker: ${role || 'professional'}${p.industry ? ` in ${p.industry}` : ''}, ${p.seniority} level${p.nativeLanguage ? `, native language ${p.nativeLanguage}` : ''}. Goal: ${p.goal}.${world ? ` ${world} Use these real names where they fit.` : ''}`;
 }
 
 export interface CoachReply {

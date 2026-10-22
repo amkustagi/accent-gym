@@ -1,7 +1,7 @@
 // Accounts, cloud sync, purchases and feedback upload via Supabase (+ Stripe through server functions).
 // Everything here is inert until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set at build time.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { getState, onChange, replaceState, setAccount, setState, type Account, type Plan, type State } from '../store/store';
+import { DEFAULT_LEARNER, getState, onChange, replaceState, setAccount, setState, type Account, type Learner, type Plan, type State, type Term } from '../store/store';
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -129,6 +129,33 @@ function mergeSounds(a: State['sounds'], b: State['sounds']): State['sounds'] {
 }
 
 /** Merges two states: union of history, max of counters, newer profile wins. */
+/** Terms from both devices (a removal on either wins); counters take the larger value. */
+function mergeLearner(local: Learner, remote: Learner | undefined, remoteNewer: boolean): Learner {
+  if (!remote) return local;
+  const terms = new Map<string, Term>();
+  [...remote.terms, ...local.terms].forEach((t) => {
+    const k = t.text.toLowerCase();
+    const p = terms.get(k);
+    terms.set(k, p ? { ...t, n: Math.max(p.n, t.n), last: Math.max(p.last, t.last), hidden: p.hidden || t.hidden, src: p.src === 'told' || t.src === 'told' ? 'told' : 'heard' } : t);
+  });
+  const drills = { ...remote.drills };
+  Object.entries(local.drills).forEach(([d, u]) => {
+    const r = drills[d as keyof typeof drills];
+    drills[d as keyof typeof drills] = r && u ? { opened: Math.max(r.opened, u.opened), finished: Math.max(r.finished, u.finished), last: Math.max(r.last, u.last) } : u;
+  });
+  const newer = remoteNewer ? remote : local;
+  return {
+    ...DEFAULT_LEARNER,
+    ...newer,
+    terms: [...terms.values()].sort((a, b) => b.last - a.last).slice(0, 120),
+    drills,
+    answered: { ...remote.answered, ...local.answered },
+    skipped: { ...remote.skipped, ...local.skipped },
+    lastAsked: Math.max(local.lastAsked, remote.lastAsked),
+    minedAt: Math.max(local.minedAt, remote.minedAt ?? 0),
+  };
+}
+
 export function mergeStates(local: State, remote: Partial<State>): State {
   const byId = new Map(local.sessions.map((x) => [x.id, x]));
   (remote.sessions ?? []).forEach((x) => !byId.has(x.id) && byId.set(x.id, { ...x, hasAudio: false }));
@@ -158,6 +185,7 @@ export function mergeStates(local: State, remote: Partial<State>): State {
     votes: { ...(remote.votes ?? {}), ...local.votes },
     feedback: [...fb.values()].sort((a, b) => a.t - b.t).slice(-1000),
     sounds: mergeSounds(local.sounds, remote.sounds ?? {}),
+    learner: mergeLearner(local.learner, remote.learner, remoteNewer),
     accentChecks: [...new Map([...(remote.accentChecks ?? []), ...local.accentChecks].map((c) => [c.t, c])).values()].sort((a, b) => a.t - b.t).slice(-50),
   };
 }

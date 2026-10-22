@@ -148,6 +148,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <button className="btn quiet sm" onClick={() => open({ kind: 'profile' })}><Icon name="edit" />Edit</button>
         </div>
         <p className="small muted">Role, industry, situations and challenges shape your scenarios and daily plan.</p>
+        <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => open({ kind: 'coach' })}><Icon name="sparkle" />What your coach knows</button>
         <div className="field">
           <label>Daily practice</label>
           <Seg label="Daily minutes" value={s.profile.minutes} onChange={(v) => updateProfile({ minutes: v })} options={[{ v: 5, label: '5 min' }, { v: 10, label: '10 min' }, { v: 15, label: '15 min' }]} />

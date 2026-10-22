@@ -1,4 +1,4 @@
-# Speak Sharp  ·  v0.04
+# Speak Sharp  ·  v0.05
 
 A phone app that coaches you to speak with confidence in meetings, with an optional pronunciation track. It listens while you talk and scores **what you say** (fillers, hedges, apologies, regional phrases), **how your voice sounds** (pace, pauses, pitch variety, uptalk), and **how clearly you're understood**.
 
@@ -15,6 +15,9 @@ Installable web app (PWA): free, works offline, no App Store needed. All analysi
 - **Report** after every round: overall score, six skill bars, prioritized tips, voice timeline (pitch, loudness, pauses), highlighted transcript, playback of your recording, optional AI coach rewrite
 - **Progress**: trends per skill, now vs. baseline radar, full history with recordings
 - **Settings**: listening mode, model voice, optional Claude API key for the AI coach, calendar reminder, backup/restore, erase
+
+## What's in v0.05
+A coach that learns as you practice. It picks up your projects, clients and people from what you say, holds a weekly focus skill, adapts the plan to the drills you finish, and writes practice around your real work. Settings › What your coach knows shows and edits everything it has learned. See [CHANGELOG.md](CHANGELOG.md).
 
 ## What's in v0.03
 **Accent Coach**: pick American, British, Australian or Canadian English and your starting point, such as Indian English, Mandarin or Spanish. You then get a personal sound map, a 2-minute accent check, 25 sound lessons, and shadowing with melody overlay. Scoring is free clarity scoring, plus precise Azure scoring for Pro. Also new: a weekly report card. See [CHANGELOG.md](CHANGELOG.md); to turn on precise scoring, see [SETUP.md](SETUP.md#7-precise-accent-scoring-azure).
@@ -48,7 +51,7 @@ src/store/    persisted app state, daily plan, streaks, levels
 src/ui/       design system components, live mic stage, report
 src/screens/  tabs, settings, onboarding, account, paywall, feedback, weekly report, and the drills
 src/screens/accent/  accent setup, sound map, accent check, sound lessons, shadowing
-src/learn/    adaptive difficulty, spaced repetition, habits, personalized plan
+src/learn/    adaptive difficulty, spaced repetition, habits, personalized plan, learner model (extract.ts, learner.ts)
 src/lib/      backend (accounts, sync, Stripe), AI, feedback, gating
 supabase/     database schema and server functions (checkout, webhook, portal, AI, pronunciation)
 ```

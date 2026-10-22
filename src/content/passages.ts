@@ -114,7 +114,7 @@ const KINDS: Kind[] = [
     id: 'thanks', title: 'Recognition',
     slots: [
       { lines: ['Before we wrap up, / I want to thank the team.', 'I want to call out some great work.', 'One quick shout-out before we finish.'] },
-      { lines: ['They stayed late {few} nights / to finish {deliverable}.', 'They found and fixed {problem}.', 'They moved {metric} / {pct} percent in the right direction.'] },
+      { lines: ['They stayed late {few} nights / to finish {deliverable}.', 'They solved a hard problem / on {project}.', 'They moved {metric} / {pct} percent in the right direction.'] },
       { lines: ['Because of them, / {project} is on track.', 'That made a real difference / for {stakeholder}.', 'That is exactly the standard we want.'] },
       { lines: ['Thank you.', 'Great work, everyone.', 'We are lucky to have you.'] },
     ],
@@ -210,14 +210,16 @@ function fillLine(line: string, v: Record<string, string>): string {
 }
 
 /** Builds a passage deterministically from its id: `gp:<kind>:<seed>`. */
-export function generatePassage(kind: PassageKind, seed: number, roleId: string): Passage {
+export function generatePassage(kind: PassageKind, seed: number, role: string | RolePack, personal = false): Passage {
   const k = KINDS.find((x) => x.id === kind) ?? KINDS[0];
   const r = rng(seed);
-  const v = vocab(r, roleById(roleId));
+  const v = vocab(r, typeof role === 'string' ? roleById(role) : role);
   const lines: string[] = [];
   for (const slot of k.slots) {
     const use = !slot.optional || r() < 0.5;
-    const line = pick(r, slot.lines);
+    // With the user's own projects and people, lean toward lines that mention them.
+    const named = slot.lines.filter((x) => /\{(project|stakeholder)\}/i.test(x));
+    const line = personal && named.length && r() < 0.7 ? pick(r, named) : pick(r, slot.lines);
     if (use) lines.push(cap(fillLine(line, v)));
   }
   return { id: `gp:${k.id}:${seed}`, title: k.title, text: lines.join(' / ') };
@@ -235,18 +237,18 @@ const FRESH_MS = 21 * 24 * 3600 * 1000;
  * A fresh passage: a hand-written one the user hasn't read in the last three weeks,
  * or a new generated one written for their role. Never the passage they just had.
  */
-export function nextPassage(opts: { roleId: string; seen: Record<string, number>; kind?: PassageKind | 'any'; exclude?: string; now?: number; random?: () => number }): Passage {
+export function nextPassage(opts: { roleId: string; pack?: RolePack; seen: Record<string, number>; kind?: PassageKind | 'any'; exclude?: string; now?: number; random?: () => number }): Passage {
   const r = opts.random ?? Math.random;
   const now = opts.now ?? Date.now();
   const kind = opts.kind && opts.kind !== 'any' ? opts.kind : null;
   const fresh = PASSAGES.filter((p) => p.id !== opts.exclude && (!kind || kindOf(p) === kind) && !(opts.seen[p.id] && now - opts.seen[p.id] < FRESH_MS));
-  if (fresh.length && r() < 0.35) return fresh[Math.floor(r() * fresh.length)];
+  if (fresh.length && r() < (opts.pack ? 0.1 : 0.35)) return fresh[Math.floor(r() * fresh.length)];
   const k = kind ?? pick(r, KINDS).id;
   for (let tries = 0; tries < 6; tries++) {
-    const p = generatePassage(k, Math.floor(r() * 2 ** 31), opts.roleId);
+    const p = generatePassage(k, Math.floor(r() * 2 ** 31), opts.pack ?? opts.roleId, !!opts.pack);
     if (p.id !== opts.exclude && !opts.seen[p.id]) return p;
   }
-  return generatePassage(k, Math.floor(r() * 2 ** 31), opts.roleId);
+  return generatePassage(k, Math.floor(r() * 2 ** 31), opts.pack ?? opts.roleId, !!opts.pack);
 }
 
 /** Rough count of distinct passages per role, for tests and the "never-ending" claim. */

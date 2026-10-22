@@ -5,8 +5,9 @@ import { guessStarting, soundMap, targetById, type AccentId, type MapEntry } fro
 import { generateScenario } from '../content/generator';
 import { SCENARIOS, type CategoryId, type Scenario } from '../content/scenarios';
 import { FILLER_RULES, WEAK_RULES, analyzeText } from '../engine/text';
-import type { Skill } from '../engine/score';
+import { SKILLS, type Skill } from '../engine/score';
 import { getState, setState, skillAverages, soundScore, todayKey, type State } from '../store/store';
+import { hasWorld, learnedCategoryBoost, learnedPlanSize, personalPack, preferDrill, upcoming } from './learner';
 
 // ---------- adaptive difficulty ----------
 
@@ -143,10 +144,12 @@ export function categoryWeights(s: State): Map<CategoryId, number> {
   add(GOAL_CATS[s.profile.goal], 2);
   s.profile.situations.forEach((x) => add(SITUATION_CATS[x], 1.5));
   s.profile.challenges.forEach((x) => add(CHALLENGE_CATS[x], 1));
+  learnedCategoryBoost(s.learner).forEach((by, c) => w.set(c, (w.get(c) ?? 1) + by));
   // Practice what you've done least recently.
   const recent = s.sessions.slice(-20);
+  const catOf = (x: (typeof recent)[number]) => x.category ?? SCENARIOS.find((sc) => sc.id === x.itemId || sc.prompt === x.title)?.category;
   w.forEach((v, c) => {
-    const n = recent.filter((x) => SCENARIOS.find((sc) => sc.prompt === x.title)?.category === c).length;
+    const n = recent.filter((x) => catOf(x) === c).length;
     w.set(c, v / (1 + n * 0.3));
   });
   return w;
@@ -172,9 +175,10 @@ export function nextScenario(opts: { category?: CategoryId; allowGenerated: bool
   );
   const curated = SCENARIOS.filter((x) => x.category === category && x.id !== opts.exclude && s.votes[x.id] !== -1);
   const unseen = curated.filter((x) => !s.seen[x.id]);
-  const useGenerated = opts.allowGenerated && (unseen.length === 0 || Math.random() < 0.6);
+  // Once the coach knows the user's world, generated scenarios (which use it) come up more often.
+  const useGenerated = opts.allowGenerated && (unseen.length === 0 || Math.random() < (hasWorld(s) ? 0.75 : 0.6));
   if (useGenerated || curated.length === 0) {
-    return generateScenario({ role: s.profile.role, category, level });
+    return generateScenario({ role: s.profile.role, pack: hasWorld(s) ? personalPack(s) : undefined, category, level });
   }
   const pool = unseen.length ? unseen : curated;
   const sc = pool[Math.floor(Math.random() * pool.length)];
@@ -198,7 +202,11 @@ export function todayPlan(s: State): PlanItem[] {
   const today = s.days[todayKey()] ?? {};
   const skills = (['language', 'fillers', 'pace', 'pauses', 'variety', ...(s.profile.accentGoal !== 'none' ? ['clarity'] : [])] as Skill[]).filter((k) => avgs[k] !== undefined).sort((a, b) => avgs[a]! - avgs[b]!);
   const fromChallenge = s.profile.challenges.map((c) => CHALLENGE_SKILL[c]).find(Boolean);
-  const weakest = skills[0] ?? fromChallenge;
+  // The coach's focus skill holds for a week or more, so practice adds up instead of jumping around.
+  const focus = s.learner.focus && avgs[s.learner.focus.skill] !== undefined ? s.learner.focus : null;
+  const weakest = focus?.skill ?? skills[0] ?? fromChallenge;
+  const learner = s.learner;
+  const pick = (d: DrillId) => preferDrill(learner, d, (x) => x !== 'pronunciation' || s.profile.accentGoal !== 'none');
   const items: { drill: DrillId; reason: string; param?: string }[] = [];
   if (s.profile.minutes >= 10) items.push({ drill: 'warmup', reason: 'Wake up your voice' });
 
@@ -206,8 +214,13 @@ export function todayPlan(s: State): PlanItem[] {
   if (top && top.thisWeek >= 3 && SWAPS.some((c) => c.rule === top.ruleId)) items.push({ drill: 'swaps', reason: `Your habit: "${top.label}" ×${top.thisWeek} this week`, param: `habit:${top.ruleId}` });
 
   if (weakest) {
-    const d = DRILL_FOR_SKILL[weakest];
-    if (!items.some((i) => i.drill === d)) items.push({ drill: d, reason: skills.length ? 'Your lowest skill lately' : 'From your goals' });
+    const d = pick(DRILL_FOR_SKILL[weakest]);
+    const name = SKILLS.find((k) => k.id === weakest)?.name.toLowerCase() ?? weakest;
+    const now = avgs[weakest];
+    const reason = focus
+      ? now !== undefined && now > focus.start ? `This week's focus: ${name}, up from ${focus.start} to ${now}` : `This week's focus: ${name}`
+      : skills.length ? 'Your lowest skill lately' : 'From your goals';
+    if (!items.some((i) => i.drill === d)) items.push({ drill: d, reason });
   } else items.push({ drill: 'pace', reason: 'Find your speaking pace' });
 
   // The accent goal is the user's explicit choice, so it comes before the general drills.
@@ -219,17 +232,23 @@ export function todayPlan(s: State): PlanItem[] {
     else if (next) items.push({ drill: 'pronunciation', reason: `${targetById(target).adjective} sound: ${next.feature.name}`, param: next.feature.id });
   }
   const due = dueCount(s);
-  if (!items.some((i) => i.drill === 'swaps')) items.push({ drill: 'swaps', reason: due ? `${due} cards due for review` : 'Build confident wording' });
+  if (!items.some((i) => i.drill === 'swaps')) {
+    const w = due ? 'swaps' : pick('swaps');
+    if (!items.some((i) => i.drill === w)) items.push({ drill: w, reason: due ? `${due} cards due for review` : 'Build confident wording' });
+  }
 
   if (s.profile.accentGoal !== 'none' && s.profile.minutes >= 15) items.push({ drill: 'shadow', reason: 'Copy a native speaker\'s melody' });
   if (s.profile.minutes >= 15 && skills[1]) {
-    const d2 = DRILL_FOR_SKILL[skills[1]];
+    const d2 = pick(DRILL_FOR_SKILL[skills.find((k) => k !== weakest) ?? skills[1]]);
     if (!items.some((i) => i.drill === d2)) items.push({ drill: d2, reason: 'Second focus skill' });
   }
   const simLevel = levelFor(s, 'simulator');
-  items.push(simLevel >= 3 ? { drill: 'pressure', reason: 'You\'re ready for cold questions' } : { drill: 'simulator', reason: 'A scenario from your world' });
+  const soon = upcoming(learner);
+  if (soon) items.push({ drill: 'simulator', reason: `Practice for: ${soon}`, param: 'upcoming' });
+  else items.push(simLevel >= 3 ? { drill: pick('pressure'), reason: 'You\'re ready for cold questions' } : { drill: 'simulator', reason: hasWorld(s) ? 'A scenario about your own work' : 'A scenario from your world' });
 
-  const max = s.profile.minutes === 5 ? 3 : s.profile.minutes === 10 ? 4 : 6;
+  // Plan length follows how much the user actually does on a typical day.
+  const max = learnedPlanSize(s, s.profile.minutes === 5 ? 3 : s.profile.minutes === 10 ? 4 : 6);
   const trimmed = items.length > max ? [...items.slice(0, max - 1), items[items.length - 1]] : items;
   return trimmed.map((i) => ({ ...i, done: (today[i.drill] ?? 0) > 0 }));
 }
