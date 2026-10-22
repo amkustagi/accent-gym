@@ -52,6 +52,8 @@ export interface SessionRecord {
   title: string;
   /** Content item this round used (scenario id, generated seed, card key). */
   itemId?: string;
+  /** Scenario category, for learning which situations the user practices. */
+  category?: string;
   overall: number;
   scores: Scores;
   metrics: Metrics;
@@ -123,6 +125,45 @@ export interface AccentCheckRecord {
   prosody?: number | null;
 }
 
+/** Something the coach learned about the user's world: a project, a person, a product. */
+export interface Term {
+  text: string;
+  kind: 'project' | 'person' | 'term';
+  /** Number of separate rounds it was heard in (told terms start at 2). */
+  n: number;
+  last: number;
+  src: 'heard' | 'told';
+  /** The user removed it; never use or re-learn it. */
+  hidden?: boolean;
+}
+
+export interface DrillUse {
+  opened: number;
+  finished: number;
+  last: number;
+}
+
+/** What the coach learns over time, quietly, from use. Everything stays on the device. */
+export interface Learner {
+  terms: Term[];
+  /** Who they speak to most (answer ids from the coach questions). */
+  audience: string[];
+  /** Moments they find hardest (answer ids). */
+  hardest: string[];
+  /** An important meeting coming up, if they mentioned one. */
+  upcoming: { text: string; t: number } | null;
+  answered: Record<string, number>;
+  skipped: Record<string, number>;
+  lastAsked: number;
+  drills: Partial<Record<DrillId | 'lesson', DrillUse>>;
+  /** The skill the coach is focusing on this stretch, with the score it started from. */
+  focus: { skill: Skill; since: number; start: number } | null;
+  /** Time of the newest session already mined for terms. */
+  minedAt: number;
+}
+
+export const DEFAULT_LEARNER: Learner = { terms: [], audience: [], hardest: [], upcoming: null, answered: {}, skipped: {}, lastAsked: 0, drills: {}, focus: null, minedAt: 0 };
+
 export interface State {
   loaded: boolean;
   profile: Profile;
@@ -147,6 +188,7 @@ export interface State {
   /** Score history per sound. */
   sounds: Partial<Record<FeatureId, SoundScore[]>>;
   accentChecks: AccentCheckRecord[];
+  learner: Learner;
   updatedAt: number;
   version: number;
 }
@@ -178,8 +220,9 @@ const DEFAULT: State = {
   account: null,
   sounds: {},
   accentChecks: [],
+  learner: DEFAULT_LEARNER,
   updatedAt: 0,
-  version: 3,
+  version: 4,
 };
 
 let state: State = DEFAULT;
@@ -247,7 +290,8 @@ export function migrate(saved: Record<string, unknown> | undefined): State {
     account: s.account ?? null,
     sounds: s.sounds ?? {},
     accentChecks: s.accentChecks ?? [],
-    version: 3,
+    learner: { ...DEFAULT_LEARNER, ...s.learner },
+    version: 4,
     loaded: true,
   } as State;
 }
@@ -338,7 +382,9 @@ export function logActivity(drill: DrillId | 'lesson', xp: number) {
     const k = todayKey();
     const day = { ...(s.days[k] ?? {}) };
     day[drill] = (day[drill] ?? 0) + 1;
-    return { ...s, xp: s.xp + xp, days: { ...s.days, [k]: day } };
+    const use = s.learner.drills[drill] ?? { opened: 0, finished: 0, last: 0 };
+    const drills = { ...s.learner.drills, [drill]: { ...use, finished: use.finished + 1, last: Date.now() } };
+    return { ...s, xp: s.xp + xp, days: { ...s.days, [k]: day }, learner: { ...s.learner, drills } };
   });
 }
 
@@ -387,6 +433,18 @@ async function pruneRecordings() {
 }
 
 export const loadRecording = (id: string) => get(`rec:${id}`) as Promise<Blob | undefined>;
+
+export function updateLearner(fn: (l: Learner) => Learner) {
+  setState((s) => ({ ...s, learner: fn(s.learner) }));
+}
+
+/** A drill screen was opened (finishing it is counted by logActivity). */
+export function noteDrillOpened(drill: DrillId) {
+  updateLearner((l) => {
+    const use = l.drills[drill] ?? { opened: 0, finished: 0, last: 0 };
+    return { ...l, drills: { ...l.drills, [drill]: { ...use, opened: use.opened + 1 } } };
+  });
+}
 
 export function updateProfile(p: Partial<Profile>) {
   setState((s) => ({ ...s, profile: { ...s.profile, ...p } }));

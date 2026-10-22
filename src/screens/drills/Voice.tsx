@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EMPHASIS, EXPRESSIVE_LINES, type Passage } from '../../content/drills';
 import { PASSAGE_KINDS, nextPassage, type PassageKind } from '../../content/passages';
+import { hasWorld, personalPack } from '../../learn/learner';
 import type { CaptureResult } from '../../engine/capture';
 import { overallOf, scorePace, scoreVariety } from '../../engine/score';
 import { matchTarget } from '../../engine/text';
@@ -33,7 +34,7 @@ function usePassage() {
   const [kind, setKind] = useState<PassageKind | 'any'>('any');
   const fresh = (k: PassageKind | 'any', exclude?: string) => {
     const st = getState();
-    const p = nextPassage({ roleId: st.profile.role, seen: st.seen, kind: k, exclude });
+    const p = nextPassage({ roleId: st.profile.role, pack: hasWorld(st) ? personalPack(st) : undefined, seen: st.seen, kind: k, exclude });
     markSeen(p.id);
     return p;
   };

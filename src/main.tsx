@@ -4,11 +4,15 @@ import { App } from './App';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { loadState } from './store/store';
 import { startBackend } from './lib/backend';
+import { startLearner } from './learn/learner';
 import { installErrorCapture } from './lib/feedback';
 import './styles.css';
 
 installErrorCapture();
-void loadState().then(() => startBackend());
+void loadState().then(() => {
+  startLearner();
+  startBackend();
+});
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

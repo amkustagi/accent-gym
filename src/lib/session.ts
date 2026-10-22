@@ -20,6 +20,7 @@ export interface ScoreOptions {
   drill: DrillId | 'baseline';
   title: string;
   itemId?: string;
+  category?: string;
   clarity?: number | null;
   scripted?: boolean;
   extra?: Record<string, number | string>;
@@ -36,6 +37,7 @@ export async function scoreAndSave(result: CaptureResult, o: ScoreOptions): Prom
       drill: o.drill,
       title: o.title,
       itemId: o.itemId,
+      category: o.category,
       overall: ev.overall,
       scores: ev.scores,
       metrics: ev.metrics,

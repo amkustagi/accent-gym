@@ -6,6 +6,7 @@ import { sendFeedback } from '../lib/feedback';
 import { open } from '../lib/nav';
 import { getState, loadRecording, updateSession, useStore, type SessionRecord } from '../store/store';
 import { FixTranscript, RateReport, TipThumbs } from './Feedback';
+import { CoachQuestionCard } from './CoachQuestion';
 import { Icon } from './Icon';
 import { HearButton } from './TakeCompare';
 import { Legend, ScoreRing, SkillBars, Transcript, scoreWord } from './ui';
@@ -283,6 +284,7 @@ export function Report({ rec: initial, prompt, frame, compare, xp, children, onR
         </section>
       )}
       {prompt && <Coach rec={rec} prompt={prompt} frame={frame} />}
+      <CoachQuestionCard />
       <RateReport sessionId={rec.id} drill={rec.drill} />
       <div className="foot">
         {onRetry && (

@@ -13,6 +13,7 @@ export type Overlay =
   | { kind: 'profile' }
   | { kind: 'whatsnew' }
   | { kind: 'weekly' }
+  | { kind: 'coach' }
   | null;
 
 let tab: Tab = 'today';

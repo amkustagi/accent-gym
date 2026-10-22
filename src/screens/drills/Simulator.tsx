@@ -4,6 +4,7 @@ import type { CaptureResult } from '../../engine/capture';
 import { STT_HELP } from '../../engine/speech';
 import { speak, stopSpeaking } from '../../engine/tts';
 import { LEVEL_LABEL, levelFor, nextScenario, recordScore } from '../../learn/adapt';
+import { upcomingScenario } from '../../learn/learner';
 import { aiAvailable, followUp, freshScenarios } from '../../lib/ai';
 import { isPro } from '../../lib/backend';
 import { canStartRound, requirePro } from '../../lib/gate';
@@ -73,7 +74,7 @@ export function SpeakRound({ scenario, pressure, drill, onClose, onNext, closeLa
       return;
     }
     setError(null);
-    const { rec, xp } = await scoreAndSave(r, { drill, title: scenario.prompt, itemId: scenario.id });
+    const { rec, xp } = await scoreAndSave(r, { drill, title: scenario.prompt, itemId: scenario.id, category: scenario.category });
     if (drill !== 'baseline') recordScore(drill === 'roleplay' ? 'simulator' : drill, rec.overall);
     const note = r.sttError ? `${STT_HELP[r.sttError]} Voice metrics were still measured.` : !r.voice ? 'Voice metrics (pauses, pitch) need the full listening mode.' : null;
     setResult({ rec, xp, note });
@@ -183,7 +184,7 @@ function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; fi
       return;
     }
     setErr('');
-    const { rec } = await scoreAndSave(r, { drill: 'roleplay', title: `Follow-up: ${current.question}`, itemId: `${scenario.id}:f${turns.length}` });
+    const { rec } = await scoreAndSave(r, { drill: 'roleplay', title: `Follow-up: ${current.question}`, itemId: `${scenario.id}:f${turns.length}`, category: scenario.category });
     const next = [...turns, { q: current.question, a: r.transcript, score: rec.overall }];
     setTurns(next);
     setLast({ rec });
@@ -245,6 +246,10 @@ function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; fi
 export function SimulatorDrill({ param, pressure, onClose }: { param?: string; pressure?: boolean; onClose: () => void }) {
   const pro = useStore((s) => isPro(s));
   const first = (): Scenario => {
+    if (param === 'upcoming') {
+      const up = upcomingScenario(getState().learner);
+      if (up) return up;
+    }
     if (param && !param.startsWith('cat:')) {
       const found = SCENARIOS.find((s) => s.id === param);
       if (found) return found;

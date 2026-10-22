@@ -155,6 +155,8 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export interface GenOptions {
   role: string;
+  /** Vocabulary to use instead of the stock role pack (the user's own projects and people). */
+  pack?: RolePack;
   category?: CategoryId;
   /** 1–5. Higher levels shorten the time limit and add a constraint. */
   level?: number;
@@ -165,7 +167,7 @@ export interface GenOptions {
 export function generateScenario(o: GenOptions): Scenario {
   const seed = o.seed ?? Math.floor(Math.random() * 2 ** 31);
   const r = rng(seed);
-  const role = roleById(o.role);
+  const role = o.pack ?? roleById(o.role);
   const cat = o.category ?? pick(r, GEN_CATEGORIES);
   const level = Math.max(1, Math.min(5, o.level ?? 2));
   let sc: Scenario;

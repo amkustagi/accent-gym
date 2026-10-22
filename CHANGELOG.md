@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.05 (branch release_0.05)
+**A coach that gets to know you.** The coach learns in the background and adds no new steps:
+- **Learns your world from what you say.** Projects ("the Atlas migration"), clients and products ("Northwind Bank") and people ("Priya") are picked up from free-speaking rounds. A name is used once it has come up in two rounds. Past rounds are learned from too.
+- **Personal content.** Generated scenarios, read-aloud passages and AI prompts use your own projects and people about two times in three.
+- **Weekly focus skill.** The coach focuses on one skill for at least a week. It moves on once that skill improves (by 8 points or to 80+), or after two weeks. The plan shows the progress ("up from 45 to 58").
+- **Adapts to how you practice.** A drill you usually leave early is swapped for one that trains the same skill. The plan length follows how much you typically do. Scenario topics follow the situations you find hardest and the people you speak to.
+- **One quick question, at most once a day,** at the end of a report, only when the answer fills a gap: a project, who you speak to, an upcoming meeting, your hardest moment. You can always skip it.
+- **Upcoming meeting.** Mention one and the plan adds a practice round for it until it has passed.
+- **Settings › What your coach knows.** See, add or remove anything. Removed names are never learned again. Everything stays on the device and syncs only if you sign in.
+
 ## v0.04 (branch release_0.04)
 - Pace trainer and Pause power no longer open on the same passage. Each visit gives you a new script: either a hand-written one you haven't read in 3 weeks, or one generated for your role. There are 16 meeting situations (update, push back, stand-up, bad news, escalation, saying no and more) and thousands of combinations. You can also pick a topic or tap **New passage**.
 - Tongue twisters and Vocal variety start at a random line.
