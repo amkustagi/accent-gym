@@ -152,6 +152,7 @@ export function AccountScreen({ onClose }: { onClose: () => void }) {
 
 const BENEFITS: [string, string][] = [
   ['mic', 'Unlimited speaking rounds and simulator scenarios'],
+  ['globe', 'Precise accent scoring, word by word and sound by sound'],
   ['refresh', 'Never-ending scenarios written for your role'],
   ['chat', 'AI conversations with follow-up questions'],
   ['sparkle', 'AI coach: rewrites of your answers'],

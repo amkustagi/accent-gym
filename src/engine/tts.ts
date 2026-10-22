@@ -1,6 +1,7 @@
 // Model voice: a natural neural voice (Kokoro, on-device) with the best system voice as fallback.
 import { get, set } from 'idb-keyval';
 import { setAudioMode } from './speech';
+import type { AccentId } from '../content/accents';
 
 export type VoiceEngine = 'natural' | 'system';
 
@@ -54,9 +55,35 @@ export function englishVoices(): SpeechSynthesisVoice[] {
     .sort((a, b) => voiceScore(b) - voiceScore(a));
 }
 
-function pickSystemVoice(): SpeechSynthesisVoice | undefined {
+const ACCENT_LANG: Record<AccentId, RegExp> = { us: /^en[-_]US/i, gb: /^en[-_](GB|IE)/i, au: /^en[-_](AU|NZ)/i, ca: /^en[-_]CA/i };
+
+function pickSystemVoice(accent?: AccentId): SpeechSynthesisVoice | undefined {
   const vs = englishVoices();
+  if (accent) {
+    const re = ACCENT_LANG[accent];
+    const chosen = vs.find((v) => v.name === systemVoiceName && re.test(v.lang));
+    const match = chosen ?? vs.find((v) => re.test(v.lang)) ?? (accent === 'ca' ? vs.find((v) => /^en[-_]US/i.test(v.lang)) : undefined);
+    if (match) return match;
+  }
   return vs.find((v) => v.name === systemVoiceName) ?? vs[0];
+}
+
+/** Natural (Kokoro) voice id for an accent, keeping the user's chosen gender; null if the accent has none. */
+export function naturalVoiceFor(accent?: AccentId): string | null {
+  if (!accent) return naturalVoice;
+  const female = !/^[ab]m_/.test(naturalVoice);
+  if (accent === 'us' || accent === 'ca') return naturalVoice.startsWith('a') ? naturalVoice : female ? 'af_heart' : 'am_michael';
+  if (accent === 'gb') return naturalVoice.startsWith('b') ? naturalVoice : female ? 'bf_emma' : 'bm_george';
+  return null;
+}
+
+/** Describes which voice an accent will use, for the UI. */
+export function accentVoiceInfo(accent: AccentId): { kind: 'natural' | 'system' | 'missing'; name: string } {
+  const nv = naturalVoiceFor(accent);
+  if (nv && engine === 'natural' && natural.status === 'ready') return { kind: 'natural', name: nv };
+  const v = pickSystemVoice(accent);
+  if (v && ACCENT_LANG[accent].test(v.lang)) return { kind: 'system', name: v.name };
+  return { kind: 'missing', name: v?.name ?? 'default' };
 }
 
 /** True when the best available system voice is likely to sound robotic. */
@@ -106,12 +133,12 @@ export function playBlob(blob: Blob, opts: { rate?: number; onEnd?: () => void }
   };
 }
 
-function speakSystem(text: string, rate: number, onEnd?: () => void) {
+function speakSystem(text: string, rate: number, onEnd?: () => void, accent?: AccentId) {
   if (typeof speechSynthesis === 'undefined') return onEnd?.();
   setAudioMode('playback');
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  const v = pickSystemVoice();
+  const v = pickSystemVoice(accent);
   if (v) u.voice = v;
   u.lang = v?.lang ?? 'en-US';
   u.rate = rate;
@@ -235,15 +262,25 @@ export interface SpeakOptions {
   rate?: number;
   onEnd?: () => void;
   onStart?: () => void;
+  /** Speak in this target accent. */
+  accent?: AccentId;
+}
+
+/** The natural-voice clip for a line in an accent, or null when that accent uses a system voice. */
+export async function modelBlob(text: string, accent?: AccentId): Promise<Blob | null> {
+  const nv = naturalVoiceFor(accent);
+  if (!nv || engine !== 'natural' || natural.status !== 'ready') return null;
+  return synthNatural(text, nv).catch(() => null);
 }
 
 /** Speaks text with the natural voice when ready, otherwise the best system voice. */
 export async function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
   const rate = opts.rate ?? 1;
   stopSpeaking();
-  if (engine === 'natural' && natural.status === 'ready') {
+  const nv = naturalVoiceFor(opts.accent);
+  if (nv && engine === 'natural' && natural.status === 'ready') {
     try {
-      const blob = await synthNatural(text, naturalVoice);
+      const blob = await synthNatural(text, nv);
       opts.onStart?.();
       playBlob(blob, { rate, onEnd: opts.onEnd });
       return;
@@ -252,7 +289,7 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<void
     }
   }
   opts.onStart?.();
-  speakSystem(text, rate, opts.onEnd);
+  speakSystem(text, rate, opts.onEnd, opts.accent);
 }
 
 if (typeof speechSynthesis !== 'undefined') speechSynthesis.getVoices();

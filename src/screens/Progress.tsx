@@ -6,6 +6,7 @@ import { open } from '../lib/nav';
 import { baseline, bestStreak, skillAverages, streak, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
 import { Radar, Trend, scoreTone } from '../ui/ui';
+import { targetById, type AccentId } from '../content/accents';
 
 const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -35,6 +36,8 @@ export function Progress() {
         <div className="card tight stat"><b>{scored.length}</b><span>scored rounds</span></div>
         <div className="card tight stat"><b>{minutes}</b><span>minutes speaking</span></div>
       </section>
+
+      <button className="btn quiet block" onClick={() => open({ kind: 'weekly' })}><Icon name="trophy" />Weekly report card</button>
 
       <section className="card">
         <h3>Trend</h3>
@@ -70,6 +73,21 @@ export function Progress() {
           </div>
         )}
       </section>
+
+      {s.accentChecks.length > 0 && (
+        <section className="card">
+          <h3>Accent checks</h3>
+          <Trend values={s.accentChecks.filter((c) => c.target === s.accentChecks[s.accentChecks.length - 1].target).map((c) => c.overall)} />
+          <div className="stack-sm">
+            {[...s.accentChecks].reverse().slice(0, 5).map((c) => (
+              <div key={c.t} className="row spread small">
+                <span>{fmtDate(c.t)} · {targetById(c.target as AccentId).adjective} · {c.src === 'pro' ? 'precise' : 'clarity'}</span>
+                <b style={{ color: scoreTone(c.overall) }}>{c.overall}</b>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <h3>Habits in your own words</h3>

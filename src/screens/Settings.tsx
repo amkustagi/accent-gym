@@ -8,6 +8,7 @@ import { open } from '../lib/nav';
 import { exportData, importData, resetAll, updateProfile, updateSettings, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
 import { Seg, SessionShell, Switch, toast } from '../ui/ui';
+import { AccentSetup } from './accent/AccentSetup';
 
 export function download(name: string, type: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type }));
@@ -151,13 +152,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <label>Daily practice</label>
           <Seg label="Daily minutes" value={s.profile.minutes} onChange={(v) => updateProfile({ minutes: v })} options={[{ v: 5, label: '5 min' }, { v: 10, label: '10 min' }, { v: 15, label: '15 min' }]} />
         </div>
-        <div className="row spread">
-          <div className="stack-sm grow">
-            <b>Pronunciation track</b>
-            <span className="small muted">Adds a sound of the day (V/W, TH, R…) to your plan</span>
-          </div>
-          <Switch label="Pronunciation track" checked={s.profile.pronunciation} onChange={(v) => updateProfile({ pronunciation: v })} />
-        </div>
+        <AccentSetup compact />
       </section>
 
       <VoiceSection />
@@ -171,6 +166,8 @@ export function Settings({ onClose }: { onClose: () => void }) {
           {s.settings.listening === 'voice' && 'Only voice analysis (pauses, pitch, playback). Drills that need your words still turn on speech-to-text.'}
         </p>
       </section>
+
+      <AccentScoringCard />
 
       <section className="card">
         <div className="row spread">
@@ -267,5 +264,37 @@ export function Settings({ onClose }: { onClose: () => void }) {
         Speak Sharp v{__APP_VERSION__} · Your voice is analyzed on this phone. Speech-to-text uses your browser's built-in service.
       </p>
     </SessionShell>
+  );
+}
+
+function AccentScoringCard() {
+  const st = useStore((x) => x.settings);
+  const pro = useStore((x) => isPro(x) && !!x.account);
+  const [key, setKey] = useState(st.azureKey);
+  const [region, setRegion] = useState(st.azureRegion);
+  return (
+    <section className="card">
+      <div className="row spread">
+        <h3>Precise accent scoring</h3>
+        <span className="pill">{pro ? 'Included in Pro' : st.azureKey ? 'Your key' : 'Off'}</span>
+      </div>
+      <p className="small muted">
+        Scores every word (and, for American English, every sound) against native speakers, using Microsoft Azure Pronunciation Assessment.{' '}
+        {backendEnabled ? 'Included with Pro. For testing you can also' : 'To test it now,'} add your own Azure Speech key: create a free Speech resource at portal.azure.com, then copy Key 1 and the region (for example "eastus").
+      </p>
+      <div className="field">
+        <label htmlFor="az-key">Azure Speech key</label>
+        <input id="az-key" className="input mono" type="password" value={key} onChange={(e) => setKey(e.target.value.trim())} autoComplete="off" />
+      </div>
+      <div className="field">
+        <label htmlFor="az-region">Region</label>
+        <input id="az-region" className="input mono" placeholder="eastus" value={region} onChange={(e) => setRegion(e.target.value.trim())} autoComplete="off" />
+      </div>
+      <div className="row">
+        <button className="btn primary grow" disabled={!key || !region} onClick={() => { updateSettings({ azureKey: key, azureRegion: region }); toast('Precise scoring is on. Take the accent check to try it.'); }}>Save</button>
+        {st.azureKey && <button className="btn quiet" onClick={() => { updateSettings({ azureKey: '', azureRegion: '' }); setKey(''); setRegion(''); toast('Key removed'); }}>Remove</button>}
+      </div>
+      <span className="small muted">The key stays on this phone. Microsoft bills per hour of scored speech (roughly $1–2) and offers a free tier; check current Azure pricing.</span>
+    </section>
   );
 }

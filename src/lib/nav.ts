@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { DrillId } from '../content/catalog';
 
-export type Tab = 'today' | 'practice' | 'speak' | 'progress';
+export type Tab = 'today' | 'practice' | 'speak' | 'accent' | 'progress';
 export type Overlay =
   | { kind: 'drill'; id: DrillId; param?: string }
   | { kind: 'lesson'; id: string }
@@ -12,6 +12,7 @@ export type Overlay =
   | { kind: 'feedback'; type?: 'bug' | 'idea' | 'other' }
   | { kind: 'profile' }
   | { kind: 'whatsnew' }
+  | { kind: 'weekly' }
   | null;
 
 let tab: Tab = 'today';

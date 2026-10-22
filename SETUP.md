@@ -9,7 +9,7 @@ Speak Sharp runs fully on the phone without any server. In that mode every featu
 
 ## 1. Create the Supabase project
 1. Go to supabase.com → New project. Note the **Project URL** and the **anon public key** (Settings → API).
-2. SQL editor → paste `supabase/migrations/0001_init.sql` → Run.
+2. SQL editor → paste `supabase/migrations/0001_init.sql` → Run, then `supabase/migrations/0002_accent.sql` → Run.
 3. Authentication → Providers → Email: enable, turn **off** "Confirm email" link sign-in, keep OTP.
 4. Authentication → Email Templates → "Magic Link": make the body show the code, for example:
    `Your Speak Sharp code is {{ .Token }}`
@@ -36,6 +36,7 @@ supabase secrets set \
 supabase functions deploy create-checkout
 supabase functions deploy billing-portal
 supabase functions deploy ai
+supabase functions deploy pronunciation
 supabase functions deploy stripe-webhook --no-verify-jwt
 ```
 
@@ -60,6 +61,19 @@ Push any commit to `main` (or re-run the workflow). The new build shows sign-in,
 
 ## 6. Test a purchase
 Use Stripe's test card `4242 4242 4242 4242`, any future date, any CVC. After checkout the app returns and unlocks Pro within a few seconds. When it all works, switch Stripe to live mode, create live prices, and update the secrets.
+
+## 7. Precise accent scoring (Azure)
+Pro users get word-by-word scoring for every accent, plus sound-by-sound scoring for American English. This uses Microsoft Azure Pronunciation Assessment.
+1. portal.azure.com → Create a resource → **Speech** (Azure AI services). The free F0 tier allows 5 audio hours a month; standard S0 is billed per audio hour. Note the **Key** and the **Region** (e.g. `eastus`).
+2. Store them on the server and deploy the function:
+   ```bash
+   supabase secrets set AZURE_SPEECH_KEY=... AZURE_SPEECH_REGION=eastus PRONUNCIATION_DAILY_LIMIT=400
+   supabase functions deploy pronunciation
+   ```
+   `PRONUNCIATION_DAILY_LIMIT` caps the number of sentences each user can score per day. It defaults to 400.
+3. Make sure migration `0002_accent.sql` has been run, because it creates the daily counter table.
+
+**Owner build (no server):** Settings → Precise accent scoring → paste the key and region. The key stays on your phone. If the browser blocks direct calls to Azure, use the server route above.
 
 ## Reading feedback
 Supabase → Table editor:

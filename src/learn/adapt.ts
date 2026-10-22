@@ -1,11 +1,12 @@
 // Self-learning: adaptive difficulty, spaced repetition, personal habits, personalized content, daily plan.
 import { DRILL_FOR_SKILL, type DrillId } from '../content/catalog';
-import { SOUNDS, SWAPS, swapKey, type SwapCard } from '../content/drills';
+import { SWAPS, swapKey, type SwapCard } from '../content/drills';
+import { guessStarting, soundMap, targetById, type AccentId, type MapEntry } from '../content/accents';
 import { generateScenario } from '../content/generator';
 import { SCENARIOS, type CategoryId, type Scenario } from '../content/scenarios';
 import { FILLER_RULES, WEAK_RULES, analyzeText } from '../engine/text';
 import type { Skill } from '../engine/score';
-import { getState, setState, skillAverages, todayKey, type State } from '../store/store';
+import { getState, setState, skillAverages, soundScore, todayKey, type State } from '../store/store';
 
 // ---------- adaptive difficulty ----------
 
@@ -195,7 +196,7 @@ const CHALLENGE_SKILL: Record<string, Skill> = { fillers: 'fillers', apologize: 
 export function todayPlan(s: State): PlanItem[] {
   const avgs = skillAverages(s);
   const today = s.days[todayKey()] ?? {};
-  const skills = (['language', 'fillers', 'pace', 'pauses', 'variety', ...(s.profile.pronunciation ? ['clarity'] : [])] as Skill[]).filter((k) => avgs[k] !== undefined).sort((a, b) => avgs[a]! - avgs[b]!);
+  const skills = (['language', 'fillers', 'pace', 'pauses', 'variety', ...(s.profile.accentGoal !== 'none' ? ['clarity'] : [])] as Skill[]).filter((k) => avgs[k] !== undefined).sort((a, b) => avgs[a]! - avgs[b]!);
   const fromChallenge = s.profile.challenges.map((c) => CHALLENGE_SKILL[c]).find(Boolean);
   const weakest = skills[0] ?? fromChallenge;
   const items: { drill: DrillId; reason: string; param?: string }[] = [];
@@ -209,13 +210,18 @@ export function todayPlan(s: State): PlanItem[] {
     if (!items.some((i) => i.drill === d)) items.push({ drill: d, reason: skills.length ? 'Your lowest skill lately' : 'From your goals' });
   } else items.push({ drill: 'pace', reason: 'Find your speaking pace' });
 
+  // The accent goal is the user's explicit choice, so it comes before the general drills.
+  if (s.profile.accentGoal !== 'none') {
+    const target = s.profile.accentGoal as AccentId;
+    const checked = s.accentChecks.some((c) => c.target === target);
+    const next = nextSoundFor(s);
+    if (!checked) items.push({ drill: 'accentcheck', reason: `Find your ${targetById(target).adjective} sounds to fix` });
+    else if (next) items.push({ drill: 'pronunciation', reason: `${targetById(target).adjective} sound: ${next.feature.name}`, param: next.feature.id });
+  }
   const due = dueCount(s);
   if (!items.some((i) => i.drill === 'swaps')) items.push({ drill: 'swaps', reason: due ? `${due} cards due for review` : 'Build confident wording' });
 
-  if (s.profile.pronunciation && s.profile.minutes >= 10) {
-    const sound = SOUNDS[Math.floor(Date.now() / 864e5) % SOUNDS.length];
-    items.push({ drill: 'pronunciation', reason: `Sound of the day: ${sound.name}`, param: sound.id });
-  }
+  if (s.profile.accentGoal !== 'none' && s.profile.minutes >= 15) items.push({ drill: 'shadow', reason: 'Copy a native speaker\'s melody' });
   if (s.profile.minutes >= 15 && skills[1]) {
     const d2 = DRILL_FOR_SKILL[skills[1]];
     if (!items.some((i) => i.drill === d2)) items.push({ drill: d2, reason: 'Second focus skill' });
@@ -240,4 +246,22 @@ export function weeklyDelta(s: State): { skill: Skill; now: number; prev: number
   return (['fillers', 'language', 'pace', 'pauses', 'variety', 'clarity'] as Skill[])
     .map((k) => ({ skill: k, now: avg(thisWeek, k), prev: avg(lastWeek, k) }))
     .filter((x): x is { skill: Skill; now: number; prev: number } => x.now !== null && x.prev !== null);
+}
+
+// ---------- accent ----------
+
+export function accentTarget(s: State): AccentId | null {
+  return s.profile.accentGoal === 'none' ? null : (s.profile.accentGoal as AccentId);
+}
+
+export function accentFrom(s: State): string {
+  return s.profile.accentFrom || guessStarting(s.profile.nativeLanguage);
+}
+
+/** The sound to practice next: the highest-priority sound scoring under 75, else the first one not yet scored. */
+export function nextSoundFor(s: State): MapEntry | null {
+  const target = accentTarget(s);
+  if (!target) return null;
+  const map = soundMap(accentFrom(s), target).slice(0, 12);
+  return map.find((e) => (soundScore(s, e.feature.id)?.score ?? 100) < 75) ?? map.find((e) => !soundScore(s, e.feature.id)) ?? map[0] ?? null;
 }

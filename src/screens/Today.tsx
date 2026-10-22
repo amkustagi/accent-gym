@@ -10,6 +10,10 @@ import { checkinDue } from '../lib/feedback';
 import { scoredToday } from '../store/store';
 import { CheckinCard } from './FeedbackScreen';
 import { NaturalVoiceCard } from './NaturalVoiceCard';
+import { weeklyDue } from '../lib/weekly';
+import { accentTarget, nextSoundFor } from '../learn/adapt';
+import { targetById } from '../content/accents';
+import { go } from '../lib/nav';
 import { skillName } from '../ui/ui';
 import { Icon } from '../ui/Icon';
 import { Radar } from '../ui/ui';
@@ -152,6 +156,35 @@ export function Today() {
       )}
 
       <NaturalVoiceCard />
+
+      {weeklyDue(s) && (
+        <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', borderColor: 'var(--brand)' }} onClick={() => open({ kind: 'weekly' })}>
+          <div className="row">
+            <span className="ic" style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--brand-soft)', color: 'var(--brand)' }}><Icon name="trophy" /></span>
+            <span className="grow"><b>Your week in review</b><br /><span className="small muted">Progress, habits and next week's focus. Shareable.</span></span>
+            <Icon name="chevron" className="chev" />
+          </div>
+        </button>
+      )}
+
+      {accentTarget(s) && (() => {
+        const t = targetById(accentTarget(s)!);
+        const next = nextSoundFor(s);
+        const checked = s.accentChecks.some((c) => c.target === t.id);
+        return (
+          <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }} onClick={() => go('accent')}>
+            <div className="row">
+              <span className="ic" style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--signal-soft)', color: 'var(--warn)' }}><Icon name="globe" /></span>
+              <span className="grow">
+                <span className="eyebrow">{t.adjective} accent</span>
+                <br />
+                <b>{checked ? (next ? `Next sound: ${next.feature.name}` : 'Keep practicing') : 'Take your 2-minute accent check'}</b>
+              </span>
+              <Icon name="chevron" className="chev" />
+            </div>
+          </button>
+        );
+      })()}
 
       {checkinDue() && <CheckinCard />}
 
