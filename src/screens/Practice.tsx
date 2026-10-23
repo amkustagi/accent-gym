@@ -5,6 +5,7 @@ import { useStore } from '../store/store';
 import { isPro } from '../lib/backend';
 import { Icon } from '../ui/Icon';
 import { skillName } from '../ui/ui';
+import { CoursesSection } from './Courses';
 
 export function Practice() {
   const done = useStore((s) => s.lessonsDone);
@@ -16,6 +17,7 @@ export function Practice() {
         <span className="eyebrow">Practice</span>
         <h1>Train one skill at a time</h1>
       </header>
+      <CoursesSection />
       {AREAS.map((a) => (
         <section key={a.id} className="stack-sm">
           <div className="row spread" style={{ alignItems: 'baseline' }}>
@@ -24,7 +26,7 @@ export function Practice() {
           </div>
           <div className="card" style={{ paddingBlock: 4 }}>
             <div className="list">
-              {DRILLS.filter((d) => d.area === a.id).map((d) => (
+              {DRILLS.filter((d) => d.area === a.id && !d.hidden).map((d) => (
                 <button key={d.id} className="item" onClick={() => (d.id === 'pronunciation' ? go('accent') : open({ kind: 'drill', id: d.id }))}>
                   <span className="ic" style={d.area === 'presence' ? { background: 'var(--signal-soft)', color: 'var(--warn)' } : undefined}>
                     <Icon name={d.icon} />

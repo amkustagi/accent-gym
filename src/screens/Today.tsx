@@ -11,6 +11,7 @@ import { scoredToday } from '../store/store';
 import { CheckinCard } from './FeedbackScreen';
 import { NaturalVoiceCard } from './NaturalVoiceCard';
 import { weeklyDue } from '../lib/weekly';
+import { ContinueCourseCard } from './Courses';
 import { accentTarget, nextSoundFor } from '../learn/adapt';
 import { targetById } from '../content/accents';
 import { go } from '../lib/nav';
@@ -154,6 +155,8 @@ export function Today() {
           <button className="btn sm signal" onClick={() => open({ kind: 'paywall' })}>Go Pro</button>
         </div>
       )}
+
+      <ContinueCourseCard />
 
       <NaturalVoiceCard />
 

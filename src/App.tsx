@@ -4,6 +4,7 @@ import { configureVoice } from './engine/tts';
 import { open as openOverlay } from './lib/nav';
 import { noteDrillOpened, useStore } from './store/store';
 import { CoachScreen } from './screens/CoachScreen';
+import { CourseLessonView, CourseView } from './screens/Courses';
 import { Icon } from './ui/Icon';
 import { ToastHost } from './ui/ui';
 import { Today } from './screens/Today';
@@ -65,6 +66,8 @@ function OverlayHost() {
   else if (o.kind === 'whatsnew') el = <WhatsNew onClose={done} />;
   else if (o.kind === 'weekly') el = <WeeklyReport onClose={done} />;
   else if (o.kind === 'coach') el = <CoachScreen onClose={done} />;
+  else if (o.kind === 'course') el = <CourseView key={o.id} id={o.id} onClose={done} />;
+  else if (o.kind === 'clesson') el = <CourseLessonView key={o.id} id={o.id} onClose={done} />;
   else if (o.kind === 'drill') {
     const k = `${o.id}-${o.param ?? ''}`;
     switch (o.id) {

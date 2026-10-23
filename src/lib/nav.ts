@@ -14,6 +14,8 @@ export type Overlay =
   | { kind: 'whatsnew' }
   | { kind: 'weekly' }
   | { kind: 'coach' }
+  | { kind: 'course'; id: string }
+  | { kind: 'clesson'; id: string }
   | null;
 
 let tab: Tab = 'today';
