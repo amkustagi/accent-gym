@@ -4,8 +4,9 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['ear', 'Listening tests have an end', 'Each test is now a round of 10 that covers every word pair, then shows your score and what to do next.'],
-  ['mic', 'Fewer microphone prompts', 'The microphone stays ready between takes, and Ready or Start buttons begin listening right away.'],
+  ['book', '6 courses, 36 lessons', 'Confidence, presence, storytelling, hard conversations, people skills and meetings. Find them at the top of Practice.'],
+  ['mic', 'Learn it, then say it', 'Each lesson takes 2 minutes to read, then you say it out loud and the app checks that lesson\'s skill, like saying no with a reason and an alternative.'],
+  ['target', 'Always know what\'s next', 'Today shows your next lesson, and each course tracks your progress.'],
 ];
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {

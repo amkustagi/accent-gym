@@ -11,7 +11,7 @@ import { extractTerms, knownTerms, mergeTerms } from './extract';
 const DAY = 864e5;
 
 /** Rounds where the user speaks in their own words (not reading a script). */
-const FREE_SPEECH = new Set<SessionRecord['drill']>(['simulator', 'pressure', 'roleplay', 'structure', 'concision', 'baseline']);
+const FREE_SPEECH = new Set<SessionRecord['drill']>(['simulator', 'pressure', 'roleplay', 'structure', 'concision', 'baseline', 'course']);
 
 // ---------- learning from sessions ----------
 

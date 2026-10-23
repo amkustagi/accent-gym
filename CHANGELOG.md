@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.08 (branch release_0.08)
+**Courses**: 6 courses, 36 lessons, covering every part of speaking well at work:
+- **Confidence from the inside** (mindset): nerves, speaking up, owning what you know, recovering from a blank mind, being wrong, talking about wins.
+- **Presence and first impressions**: first impressions, body language, video calls, a trustworthy voice, the power of a pause, finishing strong.
+- **Say it so it sticks** (message): bottom line first, storytelling, memorable numbers, persuasion, explaining simply, opening with a hook.
+- **Hard conversations**: tough feedback, taking criticism, saying no, defusing conflict, difficult people, disagreeing with your boss.
+- **People skills**: listening, reading the room, small talk, open questions, interrupting smoothly, networking.
+- **Meetings that move**: 30-second updates, opening a meeting, the put-on-the-spot moment, Q&A, pushing back on deadlines, wrap-ups.
+
+Each lesson: the idea, why it matters, how to do it, and a before/after example with the model voice. Then you practice it out loud and the app checks that lesson's specific skill (phrases, structure, pauses, pace, vocal variety, plus self-checks for body language), on top of the full voice report. A lesson completes when its checks pass. Courses show progress on the Practice tab, and Today shows the next lesson.
+
 ## v0.07 (branch release_0.07)
 - Fix: the sound-lesson listening test never ended and its counter kept growing (5, 10, 20, 26…). It is now a round of 10 questions that cycles through every word pair, shows "It was ___" after a miss, and ends with a score, a next step, and **Another round**.
 
