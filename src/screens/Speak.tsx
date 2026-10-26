@@ -43,7 +43,7 @@ export function Speak() {
           <span className="small muted">Handle follow-up questions{pro ? '' : ' · Pro'}</span>
         </button>
       </section>
-      <div className="chips" role="group" aria-label="Category">
+      <div className="chips wrap" role="group" aria-label="Category">
         {CATEGORIES.map((c) => (
           <button key={c.id} className="chip" aria-pressed={c.id === cat} onClick={() => setCat(c.id)}>
             {c.name}

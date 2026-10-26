@@ -3,23 +3,21 @@ import { drillById } from '../content/catalog';
 import { LESSONS } from '../content/lessons';
 import { SWAPS } from '../content/drills';
 import { open } from '../lib/nav';
-import { baseline, level, levelName, skillAverages, streak, useStore } from '../store/store';
+import { streak, useStore } from '../store/store';
 import { dueCount, habits, todayPlan, weeklyDelta } from '../learn/adapt';
 import { FREE_DAILY_ROUNDS, isPro } from '../lib/backend';
 import { checkinDue } from '../lib/feedback';
 import { scoredToday } from '../store/store';
 import { CheckinCard } from './FeedbackScreen';
-import { NaturalVoiceCard } from './NaturalVoiceCard';
+import { NaturalVoiceCard, naturalCardShowing } from './NaturalVoiceCard';
 import { weeklyDue } from '../lib/weekly';
 import { ContinueCourseCard } from './Courses';
-import { ChallengesCard } from './Challenges';
 import { ReportButton } from '../ui/ReportButton';
 import { accentTarget, nextSoundFor } from '../learn/adapt';
 import { targetById } from '../content/accents';
 import { go } from '../lib/nav';
 import { skillName } from '../ui/ui';
 import { Icon } from '../ui/Icon';
-import { Radar } from '../ui/ui';
 
 interface BIPEvent extends Event {
   prompt: () => Promise<void>;
@@ -48,7 +46,7 @@ function InstallCard() {
     bipListeners.add(l);
     return () => void bipListeners.delete(l);
   }, []);
-  if (standalone() || dismissed) return null;
+  if (standalone() || dismissed || (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) return null;
   const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   const hide = () => {
     setDismissed(true);
@@ -88,9 +86,6 @@ const greet = () => {
 export function Today() {
   const s = useStore((x) => x);
   const plan = useMemo(() => todayPlan(s), [s]);
-  const avgs = useMemo(() => skillAverages(s), [s]);
-  const base = baseline(s);
-  const lv = level(s.xp);
   const st = streak(s);
   const doneCount = plan.filter((p) => p.done).length;
   const next = plan.find((p) => !p.done);
@@ -101,7 +96,6 @@ export function Today() {
   const delta = useMemo(() => weeklyDelta(s).sort((a, b) => Math.abs(b.now - b.prev) - Math.abs(a.now - a.prev))[0], [s]);
   const rule = SWAPS[Math.floor(Date.now() / 864e5) % SWAPS.length];
   const lesson = LESSONS.find((l) => !s.lessonsDone.includes(l.id)) ?? LESSONS[Math.floor(Date.now() / 864e5) % LESSONS.length];
-  const hasData = Object.keys(avgs).length >= 3;
 
   return (
     <div className="page">
@@ -163,9 +157,6 @@ export function Today() {
 
       <ContinueCourseCard />
 
-      <ChallengesCard />
-
-      <NaturalVoiceCard />
 
       {weeklyDue(s) && (
         <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', borderColor: 'var(--brand)' }} onClick={() => open({ kind: 'weekly' })}>
@@ -237,35 +228,7 @@ export function Today() {
         </section>
       )}
 
-      <section className="card">
-        <div className="row spread">
-          <div className="stack-sm">
-            <span className="eyebrow">Level {lv.lvl}</span>
-            <h3>{levelName(lv.lvl)}</h3>
-          </div>
-          <span className="pill brand">{s.xp} XP</span>
-        </div>
-        <div className="progress"><i style={{ width: `${(lv.into / lv.need) * 100}%` }} /></div>
-        <p className="small muted">{lv.need - lv.into} XP to {levelName(lv.lvl + 1)}</p>
-      </section>
-
-      <section className="card">
-        <div className="row spread">
-          <h3>Your skill profile</h3>
-          {base && hasData && <span className="small muted">dashed = baseline</span>}
-        </div>
-        {hasData ? (
-          <Radar scores={avgs} base={base?.scores} />
-        ) : (
-          <div className="empty">
-            <Icon name="target" />
-            <p>Do a meeting simulator round to see your profile across six skills.</p>
-            <button className="btn primary sm" onClick={() => open({ kind: 'drill', id: 'simulator' })}>Open the simulator</button>
-          </div>
-        )}
-      </section>
-
-      <InstallCard />
+      {naturalCardShowing(s.settings.voiceEngine) ? <NaturalVoiceCard /> : <InstallCard />}
 
       <section className="card">
         <span className="eyebrow">Swap of the day</span>

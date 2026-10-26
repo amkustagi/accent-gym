@@ -56,8 +56,8 @@ export function CoursesSection() {
                   <Icon name={n === c.lessons.length ? 'check' : c.icon} />
                 </span>
                 <span className="grow stack-sm" style={{ gap: 4 }}>
-                  <span><b>{c.title}</b> <span className="small muted">· {c.area}</span></span>
-                  <span className="small muted">{c.blurb}</span>
+                  <b>{c.title}</b>
+                  <span className="small muted"><span style={{ textTransform: 'capitalize' }}>{c.area}</span> · {c.blurb}</span>
                   {n > 0 && <Bar value={n / c.lessons.length} />}
                 </span>
                 <span className="small muted">{n}/{c.lessons.length}</span>

@@ -1,0 +1,14 @@
+{
+  "appId": "com.tinyhustlers.speakco",
+  "appName": "Speakco",
+  "webDir": "dist",
+  "backgroundColor": "#f3f2ee",
+  "ios": {
+    "contentInset": "never"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}

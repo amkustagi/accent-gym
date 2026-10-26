@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AREAS, DRILLS } from '../content/catalog';
 import { LESSONS } from '../content/lessons';
 import { go, open } from '../lib/nav';
@@ -11,14 +12,21 @@ export function Practice() {
   const done = useStore((s) => s.lessonsDone);
   const pron = useStore((s) => s.profile.pronunciation);
   const pro = useStore((s) => isPro(s));
+  const [view, setView] = useState<'courses' | 'drills' | 'lessons'>(() => (sessionStorage.getItem('practice.view') as 'courses' | 'drills' | 'lessons') || 'courses');
+  const pick = (v: typeof view) => { setView(v); try { sessionStorage.setItem('practice.view', v); } catch { /* private mode */ } };
   return (
     <div className="page">
       <header className="stack-sm">
         <span className="eyebrow">Practice</span>
         <h1>Train one skill at a time</h1>
       </header>
-      <CoursesSection />
-      {AREAS.map((a) => (
+      <div className="seg sticky-seg" role="group" aria-label="Practice view">
+        {(['courses', 'drills', 'lessons'] as const).map((v) => (
+          <button key={v} aria-pressed={view === v} onClick={() => pick(v)}>{v === 'courses' ? 'Courses' : v === 'drills' ? 'Drills' : 'Lessons'}</button>
+        ))}
+      </div>
+      {view === 'courses' && <CoursesSection />}
+      {view === 'drills' && AREAS.map((a) => (
         <section key={a.id} className="stack-sm">
           <div className="row spread" style={{ alignItems: 'baseline' }}>
             <h2>{a.name}</h2>
@@ -45,7 +53,7 @@ export function Practice() {
           </div>
         </section>
       ))}
-      <section className="stack-sm">
+      {view === 'lessons' && <section className="stack-sm">
         <div className="row spread" style={{ alignItems: 'baseline' }}>
           <h2>Lessons</h2>
           <span className="small muted">{done.length}/{LESSONS.length} read</span>
@@ -67,7 +75,7 @@ export function Practice() {
             ))}
           </div>
         </div>
-      </section>
+      </section>}
     </div>
   );
 }

@@ -290,3 +290,9 @@ button.card:disabled { opacity: 0.6; }
 /* Bug-report screenshots: hide what people typed. */
 .shot-mask input, .shot-mask textarea { color: transparent !important; text-shadow: none !important; }
 .shot-mask input::placeholder, .shot-mask textarea::placeholder { color: transparent !important; }
+
+/* v0.11: phone polish */
+.chips.wrap { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+.chips:not(.wrap) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+.sticky-seg { position: sticky; top: calc(env(safe-area-inset-top) + 6px); z-index: 5; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06); }
+.seg button { min-height: 40px; }

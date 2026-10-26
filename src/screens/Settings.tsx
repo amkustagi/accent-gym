@@ -262,7 +262,10 @@ export function Settings({ onClose }: { onClose: () => void }) {
 
       <button className="btn ghost" onClick={() => open({ kind: 'whatsnew' })}>What's new in v{__APP_VERSION__}</button>
       <p className="small muted" style={{ textAlign: 'center' }}>
-        Speakco v{__APP_VERSION__} · Your voice is analyzed on this phone. Speech-to-text uses your browser's built-in service.
+        Speakco v{__APP_VERSION__} · Your voice is analyzed on this phone. Speech-to-text uses your phone's or browser's built-in service.
+      </p>
+      <p className="small muted" style={{ textAlign: 'center' }}>
+        <a href="privacy.html" target="_blank" rel="noreferrer">Privacy</a> · <a href="terms.html" target="_blank" rel="noreferrer">Terms of use</a>
       </p>
     </SessionShell>
   );

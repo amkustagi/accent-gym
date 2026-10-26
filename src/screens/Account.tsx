@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { MANAGE_SUBSCRIPTION_URL, buyInStore, loadStorePrices, mustUseStoreBilling, restoreStorePurchases, storeBillingEnabled } from '../lib/storePurchases';
 import { FREE_DAILY_ROUNDS, PRICE_LABELS, backendEnabled, deleteAccountRequest, isPro, openBillingPortal, planName, pushState, sendCode, signOut, startCheckout, verifyCode } from '../lib/backend';
 import { open } from '../lib/nav';
 import { scoredToday, useStore } from '../store/store';
@@ -125,10 +126,15 @@ export function AccountScreen({ onClose }: { onClose: () => void }) {
                 <button className="btn signal" onClick={() => open({ kind: 'paywall' })}><Icon name="crown" />Upgrade to Pro</button>
               </>
             )}
-            {a.plan === 'pro_monthly' && (
+            {a.plan === 'pro_monthly' && (mustUseStoreBilling() ? (
+              <a className="btn quiet" href={MANAGE_SUBSCRIPTION_URL()} target="_blank" rel="noreferrer">Manage subscription</a>
+            ) : (
               <button className="btn quiet" disabled={busy} onClick={async () => { setBusy(true); try { await openBillingPortal(); } catch (e) { toast((e as Error).message); setBusy(false); } }}>
                 Manage subscription
               </button>
+            ))}
+            {mustUseStoreBilling() && storeBillingEnabled() && a.plan === 'free' && (
+              <button className="btn ghost sm" style={{ alignSelf: 'flex-start' }} onClick={async () => { const ok = await restoreStorePurchases().catch(() => false); toast(ok ? 'Purchase restored' : 'No purchase found for this store account'); }}>Restore purchases</button>
             )}
           </section>
           <button className="btn quiet" onClick={async () => { await signOut(); toast('Signed out'); }}>Sign out</button>
@@ -163,10 +169,15 @@ export function Paywall({ reason, onClose }: { reason?: string; onClose: () => v
   const s = useStore((x) => x);
   const [busy, setBusy] = useState<'monthly' | 'lifetime' | null>(null);
   const [err, setErr] = useState('');
+  const store = mustUseStoreBilling();
+  const [prices, setPrices] = useState<{ monthly?: string; lifetime?: string }>({});
+  useEffect(() => {
+    if (store && storeBillingEnabled()) loadStorePrices().then(setPrices).catch(() => undefined);
+  }, [store]);
   const buy = async (plan: 'monthly' | 'lifetime') => {
     setErr('');
-    if (!backendEnabled) {
-      setErr('Payments aren\'t connected in this build yet. Everything is already unlocked for you.');
+    if (!backendEnabled || (store && !storeBillingEnabled())) {
+      setErr(backendEnabled ? 'In-app purchases aren\'t connected in this build yet.' : 'Payments aren\'t connected in this build yet. Everything is already unlocked for you.');
       return;
     }
     if (!s.account) {
@@ -175,10 +186,22 @@ export function Paywall({ reason, onClose }: { reason?: string; onClose: () => v
     }
     setBusy(plan);
     try {
-      await startCheckout(plan);
+      if (store) {
+        const ok = await buyInStore(plan);
+        setBusy(null);
+        if (ok) { toast('Welcome to Speakco Pro'); onClose(); }
+      } else await startCheckout(plan);
     } catch (e) {
       setErr((e as Error).message);
       setBusy(null);
+    }
+  };
+  const restore = async () => {
+    setErr('');
+    try {
+      if (await restoreStorePurchases()) { toast('Purchase restored'); onClose(); } else setErr('No Speakco purchase found for this store account.');
+    } catch {
+      setErr('Couldn\'t reach the store. Try again.');
     }
   };
   return (
@@ -196,20 +219,27 @@ export function Paywall({ reason, onClose }: { reason?: string; onClose: () => v
       <div className="grid2">
         <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }} disabled={!!busy} onClick={() => void buy('monthly')}>
           <span className="eyebrow">Monthly</span>
-          <b className="num" style={{ fontSize: '1.5rem' }}>{PRICE_LABELS.monthly}</b>
+          <b className="num" style={{ fontSize: '1.5rem' }}>{prices.monthly ?? PRICE_LABELS.monthly}</b>
           <span className="small muted">Cancel anytime</span>
           <span className="btn primary sm">{busy === 'monthly' ? 'Opening…' : 'Choose monthly'}</span>
         </button>
         <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', borderColor: 'var(--signal)', borderWidth: 2 }} disabled={!!busy} onClick={() => void buy('lifetime')}>
           <span className="eyebrow">Lifetime</span>
-          <b className="num" style={{ fontSize: '1.5rem' }}>{PRICE_LABELS.lifetime}</b>
+          <b className="num" style={{ fontSize: '1.5rem' }}>{prices.lifetime ?? PRICE_LABELS.lifetime}</b>
           <span className="small muted">Pay once, own it forever</span>
           <span className="btn signal sm">{busy === 'lifetime' ? 'Opening…' : 'Buy lifetime'}</span>
         </button>
       </div>
       {err && <div className="note warn">{err}</div>}
+      {store && storeBillingEnabled() && <button className="btn ghost sm" style={{ alignSelf: 'center' }} onClick={() => void restore()}>Restore purchases</button>}
       <p className="small muted" style={{ textAlign: 'center' }}>
-        Free plan: {FREE_DAILY_ROUNDS} speaking rounds a day, all practice drills, natural voice. Payments are handled securely by Stripe.
+        Free plan: {FREE_DAILY_ROUNDS} speaking rounds a day, all practice drills, natural voice.{' '}
+        {store
+          ? 'Payment is charged to your App Store or Google Play account. The monthly plan renews automatically unless cancelled at least 24 hours before the end of the period; manage it in your store account settings.'
+          : 'Payments are handled securely by Stripe.'}
+      </p>
+      <p className="small muted" style={{ textAlign: 'center' }}>
+        <a href="privacy.html" target="_blank" rel="noreferrer">Privacy</a> · <a href="terms.html" target="_blank" rel="noreferrer">Terms of use</a>
       </p>
     </SessionShell>
   );

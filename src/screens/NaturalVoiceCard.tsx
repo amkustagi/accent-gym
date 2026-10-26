@@ -6,6 +6,17 @@ import { toast } from '../ui/ui';
 
 const DISMISS = 'natural-voice-card-dismissed';
 
+/** True when the natural-voice card would show (Today shows one setup card at a time). */
+export function naturalCardShowing(engine: string): boolean {
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(DISMISS) === '1';
+  } catch {
+    /* ignore */
+  }
+  return engine === 'natural' && naturalState().status !== 'ready' && !dismissed;
+}
+
 /** Invites the user to download the natural voice; shows progress while it downloads. */
 export function NaturalVoiceCard() {
   const engine = useStore((s) => s.settings.voiceEngine);
