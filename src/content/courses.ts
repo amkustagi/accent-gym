@@ -2,6 +2,7 @@
 // Each lesson teaches one idea in about two minutes, then the user says it out loud and the app
 // checks that lesson's specific skill (on top of the usual voice report).
 import type { DrillId } from './catalog';
+import type { PresenceSummary } from '../engine/face';
 
 export type Check =
   | { t: 'avoid'; words: string[]; label: string }
@@ -12,7 +13,8 @@ export type Check =
   | { t: 'pace'; lo: number; hi: number; label: string }
   | { t: 'variety'; min: number; label: string }
   | { t: 'fillers'; maxPerMin: number; label: string }
-  | { t: 'self'; label: string };
+  /** Something only the user (or the camera check, when it's on) can see. */
+  | { t: 'self'; label: string; camera?: 'eye' | 'light' | 'still' | 'framing' | 'smile' };
 
 export interface CourseLesson {
   id: string;
@@ -119,7 +121,7 @@ export const COURSES: Course[] = [
         how: ['Smile and say their name: "Hi Priya, good to meet you."', 'Say your role in one line, with one thing you\'re proud of.', 'End with a question about them.'],
         example: { weak: 'Hi, so I\'m, um, I work in, like, the data team, I guess.', strong: 'Hi Priya, good to meet you. I lead data quality; we cut report errors in half last year. What brings you to the project?' },
         practice: { context: 'You meet a new senior colleague at the start of a project', prompt: 'Introduce yourself in 20 seconds and end with a question.', frame: ['Warm greeting with their name', 'Your role and one win', 'A question about them'], secs: 25 },
-        checks: [{ t: 'question', label: 'Ended with a question about them' }, FEW_FILLERS, NO_HEDGE],
+        checks: [{ t: 'question', label: 'Ended with a question about them' }, FEW_FILLERS, NO_HEDGE, { t: 'self', label: 'I smiled and looked at them', camera: 'smile' }],
       },
       {
         id: 'c2-body', title: 'Body language that says confident',
@@ -128,7 +130,7 @@ export const COURSES: Course[] = [
         how: ['Feet planted, shoulders back and down.', 'Hands visible, gestures between waist and chest.', 'Stop moving when you say your most important sentence.'],
         example: { weak: 'Arms crossed, looking at the floor, swaying.', strong: 'Standing tall, open hands, still on the key sentence.' },
         practice: { context: 'Stand up, phone in front of you like a camera', prompt: 'Give a 30-second update standing tall, with open hands, still on the key line.', frame: ['Headline', 'One detail', 'What you need'], secs: 35 },
-        checks: [{ t: 'self', label: 'I stood tall with my feet planted' }, { t: 'self', label: 'My hands stayed open and visible' }, { t: 'variety', min: 4, label: 'Lively voice (4+ semitones)' }],
+        checks: [{ t: 'self', label: 'I stood tall with my feet planted' }, { t: 'self', label: 'My hands stayed open and visible' }, { t: 'self', label: 'I kept my head steady on the key line', camera: 'still' }, { t: 'variety', min: 4, label: 'Lively voice (4+ semitones)' }],
       },
       {
         id: 'c2-camera', title: 'Own the camera on video calls',
@@ -137,7 +139,7 @@ export const COURSES: Course[] = [
         how: ['Camera at eye level, light in front of you, not behind.', 'Look at the lens for your first and last sentence.', 'Lean in slightly and nod while others speak.'],
         example: { weak: 'Looking down at notes, camera below the chin, window behind you.', strong: 'Eye-level camera, face lit, eyes on the lens for the key point.' },
         practice: { context: 'Set your phone up like a video call', prompt: 'Make one key point to the camera, looking at the lens.', frame: ['Key point', 'Why it matters', 'What happens next'], secs: 30 },
-        checks: [{ t: 'self', label: 'I looked at the lens, not the screen' }, { t: 'self', label: 'My face was lit from the front' }, FEW_FILLERS],
+        checks: [{ t: 'self', label: 'I looked at the lens, not the screen', camera: 'eye' }, { t: 'self', label: 'My face was lit from the front', camera: 'light' }, { t: 'self', label: 'My face filled about a third of the frame', camera: 'framing' }, FEW_FILLERS],
       },
       {
         id: 'c2-trust', title: 'Build trust with your voice',
@@ -447,7 +449,7 @@ export interface TakeData {
   fillersPerMin: number | null;
 }
 
-export function runChecks(checks: Check[], take: TakeData, selfTicks: Record<string, boolean> = {}): CheckResult[] {
+export function runChecks(checks: Check[], take: TakeData, selfTicks: Record<string, boolean> = {}, cam: PresenceSummary | null = null): CheckResult[] {
   const raw = take.transcript;
   const text = norm(raw);
   return checks.map((c): CheckResult => {
@@ -469,6 +471,10 @@ export function runChecks(checks: Check[], take: TakeData, selfTicks: Record<str
       case 'fillers':
         return { label: c.label, pass: take.fillersPerMin === null ? null : take.fillersPerMin <= c.maxPerMin };
       case 'self':
+        if (c.camera && cam && cam.facePct >= 40) {
+          const pass = c.camera === 'eye' ? cam.eyeContactPct >= 60 : c.camera === 'light' ? cam.lighting === 'good' : c.camera === 'still' ? cam.stillness >= 55 : c.camera === 'framing' ? cam.framing === 'good' : cam.smilePct >= 10;
+          return { label: `${c.label} (camera)`, pass };
+        }
         return { label: c.label, pass: c.label in selfTicks ? selfTicks[c.label] : null, self: true };
     }
   });

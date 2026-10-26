@@ -1,6 +1,6 @@
 import type { Skill } from '../engine/score';
 
-export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure' | 'roleplay' | 'accentcheck' | 'shadow' | 'course';
+export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure' | 'roleplay' | 'accentcheck' | 'shadow' | 'course' | 'camera';
 export type Area = 'content' | 'voice' | 'articulation' | 'presence';
 
 export interface DrillInfo {
@@ -18,7 +18,7 @@ export interface DrillInfo {
   hidden?: boolean;
 }
 
-export type IconName = 'swap' | 'blocks' | 'scissors' | 'metronome' | 'pause' | 'wave' | 'flame' | 'sparkle' | 'mouth' | 'mic' | 'bolt' | 'chat' | 'globe' | 'book';
+export type IconName = 'swap' | 'blocks' | 'scissors' | 'metronome' | 'pause' | 'wave' | 'flame' | 'sparkle' | 'mouth' | 'mic' | 'bolt' | 'chat' | 'globe' | 'book' | 'user';
 
 export const AREAS: { id: Area; name: string; question: string }[] = [
   { id: 'content', name: 'Content', question: 'What you say' },
@@ -41,6 +41,7 @@ export const DRILLS: DrillInfo[] = [
   { id: 'shadow', name: 'Shadowing', area: 'articulation', skill: 'variety', blurb: 'Repeat a native speaker and match their melody.', minutes: 3, icon: 'wave' },
   { id: 'simulator', name: 'Meeting simulator', area: 'presence', skill: 'language', blurb: 'Endless scenarios from your own job, with a full voice report.', minutes: 2, icon: 'mic' },
   { id: 'pressure', name: 'Pressure round', area: 'presence', skill: 'language', blurb: 'Random question, 10 seconds to prepare.', minutes: 2, icon: 'bolt' },
+  { id: 'camera', name: 'Video presence', area: 'presence', skill: 'language', blurb: 'Talk to the camera: eye contact, framing, light and steadiness.', minutes: 2, icon: 'user' },
   { id: 'course', name: 'Course lesson', area: 'presence', skill: 'language', blurb: 'A lesson from a course, practiced out loud.', minutes: 3, icon: 'book', hidden: true },
   { id: 'roleplay', name: 'AI conversation', area: 'presence', skill: 'language', blurb: 'Answer, then handle real follow-up questions.', minutes: 4, icon: 'chat', pro: true },
 ];

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { COURSES, courseById, courseLessonById, lessonPassed, runChecks, type Course, type CourseLesson } from '../content/courses';
 import type { CaptureResult } from '../engine/capture';
 import { scoreAndSave, tooShort } from '../lib/session';
@@ -9,6 +9,8 @@ import { MicStage } from '../ui/MicStage';
 import { Report } from '../ui/Report';
 import { HearButton } from '../ui/TakeCompare';
 import { SessionShell } from '../ui/ui';
+import { CameraPanel, PresenceResult, type CameraHandle } from '../ui/CameraPanel';
+import type { PresenceSummary } from '../engine/face';
 
 const doneIn = (s: State, c: Course) => c.lessons.filter((l) => s.lessonsDone.includes(l.id)).length;
 
@@ -131,6 +133,9 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
   const [res, setRes] = useState<{ rec: SessionRecord; xp: number } | null>(null);
   const [ticks, setTicks] = useState<Record<string, boolean>>({});
   const [err, setErr] = useState<string | null>(null);
+  const cam = useRef<CameraHandle>(null);
+  const [camRes, setCamRes] = useState<PresenceSummary | null>(null);
+  const usesCamera = l.checks.some((c) => c.t === 'self' && c.camera);
   const lessonsDone = useStore((s) => s.lessonsDone);
   const idx = l.course.lessons.findIndex((x) => x.id === l.id);
   const nextLesson = l.course.lessons[idx + 1];
@@ -138,8 +143,8 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
   const results = useMemo(() => {
     if (!res) return [];
     const m = res.rec.metrics;
-    return runChecks(l.checks, { transcript: res.rec.transcript, words: m.words, wpm: m.wpm, pauses: m.pauses, pitchRangeSt: m.pitchRangeSt, fillersPerMin: m.fillersPerMin }, ticks);
-  }, [res, ticks, l.checks]);
+    return runChecks(l.checks, { transcript: res.rec.transcript, words: m.words, wpm: m.wpm, pauses: m.pauses, pitchRangeSt: m.pitchRangeSt, fillersPerMin: m.fillersPerMin }, ticks, camRes);
+  }, [res, ticks, l.checks, camRes]);
   const passed = res ? lessonPassed(results, res.rec.overall) : false;
   const selfPending = results.some((r) => r.self && r.pass === null);
 
@@ -147,6 +152,7 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
   if (res && passed && !lessonsDone.includes(l.id)) queueMicrotask(() => !getState().lessonsDone.includes(l.id) && markLesson(l.id));
 
   const done = async (r: CaptureResult) => {
+    setCamRes(cam.current?.end() ?? null);
     const short = tooShort(r);
     if (short) return setErr(short);
     setErr(null);
@@ -169,6 +175,7 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
           onDone={nextLesson && passed ? () => open({ kind: 'clesson', id: nextLesson.id }) : onClose}
           doneLabel={nextLesson && passed ? `Next lesson: ${nextLesson.title}` : 'Done'}
         >
+          {camRes && <PresenceResult s={camRes} />}
           <section className="card">
             <div className="row spread">
               <h3>Lesson checks</h3>
@@ -240,7 +247,8 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
             </div>
             <span className="small muted">Checked: {l.checks.map((c) => c.label).join(' · ')}</span>
           </section>
-          <MicStage maxSec={l.practice.secs + 20} needsTranscript autoStart autoStopSilence={3.5} idleHint="Tap the mic and say it" onDone={done} />
+          {usesCamera && <CameraPanel ref={cam} compact />}
+          <MicStage maxSec={l.practice.secs + 20} needsTranscript autoStart={!usesCamera} autoStopSilence={3.5} idleHint="Tap the mic and say it" onStart={() => void cam.current?.begin()} onDone={done} />
           {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
           <button className="btn ghost" onClick={() => setPhase('learn')}>Back to the lesson</button>
         </>

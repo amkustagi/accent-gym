@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { segments } from '../engine/text';
 import { SKILLS, type Scores, type Skill } from '../engine/score';
 import { Icon } from './Icon';
+import { ReportButton } from './ReportButton';
 
 export const scoreTone = (v: number) => (v >= 85 ? 'var(--good)' : v >= 65 ? 'var(--warn)' : 'var(--bad)');
 export const scoreWord = (v: number) => (v >= 90 ? 'Excellent' : v >= 80 ? 'Strong' : v >= 65 ? 'Getting there' : v >= 45 ? 'Needs work' : 'Rough take');
@@ -179,7 +180,7 @@ export function Seg<T extends string | number>({ value, options, onChange, label
   );
 }
 
-export function SessionShell({ title, onClose, children, progress, right }: { title: string; onClose: () => void; children: ReactNode; progress?: number; right?: ReactNode }) {
+export function SessionShell({ title, onClose, children, progress, right, noReport }: { title: string; onClose: () => void; children: ReactNode; progress?: number; right?: ReactNode; noReport?: boolean }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -195,7 +196,7 @@ export function SessionShell({ title, onClose, children, progress, right }: { ti
             <Icon name="close" />
           </button>
           <div className="grow">{title}</div>
-          <div style={{ width: 44, display: 'flex', justifyContent: 'flex-end' }}>{right}</div>
+          <div style={{ minWidth: 44, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>{right}{!noReport && <ReportButton />}</div>
         </div>
         {progress !== undefined && (
           <div className="progress" aria-hidden="true">

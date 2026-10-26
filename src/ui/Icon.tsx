@@ -39,6 +39,7 @@ const P: Record<string, JSX.Element> = {
   mail: <><rect x="3" y="5" width="18" height="14" rx="2.5" /><path d="M3.5 6.5 12 13l8.5-6.5" /></>,
   message: <path d="M4 4.5h16v11H8.5L4 19.5z" />,
   gift: <><rect x="3.5" y="8" width="17" height="4" rx="1" /><path d="M5 12v8.5h14V12M12 8v12.5M12 8C10 4 6.5 4.5 7 7c.3 1.3 2.5 1 5 1zm0 0c2-4 5.5-3.5 5-1-.3 1.3-2.5 1-5 1z" /></>,
+  flag: <path d="M5 21V4m0 0h11l-1.5 4L16 12H5" />,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v5.5M12 7.5v.5" /></>,
 };
 

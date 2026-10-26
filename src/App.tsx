@@ -5,6 +5,9 @@ import { open as openOverlay } from './lib/nav';
 import { noteDrillOpened, useStore } from './store/store';
 import { CoachScreen } from './screens/CoachScreen';
 import { CourseLessonView, CourseView } from './screens/Courses';
+import { CameraDrill } from './screens/drills/Camera';
+import { ChallengesScreen } from './screens/Challenges';
+import { VoiceReportScreen } from './screens/VoiceReport';
 import { Icon } from './ui/Icon';
 import { ToastHost } from './ui/ui';
 import { Today } from './screens/Today';
@@ -23,7 +26,6 @@ import { SessionView } from './screens/SessionView';
 import { RolePlayDrill, SimulatorDrill } from './screens/drills/Simulator';
 import { AccountScreen, Paywall } from './screens/Account';
 import { ProfileScreen } from './screens/Profile';
-import { FeedbackScreen } from './screens/FeedbackScreen';
 import { WhatsNew } from './screens/WhatsNew';
 import { SwapsDrill } from './screens/drills/Swaps';
 import { ConcisionDrill, StructureDrill } from './screens/drills/Content';
@@ -61,13 +63,15 @@ function OverlayHost() {
   else if (o.kind === 'session') el = <SessionView id={o.id} onClose={done} />;
   else if (o.kind === 'account') el = <AccountScreen onClose={done} />;
   else if (o.kind === 'paywall') el = <Paywall reason={o.reason} onClose={done} />;
-  else if (o.kind === 'feedback') el = <FeedbackScreen type={o.type} onClose={done} />;
+  else if (o.kind === 'feedback') el = <VoiceReportScreen type={o.type} onClose={done} />;
+  else if (o.kind === 'report') el = <VoiceReportScreen shot={o.shot} onClose={done} />;
   else if (o.kind === 'profile') el = <ProfileScreen onClose={done} />;
   else if (o.kind === 'whatsnew') el = <WhatsNew onClose={done} />;
   else if (o.kind === 'weekly') el = <WeeklyReport onClose={done} />;
   else if (o.kind === 'coach') el = <CoachScreen onClose={done} />;
   else if (o.kind === 'course') el = <CourseView key={o.id} id={o.id} onClose={done} />;
   else if (o.kind === 'clesson') el = <CourseLessonView key={o.id} id={o.id} onClose={done} />;
+  else if (o.kind === 'challenges') el = <ChallengesScreen onClose={done} />;
   else if (o.kind === 'drill') {
     const k = `${o.id}-${o.param ?? ''}`;
     switch (o.id) {
@@ -85,6 +89,7 @@ function OverlayHost() {
       case 'pronunciation': el = <SoundLessonDrill key={k} param={o.param} onClose={done} />; break;
       case 'accentcheck': el = <AccentCheckDrill key={k} onClose={done} />; break;
       case 'shadow': el = <ShadowDrill key={k} param={o.param} onClose={done} />; break;
+      case 'camera': el = <CameraDrill key={k} onClose={done} />; break;
     }
   }
   return <>{el}</>;

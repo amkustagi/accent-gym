@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10 (branch release_0.10)
+- **Voice feedback from any screen.** A flag button sits in every screen header and on Today. It takes a screenshot (anything typed is blanked out), then you talk or type. Device details go with it: app version, phone and browser, recent screens and errors, never recordings, transcripts, name or location, and you can see exactly what's sent. Reports are saved on the phone. With accounts on they upload; until then **Send with screenshot** opens the share sheet (Mail, Gmail…) with the image attached.
+- **Video presence.** A new **Video presence** drill and an optional camera check in the presence lessons. The front camera measures eye contact with the lens, face in view, framing, lighting, head steadiness and smiling, with tips. Analysis runs on the phone with MediaPipe; the runtime is served from the app and the face model downloads once from Google, then works offline. Video is never recorded or uploaded.
+- **Weekly challenges.** Three goals each week, one matched to your coach focus, tracked automatically, with XP rewards, badges, and a five-week XP chart.
+- **Leaderboard.** Opt-in, first name and weekly XP only. Turns on when accounts are connected (run `supabase/migrations/0003_leaderboard.sql`).
+
 ## v0.09 (branch release_0.09)
 - Renamed the app from Speak Sharp to **Speakco**: app name, home-screen name, page title, share card, reminders, backups and feedback emails. Older Speak Sharp backup files still restore. The repo and web address are unchanged.
 

@@ -292,3 +292,36 @@ export async function assessViaServer(audioBase64: string, reference: string, lo
   }
   return data;
 }
+
+// ---------- leaderboard (opt-in) ----------
+
+export interface LeaderRow {
+  name: string;
+  xp: number;
+  me: boolean;
+}
+
+/** Publishes this week's XP under the user's first name. Only when they opted in. */
+export async function pushLeaderboard(week: string, xp: number): Promise<void> {
+  const s = getState();
+  if (!backendEnabled || !s.account || !s.settings.leaderboard) return;
+  const c = await client();
+  const name = (s.profile.name || 'Speaker').trim().split(/\s+/)[0].slice(0, 24);
+  await c.from('leaderboard').upsert({ user_id: s.account.userId, week, display_name: name, xp, updated_at: new Date().toISOString() });
+}
+
+/** Removes the user's rows when they opt out. */
+export async function leaveLeaderboard(): Promise<void> {
+  const s = getState();
+  if (!backendEnabled || !s.account) return;
+  const c = await client();
+  await c.from('leaderboard').delete().eq('user_id', s.account.userId);
+}
+
+export async function fetchLeaderboard(week: string): Promise<LeaderRow[]> {
+  const s = getState();
+  if (!backendEnabled || !s.account) return [];
+  const c = await client();
+  const { data } = await c.from('leaderboard').select('user_id,display_name,xp').eq('week', week).order('xp', { ascending: false }).limit(25);
+  return (data ?? []).map((r: { user_id: string; display_name: string; xp: number }) => ({ name: r.display_name, xp: r.xp, me: r.user_id === s.account!.userId }));
+}
