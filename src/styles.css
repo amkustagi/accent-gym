@@ -286,3 +286,7 @@ a.btn { text-decoration: none; }
 .nps button { aspect-ratio: 1; max-width: 100%; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-size: 0.85rem; cursor: pointer; padding: 0; }
 .nps button.on { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
 button.card:disabled { opacity: 0.6; }
+
+/* Bug-report screenshots: hide what people typed. */
+.shot-mask input, .shot-mask textarea { color: transparent !important; text-shadow: none !important; }
+.shot-mask input::placeholder, .shot-mask textarea::placeholder { color: transparent !important; }

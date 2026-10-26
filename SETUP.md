@@ -9,7 +9,7 @@ Speakco runs fully on the phone without any server. In that mode every feature i
 
 ## 1. Create the Supabase project
 1. Go to supabase.com → New project. Note the **Project URL** and the **anon public key** (Settings → API).
-2. SQL editor → paste `supabase/migrations/0001_init.sql` → Run, then `supabase/migrations/0002_accent.sql` → Run.
+2. SQL editor → paste `supabase/migrations/0001_init.sql` → Run, then `supabase/migrations/0002_accent.sql` → Run, then `supabase/migrations/0003_leaderboard.sql` → Run.
 3. Authentication → Providers → Email: enable, turn **off** "Confirm email" link sign-in, keep OTP.
 4. Authentication → Email Templates → "Magic Link": make the body show the code, for example:
    `Your Speakco code is {{ .Token }}`

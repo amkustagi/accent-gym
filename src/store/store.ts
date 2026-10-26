@@ -40,6 +40,8 @@ export interface Settings {
   aiKey: string;
   reminderTime: string;
   keepRecordings: boolean;
+  /** Show my first name and weekly XP on the leaderboard (needs an account). */
+  leaderboard: boolean;
   /** Owner testing: own Microsoft Azure Speech key and region for precise accent scoring. */
   azureKey: string;
   azureRegion: string;
@@ -189,6 +191,10 @@ export interface State {
   sounds: Partial<Record<FeatureId, SoundScore[]>>;
   accentChecks: AccentCheckRecord[];
   learner: Learner;
+  /** XP earned per day (for weekly totals and the leaderboard). */
+  xpByDay: Record<string, number>;
+  /** Week key → challenge ids already completed and rewarded. */
+  challenges: Record<string, string[]>;
   updatedAt: number;
   version: number;
 }
@@ -202,7 +208,7 @@ export const DEFAULT_PROFILE: Profile = {
 const DEFAULT: State = {
   loaded: false,
   profile: DEFAULT_PROFILE,
-  settings: { voiceEngine: 'natural', naturalVoice: 'af_heart', systemVoice: '', listening: 'full', aiKey: '', reminderTime: '08:30', keepRecordings: true, azureKey: '', azureRegion: '' },
+  settings: { voiceEngine: 'natural', naturalVoice: 'af_heart', systemVoice: '', listening: 'full', aiKey: '', reminderTime: '08:30', keepRecordings: true, leaderboard: false, azureKey: '', azureRegion: '' },
   xp: 0,
   days: {},
   sessions: [],
@@ -221,8 +227,10 @@ const DEFAULT: State = {
   sounds: {},
   accentChecks: [],
   learner: DEFAULT_LEARNER,
+  xpByDay: {},
+  challenges: {},
   updatedAt: 0,
-  version: 4,
+  version: 5,
 };
 
 let state: State = DEFAULT;
@@ -291,7 +299,9 @@ export function migrate(saved: Record<string, unknown> | undefined): State {
     sounds: s.sounds ?? {},
     accentChecks: s.accentChecks ?? [],
     learner: { ...DEFAULT_LEARNER, ...s.learner },
-    version: 4,
+    xpByDay: s.xpByDay ?? {},
+    challenges: s.challenges ?? {},
+    version: 5,
     loaded: true,
   } as State;
 }
@@ -384,7 +394,7 @@ export function logActivity(drill: DrillId | 'lesson', xp: number) {
     day[drill] = (day[drill] ?? 0) + 1;
     const use = s.learner.drills[drill] ?? { opened: 0, finished: 0, last: 0 };
     const drills = { ...s.learner.drills, [drill]: { ...use, finished: use.finished + 1, last: Date.now() } };
-    return { ...s, xp: s.xp + xp, days: { ...s.days, [k]: day }, learner: { ...s.learner, drills } };
+    return { ...s, xp: s.xp + xp, xpByDay: { ...s.xpByDay, [k]: (s.xpByDay[k] ?? 0) + xp }, days: { ...s.days, [k]: day }, learner: { ...s.learner, drills } };
   });
 }
 

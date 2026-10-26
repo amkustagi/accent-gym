@@ -5,12 +5,17 @@ import { ErrorBoundary } from './ui/ErrorBoundary';
 import { loadState } from './store/store';
 import { startBackend } from './lib/backend';
 import { startLearner } from './learn/learner';
+import { onChallengeWon, startChallenges } from './learn/challenges';
+import { toast } from './ui/ui';
+
+onChallengeWon((titles) => toast(`Challenge complete: ${titles.join(', ')}`));
 import { installErrorCapture } from './lib/feedback';
 import './styles.css';
 
 installErrorCapture();
 void loadState().then(() => {
   startLearner();
+  startChallenges();
   startBackend();
 });
 createRoot(document.getElementById('root')!).render(

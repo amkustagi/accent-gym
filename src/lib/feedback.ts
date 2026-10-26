@@ -3,6 +3,7 @@ import { sttSupported, isIOS, isSafari } from '../engine/speech';
 import { naturalState } from '../engine/tts';
 import { addFeedback, getState, logError, type FeedbackKind } from '../store/store';
 import { backendEnabled, flushFeedback } from './backend';
+import { currentScreen, trail } from './nav';
 
 export const FEEDBACK_EMAIL = (import.meta.env.VITE_FEEDBACK_EMAIL as string | undefined) || 'avinash.kustagi@gmail.com';
 export const ISSUES_URL = 'https://github.com/amkustagi/accent-gym/issues/new';
@@ -23,6 +24,9 @@ export function diagnostics(): Record<string, unknown> {
     voiceEngine: s.settings.voiceEngine,
     sessions: s.sessions.length,
     recentErrors: s.errors.slice(-5),
+    screen: currentScreen(),
+    screenSize: `${window.innerWidth}x${window.innerHeight}`,
+    recentScreens: trail.slice(-12).map((c) => `${new Date(c.t).toISOString().slice(11, 19)} ${c.to}`),
   };
 }
 

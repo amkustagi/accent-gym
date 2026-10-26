@@ -12,7 +12,7 @@ const walk = (d) => readdirSync(d).forEach((f) => {
 walk(dist);
 const assets = files.filter((f) => f !== 'sw.js');
 // Large optional files (the natural-voice engine) are cached on first use, not at install.
-const precache = assets.filter((f) => !/\.wasm$|kokoro\.worker/.test(f));
+const precache = assets.filter((f) => !/\.wasm$|kokoro\.worker|^mediapipe\//.test(f));
 const hash = createHash('sha256');
 assets.forEach((f) => hash.update(f).update(readFileSync(join(dist, f))));
 const version = hash.digest('hex').slice(0, 12);
@@ -21,7 +21,7 @@ const sw = `const CACHE = 'speakco-${version}';
 const ASSETS = ${JSON.stringify(['./', ...precache])};
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS))); });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== 'speakco-models').map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('message', (e) => { if (e.data === 'skipWaiting') self.skipWaiting(); });
 self.addEventListener('fetch', (e) => {
@@ -34,6 +34,9 @@ self.addEventListener('fetch', (e) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
       return res;
     }).catch(() => caches.match('./'))));
+  } else if (url.hostname === 'storage.googleapis.com' && url.pathname.startsWith('/mediapipe-models/')) {
+    // Face model for the camera check: download once, then work offline.
+    e.respondWith(caches.open('speakco-models').then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok) c.put(req, res.clone()); return res; }))));
   } else if (url.hostname.endsWith('fonts.googleapis.com') || url.hostname.endsWith('fonts.gstatic.com')) {
     // Fonts: stale-while-revalidate.
     e.respondWith(caches.open(CACHE).then((c) => c.match(req).then((hit) => {

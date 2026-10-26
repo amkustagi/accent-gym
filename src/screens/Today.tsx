@@ -12,6 +12,8 @@ import { CheckinCard } from './FeedbackScreen';
 import { NaturalVoiceCard } from './NaturalVoiceCard';
 import { weeklyDue } from '../lib/weekly';
 import { ContinueCourseCard } from './Courses';
+import { ChallengesCard } from './Challenges';
+import { ReportButton } from '../ui/ReportButton';
 import { accentTarget, nextSoundFor } from '../learn/adapt';
 import { targetById } from '../content/accents';
 import { go } from '../lib/nav';
@@ -108,7 +110,10 @@ export function Today() {
           <span className="eyebrow">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
           <h1>{greet()}{s.profile.name ? `, ${s.profile.name}` : ''}</h1>
         </div>
-        <button className="iconbtn" onClick={() => open({ kind: 'settings' })} aria-label="Settings"><Icon name="settings" /></button>
+        <div className="row" style={{ gap: 4 }}>
+          <ReportButton />
+          <button className="iconbtn" onClick={() => open({ kind: 'settings' })} aria-label="Settings"><Icon name="settings" /></button>
+        </div>
       </header>
 
       <section className="card hero" style={{ gap: 16 }}>
@@ -157,6 +162,8 @@ export function Today() {
       )}
 
       <ContinueCourseCard />
+
+      <ChallengesCard />
 
       <NaturalVoiceCard />
 
