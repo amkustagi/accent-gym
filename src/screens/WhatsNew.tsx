@@ -4,9 +4,8 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['book', '6 courses, 36 lessons', 'Confidence, presence, storytelling, hard conversations, people skills and meetings. Find them at the top of Practice.'],
-  ['mic', 'Learn it, then say it', 'Each lesson takes 2 minutes to read, then you say it out loud and the app checks that lesson\'s skill, like saying no with a reason and an alternative.'],
-  ['target', 'Always know what\'s next', 'Today shows your next lesson, and each course tracks your progress.'],
+  ['sparkle', 'Speak Sharp is now Speakco', 'Same app, same progress, new name. Your history and settings are all still here.'],
+  ['book', '6 courses, 36 lessons', 'Confidence, presence, storytelling, hard conversations, people skills and meetings, each practiced out loud.'],
 ];
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {

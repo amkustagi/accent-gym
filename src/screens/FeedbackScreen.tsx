@@ -50,7 +50,7 @@ export function FeedbackScreen({ type = 'bug', onClose }: { type?: Kind; onClose
     <SessionShell title="Feedback" onClose={onClose}>
       <Seg label="Type" value={kind} onChange={setKind} options={[{ v: 'bug', label: 'Problem' }, { v: 'idea', label: 'Idea' }, { v: 'other', label: 'Other' }]} />
       <div className="field">
-        <label htmlFor="fb-text">{kind === 'bug' ? 'What went wrong? What did you expect?' : kind === 'idea' ? 'What would make Speak Sharp better for you?' : 'Tell us anything'}</label>
+        <label htmlFor="fb-text">{kind === 'bug' ? 'What went wrong? What did you expect?' : kind === 'idea' ? 'What would make Speakco better for you?' : 'Tell us anything'}</label>
         <textarea id="fb-text" className="input" style={{ minHeight: 160 }} value={text} onChange={(e) => setText(e.target.value)} placeholder={kind === 'bug' ? 'e.g. The voice didn\'t play after I recorded on the Swaps screen.' : 'e.g. Add practice for job interviews in finance.'} />
       </div>
       <div className="row spread">
@@ -89,7 +89,7 @@ export function CheckinCard() {
         <h3>Weekly check-in</h3>
         <button className="iconbtn ghost" style={{ width: 36, height: 36 }} onClick={close} aria-label="Skip"><Icon name="close" size={18} /></button>
       </div>
-      <p className="small">How likely are you to recommend Speak Sharp to a colleague?</p>
+      <p className="small">How likely are you to recommend Speakco to a colleague?</p>
       <div className="nps" role="radiogroup" aria-label="0 to 10">
         {Array.from({ length: 11 }, (_, i) => (
           <button key={i} role="radio" aria-checked={score === i} className={score === i ? 'on' : ''} onClick={() => setScore(i)}>{i}</button>

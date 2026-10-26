@@ -42,7 +42,7 @@ export function Onboarding() {
                 <Icon name="wave" size={40} />
               </div>
               <h1 style={{ fontSize: '2.3rem' }}>Speak so people listen.</h1>
-              <p className="muted" style={{ fontSize: '1.1rem' }}>Ten minutes a day. Speak Sharp listens while you talk and coaches what you say, how your voice sounds, and how clearly you come across. It learns what you need and adapts.</p>
+              <p className="muted" style={{ fontSize: '1.1rem' }}>Ten minutes a day. Speakco listens while you talk and coaches what you say, how your voice sounds, and how clearly you come across. It learns what you need and adapts.</p>
               <div className="stack-sm">
                 {[['mic', 'Live feedback on fillers, weak words, pace and pitch'], ['target', 'Scenarios from your own job, getting harder as you improve'], ['lock', 'Private: your voice is analyzed on this phone']].map(([ic, t]) => (
                   <div key={t} className="row"><span className="ic" style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--brand-soft)', color: 'var(--brand)' }}><Icon name={ic} size={20} /></span><span>{t}</span></div>
@@ -99,7 +99,7 @@ export function Onboarding() {
               <div className="card">
                 <div className="row spread">
                   <div className="stack-sm grow">
-                    <b>Help improve Speak Sharp</b>
+                    <b>Help improve Speakco</b>
                     <span className="small muted">Share anonymous usage counts and error messages. Never your recordings or transcripts.</span>
                   </div>
                   <Switch label="Share anonymous usage" checked={p.consentAnalytics} onChange={(v) => updateProfile({ consentAnalytics: v })} />
@@ -116,7 +116,7 @@ export function Onboarding() {
           <>
             <div className="stack" style={{ gap: 16 }}>
               <h1>Save your progress</h1>
-              <p className="muted">Create a free account to keep your history safe and use Speak Sharp on any device.</p>
+              <p className="muted">Create a free account to keep your history safe and use Speakco on any device.</p>
               {account ? <div className="note good"><b>Signed in</b>{account.email}</div> : <SignInForm onDone={next} />}
             </div>
             <div className="foot">

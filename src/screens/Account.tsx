@@ -88,7 +88,7 @@ export function AccountScreen({ onClose }: { onClose: () => void }) {
         <>
           <section className="stack-sm">
             <h1>{backendEnabled ? 'Sign in' : 'Your account'}</h1>
-            <p className="muted">Keep your progress safe, use Speak Sharp on any device, and unlock Pro.</p>
+            <p className="muted">Keep your progress safe, use Speakco on any device, and unlock Pro.</p>
           </section>
           <SignInForm />
           {!backendEnabled && (
@@ -182,7 +182,7 @@ export function Paywall({ reason, onClose }: { reason?: string; onClose: () => v
     }
   };
   return (
-    <SessionShell title="Speak Sharp Pro" onClose={onClose}>
+    <SessionShell title="Speakco Pro" onClose={onClose}>
       <section className="card hero" style={{ gap: 14 }}>
         <Icon name="crown" size={34} />
         <h1 style={{ color: '#fff' }}>Speak with confidence, every day</h1>

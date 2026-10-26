@@ -1,4 +1,4 @@
-// Shared helpers for Speak Sharp server functions (Deno, Supabase Edge Functions).
+// Shared helpers for Speakco server functions (Deno, Supabase Edge Functions).
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 import Stripe from 'npm:stripe@14.25.0';
 

@@ -31,10 +31,10 @@ function reminderIcs(time: string) {
   const end = `${endD.getFullYear()}${pad(endD.getMonth() + 1)}${pad(endD.getDate())}T${pad(endD.getHours())}${pad(endD.getMinutes())}00`;
   const url = location.href.split('#')[0].split('?')[0];
   return [
-    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Speak Sharp//EN', 'BEGIN:VEVENT',
-    `UID:speak-sharp-daily-${Date.now()}@speak-sharp`, `DTSTAMP:${start}`,
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Speakco//EN', 'BEGIN:VEVENT',
+    `UID:speakco-daily-${Date.now()}@speakco`, `DTSTAMP:${start}`,
     `DTSTART:${start}`, `DTEND:${end}`, 'RRULE:FREQ=DAILY',
-    'SUMMARY:Speak Sharp practice (10 min)', `DESCRIPTION:Open Speak Sharp: ${url}`, `URL:${url}`,
+    'SUMMARY:Speakco practice (10 min)', `DESCRIPTION:Open Speakco: ${url}`, `URL:${url}`,
     'BEGIN:VALARM', 'TRIGGER:PT0M', 'ACTION:DISPLAY', 'DESCRIPTION:Time to practice speaking', 'END:VALARM',
     'END:VEVENT', 'END:VCALENDAR',
   ].join('\r\n');
@@ -216,7 +216,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
         <p className="small muted">Adds a repeating 10-minute practice event to your calendar app, with an alert.</p>
         <div className="row">
           <input aria-label="Reminder time" type="time" className="input" style={{ maxWidth: 140 }} value={s.settings.reminderTime} onChange={(e) => updateSettings({ reminderTime: e.target.value })} />
-          <button className="btn primary grow" onClick={() => download('speak-sharp-reminder.ics', 'text/calendar', reminderIcs(s.settings.reminderTime))}>
+          <button className="btn primary grow" onClick={() => download('speakco-reminder.ics', 'text/calendar', reminderIcs(s.settings.reminderTime))}>
             <Icon name="calendar" />Add to calendar
           </button>
         </div>
@@ -233,7 +233,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <Switch label="Keep recordings" checked={s.settings.keepRecordings} onChange={(v) => updateSettings({ keepRecordings: v })} />
         </div>
         <div className="grid2">
-          <button className="btn quiet" onClick={() => download(`speak-sharp-backup-${new Date().toISOString().slice(0, 10)}.json`, 'application/json', exportData())}>
+          <button className="btn quiet" onClick={() => download(`speakco-backup-${new Date().toISOString().slice(0, 10)}.json`, 'application/json', exportData())}>
             <Icon name="download" />Back up
           </button>
           <button className="btn quiet" onClick={() => fileRef.current?.click()}>
@@ -243,7 +243,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
         <input ref={fileRef} type="file" accept="application/json,.json" hidden onChange={async (e) => {
           const f = e.target.files?.[0];
           if (!f) return;
-          toast(importData(await f.text()) ? 'Backup restored' : 'That file isn\'t a Speak Sharp backup');
+          toast(importData(await f.text()) ? 'Backup restored' : 'That file isn\'t a Speakco backup');
           e.target.value = '';
         }} />
         {!confirmReset ? (
@@ -262,7 +262,7 @@ export function Settings({ onClose }: { onClose: () => void }) {
 
       <button className="btn ghost" onClick={() => open({ kind: 'whatsnew' })}>What's new in v{__APP_VERSION__}</button>
       <p className="small muted" style={{ textAlign: 'center' }}>
-        Speak Sharp v{__APP_VERSION__} · Your voice is analyzed on this phone. Speech-to-text uses your browser's built-in service.
+        Speakco v{__APP_VERSION__} · Your voice is analyzed on this phone. Speech-to-text uses your browser's built-in service.
       </p>
     </SessionShell>
   );

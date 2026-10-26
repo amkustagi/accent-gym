@@ -1,4 +1,4 @@
--- Speak Sharp v0.02 schema. Run once in the Supabase SQL editor (or `supabase db push`).
+-- Speakco v0.02 schema. Run once in the Supabase SQL editor (or `supabase db push`).
 
 -- Purchases: written only by the Stripe webhook (service role); users can read their own.
 create table if not exists public.entitlements (
