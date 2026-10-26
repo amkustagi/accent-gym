@@ -64,7 +64,7 @@ function InstallCard() {
       </div>
       {deferred ? (
         <>
-          <p className="small muted">Add Speak Sharp to your home screen. It opens full-screen and works offline.</p>
+          <p className="small muted">Add Speakco to your home screen. It opens full-screen and works offline.</p>
           <button className="btn primary" onClick={async () => { await deferred!.prompt(); await deferred!.userChoice; deferred = null; force((n) => n + 1); }}>
             <Icon name="download" />Install
           </button>

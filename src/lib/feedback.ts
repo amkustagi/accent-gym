@@ -40,7 +40,7 @@ export function sendFeedback(kind: FeedbackKind, data: { target?: string; rating
 
 /** Text for a bug report or idea, for email or GitHub when no backend is connected. */
 export function reportBody(kind: string, text: string, includeDiag: boolean): string {
-  return `${text}\n\n— ${kind} from Speak Sharp ${__APP_VERSION__}${includeDiag ? `\n\nDiagnostics:\n${JSON.stringify(diagnostics(), null, 2)}` : ''}`;
+  return `${text}\n\n— ${kind} from Speakco ${__APP_VERSION__}${includeDiag ? `\n\nDiagnostics:\n${JSON.stringify(diagnostics(), null, 2)}` : ''}`;
 }
 
 export function mailtoUrl(subject: string, body: string) {

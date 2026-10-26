@@ -17,7 +17,7 @@ const hash = createHash('sha256');
 assets.forEach((f) => hash.update(f).update(readFileSync(join(dist, f))));
 const version = hash.digest('hex').slice(0, 12);
 
-const sw = `const CACHE = 'speak-sharp-${version}';
+const sw = `const CACHE = 'speakco-${version}';
 const ASSETS = ${JSON.stringify(['./', ...precache])};
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS))); });
 self.addEventListener('activate', (e) => {

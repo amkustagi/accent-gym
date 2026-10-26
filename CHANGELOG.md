@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.09 (branch release_0.09)
+- Renamed the app from Speak Sharp to **Speakco**: app name, home-screen name, page title, share card, reminders, backups and feedback emails. Older Speak Sharp backup files still restore. The repo and web address are unchanged.
+
 ## v0.08 (branch release_0.08)
 **Courses**: 6 courses, 36 lessons, covering every part of speaking well at work:
 - **Confidence from the inside** (mindset): nerves, speaking up, owning what you know, recovering from a blank mind, being wrong, talking about wins.

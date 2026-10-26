@@ -1,6 +1,6 @@
 # Turning on accounts and payments
 
-Speak Sharp runs fully on the phone without any server. In that mode every feature is unlocked, which is how the owner build works today. Follow these steps when you're ready for other people to sign up and pay. Budget about 45 minutes.
+Speakco runs fully on the phone without any server. In that mode every feature is unlocked, which is how the owner build works today. Follow these steps when you're ready for other people to sign up and pay. Budget about 45 minutes.
 
 ## What you need
 - A **Supabase** account (free tier is fine to start): accounts, database, server functions.
@@ -12,12 +12,12 @@ Speak Sharp runs fully on the phone without any server. In that mode every featu
 2. SQL editor → paste `supabase/migrations/0001_init.sql` → Run, then `supabase/migrations/0002_accent.sql` → Run.
 3. Authentication → Providers → Email: enable, turn **off** "Confirm email" link sign-in, keep OTP.
 4. Authentication → Email Templates → "Magic Link": make the body show the code, for example:
-   `Your Speak Sharp code is {{ .Token }}`
+   `Your Speakco code is {{ .Token }}`
    (The app signs people in with this 6-digit code, which works inside an installed phone app.)
 5. Authentication → URL Configuration → Site URL: `https://amkustagi.github.io/accent-gym/`.
 
 ## 2. Create the Stripe products
-1. Stripe dashboard (test mode) → Products → **Speak Sharp Pro**.
+1. Stripe dashboard (test mode) → Products → **Speakco Pro**.
 2. Add two prices: **Monthly** recurring (e.g. $7.99) and **Lifetime** one-time (e.g. $79). Copy both **price IDs** (`price_…`).
 3. Settings → Billing → Customer portal: turn it on (lets subscribers cancel or update cards).
 

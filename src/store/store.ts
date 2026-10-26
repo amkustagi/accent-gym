@@ -483,13 +483,13 @@ export function setAccount(a: Account | null) {
 }
 
 export function exportData(): string {
-  return JSON.stringify({ app: 'speak-sharp', exportedAt: new Date().toISOString(), ...snapshot(), settings: { ...state.settings, aiKey: '' }, account: null }, null, 2);
+  return JSON.stringify({ app: 'speakco', exportedAt: new Date().toISOString(), ...snapshot(), settings: { ...state.settings, aiKey: '' }, account: null }, null, 2);
 }
 
 export function importData(json: string): boolean {
   try {
     const d = JSON.parse(json);
-    if (d.app !== 'speak-sharp' || !Array.isArray(d.sessions)) return false;
+    if ((d.app !== 'speakco' && d.app !== 'speak-sharp') || !Array.isArray(d.sessions)) return false;
     const next = migrate({ ...d, settings: { ...d.settings, aiKey: state.settings.aiKey }, account: state.account });
     replaceState({ ...next, sessions: next.sessions.map((x) => ({ ...x, hasAudio: false })) });
     return true;

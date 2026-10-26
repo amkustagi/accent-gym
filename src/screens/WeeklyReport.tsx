@@ -33,7 +33,7 @@ async function renderCard(w: WeeklyStats, name: string, accent: string | null): 
   g.fillRect(80, 96, 64, 8);
   g.fillStyle = 'rgba(244,247,242,0.72)';
   g.font = `700 30px ${body}`;
-  g.fillText(`SPEAK SHARP · ${fmt(w.from).toUpperCase()} – ${fmt(w.to).toUpperCase()}`, 80, 160);
+  g.fillText(`SPEAKCO · ${fmt(w.from).toUpperCase()} – ${fmt(w.to).toUpperCase()}`, 80, 160);
   g.fillStyle = '#F4F7F2';
   g.font = `800 76px ${display}`;
   g.fillText(name ? `${name}'s week` : 'My week', 80, 250);
@@ -108,10 +108,10 @@ export function WeeklyReport({ onClose }: { onClose: () => void }) {
     setBusy(true);
     try {
       const blob = await renderCard(w, s.profile.name, accent);
-      const file = new File([blob], `speak-sharp-week-${new Date().toISOString().slice(0, 10)}.png`, { type: 'image/png' });
+      const file = new File([blob], `speakco-week-${new Date().toISOString().slice(0, 10)}.png`, { type: 'image/png' });
       const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
       if (nav.share && nav.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file], title: 'My week with Speak Sharp' });
+        await nav.share({ files: [file], title: 'My week with Speakco' });
       } else {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

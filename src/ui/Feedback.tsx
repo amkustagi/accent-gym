@@ -29,7 +29,7 @@ export function RateReport({ sessionId, drill }: { sessionId: string; drill: str
     return (
       <div className="note good">
         <b>Feedback saved</b>
-        {tags.includes('Too hard') ? 'We\'ll make the next ones a bit easier.' : tags.includes('Too easy') ? 'We\'ll turn up the difficulty.' : 'Thanks for helping improve Speak Sharp.'}
+        {tags.includes('Too hard') ? 'We\'ll make the next ones a bit easier.' : tags.includes('Too easy') ? 'We\'ll turn up the difficulty.' : 'Thanks for helping improve Speakco.'}
       </div>
     );
   return (

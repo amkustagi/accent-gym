@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
         <p className="muted">That screen hit an error. Your progress is saved.</p>
         <div className="note bad mono">{e.message}</div>
         <button className="btn primary block" onClick={() => location.reload()}>Reload the app</button>
-        <a className="btn quiet block" href={mailtoUrl('Speak Sharp crash', reportBody('Crash', e.stack ?? e.message, true))}>Report this problem</a>
+        <a className="btn quiet block" href={mailtoUrl('Speakco crash', reportBody('Crash', e.stack ?? e.message, true))}>Report this problem</a>
       </div>
     );
   }

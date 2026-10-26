@@ -1,8 +1,8 @@
 {
-  "name": "speak-sharp",
+  "name": "speakco",
   "private": true,
-  "version": "0.0.8",
-  "appVersion": "0.08",
+  "version": "0.0.9",
+  "appVersion": "0.09",
   "type": "module",
   "scripts": {
     "dev": "vite",
