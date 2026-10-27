@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.12 (branch release_0.12): your coach, and getting to the point
+- **Tiny Hustler coaches.** Pick **Hustle** (the coach), **Mira** (the mentor) or **Pip** (the sidekick) during setup or in Settings › Your coach. Each is an animated character that breathes, blinks, listens while you speak and moves its mouth while it talks. Your coach greets you on Today and, after each course lesson, says what to fix in its own voice (natural voice when it's on). Settings can switch it to text only.
+- **New course: Get to the point** (first in the list). Point first; point, reason, example; say it in half; yes or no first; the director's question (the ask, why, by when); rehearse your real meeting (type what it's about, then practice the opening line).
+- **Directness on every answer.** A new check counts the words you say before your point (an answer, ask, decision or status), plus hedges and throat-clearing openers. Course results show a "Getting to the point" card; when the point comes late in the new course, the listener cuts in with "Sorry, what do you need from me?". Progress shows your average words-to-point and whether it is falling.
+- Version 0.1.2 (build 12) for the iPhone and Android apps.
+
 ## v0.11 (branch release_0.11): launch-ready
 - **Calmer Today.** The plan, your course, one setup card at a time (natural voice, then install) and the tip of the day. Level, weekly challenges and the six-skill profile moved to **Progress**, which now opens with a "Do your first scored round" card for new users.
 - **Practice switcher.** Courses · Drills · Lessons at the top of Practice (sticky) instead of one long scroll; course rows show their area under the title.

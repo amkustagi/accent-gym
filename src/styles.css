@@ -296,3 +296,42 @@ button.card:disabled { opacity: 0.6; }
 .chips:not(.wrap) { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 .sticky-seg { position: sticky; top: calc(env(safe-area-inset-top) + 6px); z-index: 5; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06); }
 .seg button { min-height: 40px; }
+
+/* ---------- Tiny Hustler coach ---------- */
+.th .bob { animation: thbob 3.2s ease-in-out infinite; }
+@keyframes thbob { 50% { transform: translateY(4px); } }
+.th .eye { transform-box: fill-box; transform-origin: center; animation: thblink 4.6s infinite; }
+@keyframes thblink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+.th .head { transform-box: fill-box; transform-origin: 50% 90%; transition: transform .45s ease; }
+.th .m-talk, .th .m-listen, .th .waves { display: none; }
+.th.listening .head { transform: rotate(-6deg); }
+.th.listening .m-idle { display: none; }
+.th.listening .m-listen, .th.listening .waves { display: inline; }
+.th .waves path { animation: thwave 1.2s ease-out infinite; }
+.th .waves path:nth-child(2) { animation-delay: .3s; }
+.th .waves path:nth-child(3) { animation-delay: .6s; }
+@keyframes thwave { 0% { opacity: 0; } 40% { opacity: 1; } 100% { opacity: 0; } }
+.th.talking .m-idle { display: none; }
+.th.talking .m-talk { display: inline; transform-box: fill-box; transform-origin: 50% 0; animation: thtalk .26s ease-in-out infinite alternate; }
+@keyframes thtalk { from { transform: scaleY(.2); } to { transform: scaleY(1); } }
+.th.talking .head { animation: thnod 1.3s ease-in-out infinite; }
+@keyframes thnod { 50% { transform: rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .th .bob, .th .eye, .th .waves path, .th.talking .head { animation: none; }
+  .th.talking .m-talk { animation-duration: .6s; }
+}
+
+.coach-says { display: flex; align-items: flex-end; gap: 10px; color: var(--coach, var(--brand)); }
+.coach-avatar { background: none; border: 0; padding: 0; cursor: pointer; color: inherit; border-radius: 16px; min-width: 44px; min-height: 44px; }
+.coach-bubble {
+  flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; gap: 4px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 18px 18px 18px 6px; padding: 12px 14px 6px;
+}
+.coach-bubble .eyebrow { color: var(--coach, var(--brand)); }
+.coach-bubble p { margin: 0; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+.coach-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.coach-card {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px 12px; min-height: 44px;
+  background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 16px; cursor: pointer; font: inherit;
+}
+.coach-card[aria-checked="true"] { border-color: var(--coach); box-shadow: 0 0 0 3px color-mix(in srgb, var(--coach) 20%, transparent); }

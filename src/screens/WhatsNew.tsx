@@ -4,9 +4,9 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['home', 'A calmer Today', 'Just your plan, your next lesson and one tip. Level, challenges and your skill profile now live in Progress.'],
-  ['book', 'Practice, sorted', 'Switch between Courses, Drills and Lessons at the top instead of scrolling one long list.'],
-  ['mic', 'Speakco for iPhone and Android', 'Speakco is ready to install from the App Store and Google Play, with the phone\'s own speech recognition and in-app purchases.'],
+  ['user', 'Meet your coach', 'Pick Hustle, Mira or Pip in Settings. Your coach greets you on Today and tells you, out loud, what to fix after each lesson.'],
+  ['target', 'New course: Get to the point', 'Six lessons on saying the important thing first: point first, point–reason–example, say it in half, yes or no first, the director\'s ask, and rehearsing your real meeting.'],
+  ['chart', 'Words before your point', 'Every answer now shows how many words it took to reach your point. Progress tracks the number, so you can watch it drop.'],
 ]
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {

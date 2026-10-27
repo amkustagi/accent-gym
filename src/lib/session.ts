@@ -1,3 +1,4 @@
+import { analyzeDirectness } from '../engine/direct';
 import type { CaptureResult } from '../engine/capture';
 import { evaluate, type Evaluation } from '../engine/score';
 import { semitones, type Frame } from '../engine/voice';
@@ -32,6 +33,12 @@ export async function scoreAndSave(result: CaptureResult, o: ScoreOptions): Prom
   let ev = evaluate({ transcript: result.transcript, durationSec: result.durationSec, voice: result.voice, clarity: o.clarity, scripted: o.scripted });
   if (o.adjust) ev = o.adjust(ev);
   const xp = 10 + Math.round(ev.overall / 10);
+  // Directness (how fast they got to the point) for every free-speaking take, for the coach and Progress.
+  let extra = o.extra;
+  if (!o.scripted && result.transcript.trim()) {
+    const d = analyzeDirectness(result.transcript);
+    extra = { ...extra, direct: d.score, toPoint: d.wordsToPoint ?? -1 };
+  }
   const rec = await saveSession(
     {
       drill: o.drill,
@@ -46,7 +53,7 @@ export async function scoreAndSave(result: CaptureResult, o: ScoreOptions): Prom
       trace: toTrace(result.frames),
       pauses: result.voice?.pauses,
       tips: ev.tips,
-      extra: o.extra,
+      extra,
     },
     result.audio,
     xp,

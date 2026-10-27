@@ -1,4 +1,5 @@
 // App state: persisted to IndexedDB, exposed to React through useSyncExternalStore.
+import type { CoachId } from '../content/coaches';
 import { del, get, set, keys } from 'idb-keyval';
 import { useSyncExternalStore } from 'react';
 import type { ListeningMode } from '../engine/capture';
@@ -45,6 +46,10 @@ export interface Settings {
   /** Owner testing: own Microsoft Azure Speech key and region for precise accent scoring. */
   azureKey: string;
   azureRegion: string;
+  /** Which Tiny Hustler coach gives feedback. */
+  coach: CoachId;
+  /** The coach reads feedback out loud after each take. */
+  coachSpeaks: boolean;
 }
 
 export interface SessionRecord {
@@ -208,7 +213,7 @@ export const DEFAULT_PROFILE: Profile = {
 const DEFAULT: State = {
   loaded: false,
   profile: DEFAULT_PROFILE,
-  settings: { voiceEngine: 'natural', naturalVoice: 'af_heart', systemVoice: '', listening: 'full', aiKey: '', reminderTime: '08:30', keepRecordings: true, leaderboard: false, azureKey: '', azureRegion: '' },
+  settings: { voiceEngine: 'natural', naturalVoice: 'af_heart', systemVoice: '', listening: 'full', aiKey: '', reminderTime: '08:30', keepRecordings: true, leaderboard: false, azureKey: '', azureRegion: '', coach: 'hustle', coachSpeaks: true },
   xp: 0,
   days: {},
   sessions: [],

@@ -266,6 +266,8 @@ export interface SpeakOptions {
   onStart?: () => void;
   /** Speak in this target accent. */
   accent?: AccentId;
+  /** A specific natural voice id (a coach's voice); overrides the accent's voice. */
+  voice?: string;
 }
 
 /** The natural-voice clip for a line in an accent, or null when that accent uses a system voice. */
@@ -279,7 +281,7 @@ export async function modelBlob(text: string, accent?: AccentId): Promise<Blob |
 export async function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
   const rate = opts.rate ?? 1;
   stopSpeaking();
-  const nv = naturalVoiceFor(opts.accent);
+  const nv = opts.voice ?? naturalVoiceFor(opts.accent);
   if (nv && engine === 'natural' && natural.status === 'ready') {
     try {
       const blob = await synthNatural(text, nv);

@@ -7,6 +7,7 @@ import { backendEnabled, isPro, planName } from '../lib/backend';
 import { open } from '../lib/nav';
 import { exportData, importData, resetAll, updateProfile, updateSettings, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
+import { CoachPicker } from '../ui/CoachSays';
 import { Seg, SessionShell, Switch, toast } from '../ui/ui';
 import { AccentSetup } from './accent/AccentSetup';
 
@@ -141,6 +142,13 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <Icon name="chevron" className="chev" />
         </div>
       </button>
+
+      <section className="card">
+        <h3>Your coach</h3>
+        <p className="small muted">Pick the Tiny Hustler who gives you feedback. Same advice, different personality.</p>
+        <CoachPicker />
+        <Seg label="Coach reads feedback aloud" value={s.settings.coachSpeaks ? 'on' : 'off'} onChange={(v) => updateSettings({ coachSpeaks: v === 'on' })} options={[{ v: 'on', label: 'Speaks feedback' }, { v: 'off', label: 'Text only' }]} />
+      </section>
 
       <section className="card">
         <div className="row spread">

@@ -18,6 +18,8 @@ import { targetById } from '../content/accents';
 import { go } from '../lib/nav';
 import { skillName } from '../ui/ui';
 import { Icon } from '../ui/Icon';
+import { CoachSays } from '../ui/CoachSays';
+import { coachById, dailyLine } from '../content/coaches';
 
 interface BIPEvent extends Event {
   prompt: () => Promise<void>;
@@ -86,6 +88,7 @@ const greet = () => {
 export function Today() {
   const s = useStore((x) => x);
   const plan = useMemo(() => todayPlan(s), [s]);
+  const coach = coachById(s.settings.coach);
   const st = streak(s);
   const doneCount = plan.filter((p) => p.done).length;
   const next = plan.find((p) => !p.done);
@@ -109,6 +112,8 @@ export function Today() {
           <button className="iconbtn" onClick={() => open({ kind: 'settings' })} aria-label="Settings"><Icon name="settings" /></button>
         </div>
       </header>
+
+      <CoachSays text={dailyLine(coach.hello)} size={72} />
 
       <section className="card hero" style={{ gap: 16 }}>
         <div className="row spread">
