@@ -1,6 +1,7 @@
 // Accounts, cloud sync, purchases and feedback upload via Supabase (+ Stripe through server functions).
 // Everything here is inert until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set at build time.
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { configureStore } from './storePurchases';
 import { DEFAULT_LEARNER, getState, onChange, replaceState, setAccount, setState, type Account, type Learner, type Plan, type State, type Term } from '../store/store';
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
@@ -61,7 +62,8 @@ export async function signOut(): Promise<void> {
 }
 
 async function afterSignIn() {
-  await refreshAccount();
+  const acct = await refreshAccount();
+  if (acct) await configureStore(acct.userId).catch(() => undefined);
   await pullState();
   await pushState();
   await flushFeedback();

@@ -84,3 +84,26 @@ Supabase → Table editor:
 
 ## Before charging real customers
 You'll also need a privacy policy and terms of service page, sales-tax settings in Stripe (Stripe Tax), and a support email. A lawyer or a service like Termly can draft the policies.
+
+## 6. In-app purchases for the iPhone and Android apps
+
+Apple and Google require their own billing for subscriptions bought inside an app, so the store apps use
+**RevenueCat** (free up to $2,500/month in revenue) on top of App Store / Google Play billing. Stripe stays for the web.
+
+1. **App Store Connect** → your app → Subscriptions: group "Speakco Pro", product `speakco_pro_monthly` (auto-renewable,
+   1 month). In-App Purchases: non-consumable `speakco_pro_lifetime`. Fill in the review screenshot and description.
+2. **Google Play Console** → Monetize: subscription `speakco_pro_monthly` and in-app product `speakco_pro_lifetime`.
+3. **RevenueCat** (app.revenuecat.com): create the project, add the iOS app (App Store Connect API key) and Android app
+   (Play service account). Entitlement **`pro`** with both products. Offering **default** with packages **Monthly**
+   (`$rc_monthly`) and **Lifetime** (`$rc_lifetime`).
+4. RevenueCat → Integrations → Webhooks: URL `https://<project-ref>.supabase.co/functions/v1/revenuecat-webhook`,
+   Authorization header value `Bearer <a long random secret>`. Then:
+   ```bash
+   supabase secrets set REVENUECAT_WEBHOOK_AUTH='<the same secret>'
+   supabase functions deploy revenuecat-webhook --no-verify-jwt
+   ```
+   and run `supabase/migrations/0004_store_billing.sql` in the SQL editor.
+5. Build the apps with the RevenueCat public SDK keys:
+   `VITE_REVENUECAT_IOS_KEY=appl_… VITE_REVENUECAT_ANDROID_KEY=goog_… npm run cap:sync` (plus the Supabase variables from step 5).
+6. Server functions called from the apps come from the origins `capacitor://localhost` (iPhone) and `https://localhost`
+   (Android): leave `APP_ORIGIN` unset (allows any origin; every call still needs the user's sign-in token) or set it to `*`.

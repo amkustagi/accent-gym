@@ -4,7 +4,13 @@
 type SR = any;
 const SRClass: SR = typeof window !== 'undefined' ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : undefined;
 
-export const sttSupported = (): boolean => !!SRClass;
+import { SpeechRecognition as NativeSR } from '@capacitor-community/speech-recognition';
+import { hasPlugin, isNative } from '../lib/native';
+
+/** The iPhone/Android app uses the phone's own recognizer when the web view has no Web Speech API. */
+const useNativeStt = (): boolean => !SRClass && isNative() && hasPlugin('SpeechRecognition');
+
+export const sttSupported = (): boolean => !!SRClass || useNativeStt();
 export const isSafari = (): boolean => typeof navigator !== 'undefined' && /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 export const isIOS = (): boolean => typeof navigator !== 'undefined' && (/iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
@@ -30,6 +36,7 @@ export interface SttOptions {
  * re-sends earlier results and reading only `resultIndex` onward duplicated words.
  */
 export function listen(opts: SttOptions): SttHandle {
+  if (useNativeStt()) return listenNative(opts);
   if (!SRClass) {
     queueMicrotask(() => opts.onEnd('', 'unsupported'));
     return { stop() {} };
@@ -112,8 +119,57 @@ export function listen(opts: SttOptions): SttHandle {
   };
 }
 
+/** Native recognizer (iOS SFSpeechRecognizer / Android SpeechRecognizer) with the same contract as listen(). */
+function listenNative(opts: SttOptions): SttHandle {
+  let committed = '';
+  let current = '';
+  let stopped = false;
+  let ended = false;
+  let restarts = 0;
+  const all = () => `${committed} ${current}`.replace(/\s+/g, ' ').trim();
+  const finish = (err?: SttError) => {
+    if (ended) return;
+    ended = true;
+    void NativeSR.removeAllListeners();
+    opts.onEnd(all(), err);
+  };
+  const begin = async () => {
+    try {
+      const perm = await NativeSR.requestPermissions();
+      if (perm.speechRecognition !== 'granted') return finish('not-allowed');
+      await NativeSR.addListener('partialResults', (d: { matches?: string[] }) => {
+        const m = d.matches ?? [];
+        current = m[0] ?? '';
+        if (opts.alternatives && m.length > 1) opts.alternatives(m);
+        opts.onText(all(), false);
+      });
+      await NativeSR.addListener('listeningState', (d: { status: 'started' | 'stopped' }) => {
+        if (d.status !== 'stopped') return;
+        committed = all();
+        current = '';
+        if (stopped || !(opts.continuous ?? true) || restarts > 60) finish();
+        else {
+          restarts++;
+          void NativeSR.start({ language: opts.lang ?? 'en-US', maxResults: opts.alternatives ? 5 : 1, partialResults: true, popup: false }).catch(() => finish());
+        }
+      });
+      await NativeSR.start({ language: opts.lang ?? 'en-US', maxResults: opts.alternatives ? 5 : 1, partialResults: true, popup: false });
+    } catch {
+      finish('service-not-allowed');
+    }
+  };
+  void begin();
+  return {
+    stop() {
+      stopped = true;
+      void NativeSR.stop().catch(() => undefined);
+      setTimeout(() => finish(), 1200);
+    },
+  };
+}
+
 export const STT_HELP: Record<SttError, string> = {
-  'not-allowed': 'The microphone is blocked. Allow it for this site in your browser settings.',
+  'not-allowed': 'The microphone or speech recognition is blocked. Allow it in your browser or phone settings (Settings › Speakco).',
   'service-not-allowed': 'Speech recognition is off. On iPhone, turn on Settings › General › Keyboard › Enable Dictation, and Siri.',
   'audio-capture': 'Another feature is using the microphone. Try Settings › Listening › Words only.',
   network: 'Speech recognition needs an internet connection on this phone.',

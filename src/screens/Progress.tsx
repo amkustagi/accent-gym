@@ -3,7 +3,8 @@ import { DRILLS, drillById } from '../content/catalog';
 import { LEVEL_LABEL, habits, levelFor } from '../learn/adapt';
 import { SKILLS, type Skill } from '../engine/score';
 import { open } from '../lib/nav';
-import { baseline, bestStreak, skillAverages, streak, useStore } from '../store/store';
+import { baseline, bestStreak, level, levelName, skillAverages, streak, useStore } from '../store/store';
+import { ChallengesCard } from './Challenges';
 import { Icon } from '../ui/Icon';
 import { Radar, Trend, scoreTone } from '../ui/ui';
 import { targetById, type AccentId } from '../content/accents';
@@ -19,6 +20,7 @@ export function Progress() {
     return pts.slice(-30);
   }, [scored, s.sessions, skill]);
   const avgs = skillAverages(s);
+  const lv = level(s.xp);
   const base = baseline(s);
   const minutes = Math.round(s.sessions.reduce((a, x) => a + x.durationSec, 0) / 60);
   const daysActive = Object.keys(s.days).length;
@@ -30,18 +32,39 @@ export function Progress() {
         <span className="eyebrow">Progress</span>
         <h1>How you're improving</h1>
       </header>
-      <section className="grid2">
+      {scored.length === 0 && (
+        <section className="card">
+          <div className="empty">
+            <Icon name="target" />
+            <p><b>Do your first scored round</b><br />Your streak, trend and six-skill profile start here.</p>
+            <button className="btn primary sm" onClick={() => open({ kind: 'drill', id: 'simulator' })}>Open the simulator</button>
+          </div>
+        </section>
+      )}
+      <section className="card">
+        <div className="row spread">
+          <div className="stack-sm">
+            <span className="eyebrow">Level {lv.lvl}</span>
+            <h3>{levelName(lv.lvl)}</h3>
+          </div>
+          <span className="pill brand">{s.xp} XP</span>
+        </div>
+        <div className="progress"><i style={{ width: `${(lv.into / lv.need) * 100}%` }} /></div>
+        <p className="small muted">{lv.need - lv.into} XP to {levelName(lv.lvl + 1)}</p>
+      </section>
+      <ChallengesCard />
+      {scored.length > 0 && <section className="grid2">
         <div className="card tight stat"><b>{streak(s)}</b><span>day streak · best {bestStreak(s)}</span></div>
         <div className="card tight stat"><b>{daysActive}</b><span>days practiced</span></div>
         <div className="card tight stat"><b>{scored.length}</b><span>scored rounds</span></div>
         <div className="card tight stat"><b>{minutes}</b><span>minutes speaking</span></div>
-      </section>
+      </section>}
 
       <button className="btn quiet block" onClick={() => open({ kind: 'weekly' })}><Icon name="trophy" />Weekly report card</button>
 
       <section className="card">
         <h3>Trend</h3>
-        <div className="chips" role="group" aria-label="Skill">
+        <div className="chips wrap" role="group" aria-label="Skill">
           <button className="chip" aria-pressed={skill === 'overall'} onClick={() => setSkill('overall')}>Overall</button>
           {SKILLS.map((k) => (
             <button key={k.id} className="chip" aria-pressed={skill === k.id} onClick={() => setSkill(k.id)}>{k.short}</button>

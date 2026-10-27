@@ -4,10 +4,10 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
-  ['flag', 'Report by voice, with a screenshot', 'Tap the flag at the top of any screen, then just talk. The app attaches a screenshot and the details we need, never your recordings or name.'],
-  ['user', 'Video presence', 'Turn on the camera check to see your eye contact, framing, lighting and steadiness. Video never leaves your phone. Also part of the presence lessons.'],
-  ['trophy', 'Weekly challenges', 'Three goals each week, picked around your focus, with XP and badges. Compete on the leaderboard once accounts are on.'],
-];
+  ['home', 'A calmer Today', 'Just your plan, your next lesson and one tip. Level, challenges and your skill profile now live in Progress.'],
+  ['book', 'Practice, sorted', 'Switch between Courses, Drills and Lessons at the top instead of scrolling one long list.'],
+  ['mic', 'Speakco for iPhone and Android', 'Speakco is ready to install from the App Store and Google Play, with the phone\'s own speech recognition and in-app purchases.'],
+]
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {
   useEffect(() => setState((s) => ({ ...s, lastSeenVersion: __APP_VERSION__ })), []);

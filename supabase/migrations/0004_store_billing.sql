@@ -1,0 +1,3 @@
+-- Speakco v0.11: App Store / Google Play purchases (via RevenueCat) share the entitlements table with Stripe.
+alter table public.entitlements add column if not exists store text;            -- 'APP_STORE', 'PLAY_STORE', 'STRIPE' …
+alter table public.entitlements add column if not exists store_product_id text;

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.11 (branch release_0.11): launch-ready
+- **Calmer Today.** The plan, your course, one setup card at a time (natural voice, then install) and the tip of the day. Level, weekly challenges and the six-skill profile moved to **Progress**, which now opens with a "Do your first scored round" card for new users.
+- **Practice switcher.** Courses · Drills · Lessons at the top of Practice (sticky) instead of one long scroll; course rows show their area under the title.
+- **Chips that fit.** Simulator categories and Progress trend chips wrap on phones instead of running off-screen; scrolling chip rows fade at the edge.
+- **iPhone and Android apps (Capacitor 8).** `ios/` and `android/` projects with icons, splash screens, microphone, speech-recognition and camera permission texts, version 0.1.1 (build 11). Inside the app, speech-to-text falls back to the phone's own recognizer when the web view has none.
+- **In-app purchases.** In the app, Pro is bought through the App Store / Google Play via RevenueCat (Apple and Google require it), with Restore purchases and store subscription management. The new `revenuecat-webhook` server function writes the same `entitlements` row as Stripe, so Pro works the same on web and phone. Migration `0004_store_billing.sql`.
+- **Store basics.** Privacy policy and terms (`privacy.html`, `terms.html`, linked from Settings and the paywall), subscription terms on the paywall, opaque home-screen icon, store listing and launch checklist (`docs/`), App Store screenshots.
+
 ## v0.10 (branch release_0.10)
 - **Voice feedback from any screen.** A flag button sits in every screen header and on Today. It takes a screenshot (anything typed is blanked out), then you talk or type. Device details go with it: app version, phone and browser, recent screens and errors, never recordings, transcripts, name or location, and you can see exactly what's sent. Reports are saved on the phone. With accounts on they upload; until then **Send with screenshot** opens the share sheet (Mail, Gmail…) with the image attached.
 - **Video presence.** A new **Video presence** drill and an optional camera check in the presence lessons. The front camera measures eye contact with the lens, face in view, framing, lighting, head steadiness and smiling, with tips. Analysis runs on the phone with MediaPipe; the runtime is served from the app and the face model downloads once from Google, then works offline. Video is never recorded or uploaded.
