@@ -11,6 +11,10 @@ import { HearButton } from '../ui/TakeCompare';
 import { SessionShell } from '../ui/ui';
 import { CameraPanel, PresenceResult, type CameraHandle } from '../ui/CameraPanel';
 import type { PresenceSummary } from '../engine/face';
+import { analyzeDirectness, coachLine, type Directness } from '../engine/direct';
+import { coachById } from '../content/coaches';
+import { CoachSays } from '../ui/CoachSays';
+import { CoachAvatar } from '../ui/CoachAvatar';
 
 const doneIn = (s: State, c: Course) => c.lessons.filter((l) => s.lessonsDone.includes(l.id)).length;
 
@@ -137,6 +141,9 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
   const [camRes, setCamRes] = useState<PresenceSummary | null>(null);
   const usesCamera = l.checks.some((c) => c.t === 'self' && c.camera);
   const lessonsDone = useStore((s) => s.lessonsDone);
+  const coach = coachById(useStore((s) => s.settings.coach));
+  const [custom, setCustom] = useState('');
+
   const idx = l.course.lessons.findIndex((x) => x.id === l.id);
   const nextLesson = l.course.lessons[idx + 1];
 
@@ -147,6 +154,9 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
   }, [res, ticks, l.checks, camRes]);
   const passed = res ? lessonPassed(results, res.rec.overall) : false;
   const selfPending = results.some((r) => r.self && r.pass === null);
+  const direct = useMemo(() => (res ? analyzeDirectness(res.rec.transcript) : null), [res]);
+  const leadMissed = results.some((r, i) => l.checks[i]?.t === 'lead' && r.pass === false);
+  const prompt = custom.trim() ? `${l.practice.prompt} (Their real situation: ${custom.trim()})` : l.practice.prompt;
 
   // Completing the lesson is recorded once the take passes (self-checks don't block it).
   if (res && passed && !lessonsDone.includes(l.id)) queueMicrotask(() => !getState().lessonsDone.includes(l.id) && markLesson(l.id));
@@ -166,16 +176,21 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
   if (phase === 'result' && res)
     return (
       <SessionShell title={l.course.title} onClose={onClose}>
+        {direct && <CoachSays text={coachLine(direct, coach, res.rec.overall)} autoSpeak />}
+        {leadMissed && l.course.id === 'direct' && (
+          <div className="note warn"><b>{l.id === 'd-ask' || l.id === 'd-yesno' ? 'Your director' : 'Your listener'}, {direct?.wordsToPoint ?? 'many'} words in:</b>"Sorry, what do you need from me?" That is what a busy leader thinks when the point comes late. Try again with it first.</div>
+        )}
         <Report
           rec={res.rec}
           xp={res.xp}
-          prompt={l.practice.prompt}
+          prompt={prompt}
           frame={l.practice.frame}
           onRetry={() => { setRes(null); setPhase('speak'); }}
           onDone={nextLesson && passed ? () => open({ kind: 'clesson', id: nextLesson.id }) : onClose}
           doneLabel={nextLesson && passed ? `Next lesson: ${nextLesson.title}` : 'Done'}
         >
           {camRes && <PresenceResult s={camRes} />}
+          {direct && direct.words > 0 && <DirectnessCard d={direct} />}
           <section className="card">
             <div className="row spread">
               <h3>Lesson checks</h3>
@@ -239,20 +254,52 @@ export function CourseLessonView({ id, onClose }: { id: string; onClose: () => v
       )}
       {phase === 'speak' && (
         <>
+          {l.practice.custom && (
+            <section className="card">
+              <label className="field" style={{ margin: 0 }}>
+                <span><b>{l.practice.custom.label}</b></span>
+                <textarea className="input" rows={2} maxLength={200} value={custom} placeholder={l.practice.custom.placeholder} onChange={(e) => setCustom(e.target.value)} />
+              </label>
+              <span className="small muted">Stays on your phone. Leave out names you don't want saved.</span>
+            </section>
+          )}
           <section className="card">
-            <span className="eyebrow">{l.practice.context}</span>
-            <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>{l.practice.prompt}</p>
+            <span className="eyebrow">{custom.trim() || l.practice.context}</span>
+            <div className="row" style={{ alignItems: 'flex-start', gap: 10 }}>
+              <span style={{ color: coach.color }}><CoachAvatar id={coach.id} mode="listening" size={52} /></span>
+              <p className="grow" style={{ fontWeight: 700, fontSize: '1.1rem' }}>{l.practice.prompt}</p>
+            </div>
             <div className="row wrap" style={{ gap: 6 }}>
               {l.practice.frame.map((f, i) => <span key={f} className="pill">{i + 1}. {f}</span>)}
             </div>
             <span className="small muted">Checked: {l.checks.map((c) => c.label).join(' · ')}</span>
           </section>
           {usesCamera && <CameraPanel ref={cam} compact />}
-          <MicStage maxSec={l.practice.secs + 20} needsTranscript autoStart={!usesCamera} autoStopSilence={3.5} idleHint="Tap the mic and say it" onStart={() => void cam.current?.begin()} onDone={done} />
+          <MicStage maxSec={l.practice.secs + 20} needsTranscript autoStart={!usesCamera && !l.practice.custom} autoStopSilence={3.5} idleHint="Tap the mic and say it" onStart={() => void cam.current?.begin()} onDone={done} />
           {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
           <button className="btn ghost" onClick={() => setPhase('learn')}>Back to the lesson</button>
         </>
       )}
     </SessionShell>
+  );
+}
+
+/** How fast the take got to the point, and what slowed it down. */
+export function DirectnessCard({ d }: { d: Directness }) {
+  const tone = d.score >= 80 ? 'good' : d.score >= 55 ? 'warn' : 'bad';
+  return (
+    <section className="card">
+      <div className="row spread">
+        <h3>Getting to the point</h3>
+        <span className={`pill ${tone}`}>{d.score}</span>
+      </div>
+      <div className="grid2">
+        <div className="stat"><b>{d.wordsToPoint === null ? '–' : d.wordsToPoint}</b><span>{d.wordsToPoint === null ? 'no clear point heard' : 'words before your point'}</span></div>
+        <div className="stat"><b>{d.words}</b><span>words in total</span></div>
+      </div>
+      {d.hedges.length > 0 && <p className="small">Hedges: {d.hedges.map((h) => `"${h}"`).join(', ')}</p>}
+      {d.opener && <p className="small">Opened with "{d.opener}" before the point.</p>}
+      <p className="small muted">Aim: point within 10 words, no hedges. Directness is a guide from your words; the AI coach can check the meaning.</p>
+    </section>
   );
 }

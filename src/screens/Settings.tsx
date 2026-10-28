@@ -7,6 +7,7 @@ import { backendEnabled, isPro, planName } from '../lib/backend';
 import { open } from '../lib/nav';
 import { exportData, importData, resetAll, updateProfile, updateSettings, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
+import { CoachPicker } from '../ui/CoachSays';
 import { Seg, SessionShell, Switch, toast } from '../ui/ui';
 import { AccentSetup } from './accent/AccentSetup';
 
@@ -143,11 +144,25 @@ export function Settings({ onClose }: { onClose: () => void }) {
       </button>
 
       <section className="card">
+        <h3>Your coach</h3>
+        <p className="small muted">Pick the Tiny Hustler who gives you feedback. Same advice, different personality.</p>
+        <CoachPicker />
+        <Seg label="Coach reads feedback aloud" value={s.settings.coachSpeaks ? 'on' : 'off'} onChange={(v) => updateSettings({ coachSpeaks: v === 'on' })} options={[{ v: 'on', label: 'Speaks feedback' }, { v: 'off', label: 'Text only' }]} />
+      </section>
+
+      <section className="card">
         <div className="row spread">
           <h3>Your profile</h3>
           <button className="btn quiet sm" onClick={() => open({ kind: 'profile' })}><Icon name="edit" />Edit</button>
         </div>
         <p className="small muted">Role, industry, situations and challenges shape your scenarios and daily plan.</p>
+        <div className="row spread">
+          <div className="stack-sm grow">
+            <b>Warm-up in my daily plan</b>
+            <span className="small muted">Off: it stays in Practice for before a big meeting</span>
+          </div>
+          <Switch label="Warm-up in my daily plan" checked={s.settings.warmupInPlan} onChange={(v) => updateSettings({ warmupInPlan: v })} />
+        </div>
         <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => open({ kind: 'coach' })}><Icon name="sparkle" />What your coach knows</button>
         <div className="field">
           <label>Daily practice</label>

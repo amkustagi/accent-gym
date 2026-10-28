@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_COURSE_LESSONS, COURSES, lessonPassed, runChecks, type Check } from './courses';
 
-const textOnly = (cs: Check[]) => cs.filter((c) => c.t === 'avoid' || c.t === 'include' || c.t === 'question' || c.t === 'words');
+const textOnly = (cs: Check[]) => cs.filter((c) => c.t === 'avoid' || c.t === 'include' || c.t === 'question' || c.t === 'words' || c.t === 'lead' || c.t === 'answerFirst');
 const take = (t: string) => ({ transcript: t, words: t.split(/\s+/).length, wpm: null, pauses: null, pitchRangeSt: null, fillersPerMin: null });
 
 describe('courses', () => {
   it('cover every area with unique, complete lessons', () => {
-    expect(COURSES.length).toBe(6);
+    expect(COURSES.length).toBe(7);
     expect(ALL_COURSE_LESSONS.length).toBeGreaterThanOrEqual(36);
     const ids = ALL_COURSE_LESSONS.map((l) => l.id);
     expect(new Set(ids).size).toBe(ids.length);

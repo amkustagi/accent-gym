@@ -3,9 +3,8 @@ import { sttSupported, isIOS, isSafari } from '../engine/speech';
 import { naturalState } from '../engine/tts';
 import { addFeedback, getState, logError, type FeedbackKind } from '../store/store';
 import { backendEnabled, flushFeedback } from './backend';
-import { currentScreen, trail } from './nav';
+import { currentScreen, screenName, trail } from './nav';
 
-export const FEEDBACK_EMAIL = (import.meta.env.VITE_FEEDBACK_EMAIL as string | undefined) || 'avinash.kustagi@gmail.com';
 export const ISSUES_URL = 'https://github.com/amkustagi/accent-gym/issues/new';
 
 export function diagnostics(): Record<string, unknown> {
@@ -24,10 +23,17 @@ export function diagnostics(): Record<string, unknown> {
     voiceEngine: s.settings.voiceEngine,
     sessions: s.sessions.length,
     recentErrors: s.errors.slice(-5),
-    screen: currentScreen(),
+    screen: originScreen(),
     screenSize: `${window.innerWidth}x${window.innerHeight}`,
     recentScreens: trail.slice(-12).map((c) => `${new Date(c.t).toISOString().slice(11, 19)} ${c.to}`),
   };
+}
+
+/** The screen the user was on when they tapped the flag (the report screen itself isn't useful). */
+export function originScreen(): string {
+  const now = currentScreen();
+  if (now !== 'report') return now;
+  return trail.length ? trail[trail.length - 1].to : screenName(null);
 }
 
 export function installErrorCapture() {
@@ -42,13 +48,9 @@ export function sendFeedback(kind: FeedbackKind, data: { target?: string; rating
   return f;
 }
 
-/** Text for a bug report or idea, for email or GitHub when no backend is connected. */
+/** Text for a bug report or idea, for the GitHub fallback when automatic sending isn't set up. */
 export function reportBody(kind: string, text: string, includeDiag: boolean): string {
   return `${text}\n\n— ${kind} from Speakco ${__APP_VERSION__}${includeDiag ? `\n\nDiagnostics:\n${JSON.stringify(diagnostics(), null, 2)}` : ''}`;
-}
-
-export function mailtoUrl(subject: string, body: string) {
-  return `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body.slice(0, 1800))}`;
 }
 
 export function githubIssueUrl(title: string, body: string) {

@@ -10,6 +10,7 @@ import { toast } from './ui/ui';
 
 onChallengeWon((titles) => toast(`Challenge complete: ${titles.join(', ')}`));
 import { installErrorCapture } from './lib/feedback';
+import { startReportSync } from './lib/report';
 import './styles.css';
 
 installErrorCapture();
@@ -17,6 +18,7 @@ void loadState().then(() => {
   startLearner();
   startChallenges();
   startBackend();
+  startReportSync();
 });
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

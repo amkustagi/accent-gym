@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { backendEnabled } from '../lib/backend';
 import { setState, updateProfile, updateSettings, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
+import { CoachPicker } from '../ui/CoachSays';
 import { Seg, Switch } from '../ui/ui';
 import { SignInForm } from './Account';
 import { ProfileFields } from './Profile';
@@ -82,6 +83,11 @@ export function Onboarding() {
           <>
             <div className="stack" style={{ gap: 18 }}>
               <h1>Set up your practice</h1>
+              <div className="field">
+                <label>Pick your coach</label>
+                <CoachPicker />
+                <span className="small muted">Your Tiny Hustler listens to every take and tells you what to fix. You can switch any time in Settings.</span>
+              </div>
               <div className="field">
                 <label>Time per day</label>
                 <Seg label="Daily minutes" value={p.minutes} onChange={(v) => updateProfile({ minutes: v })} options={[{ v: 5, label: '5 min' }, { v: 10, label: '10 min' }, { v: 15, label: '15 min' }]} />

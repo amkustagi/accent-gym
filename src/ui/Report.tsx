@@ -142,7 +142,7 @@ function Coach({ rec, prompt, frame }: { rec: SessionRecord; prompt: string; fra
   const run = async () => {
     setState('loading');
     try {
-      setReply(await coach({ prompt, frame, transcript: rec.transcript, metrics: { ...rec.metrics, scores: rec.scores } }));
+      setReply(await coach({ prompt, frame, transcript: rec.transcript, metrics: { ...rec.metrics, scores: rec.scores, wordsBeforePoint: rec.extra?.toPoint } }));
       setState('done');
     } catch (e) {
       setErr((e as Error).message);

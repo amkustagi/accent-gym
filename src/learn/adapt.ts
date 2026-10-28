@@ -208,7 +208,7 @@ export function todayPlan(s: State): PlanItem[] {
   const learner = s.learner;
   const pick = (d: DrillId) => preferDrill(learner, d, (x) => x !== 'pronunciation' || s.profile.accentGoal !== 'none');
   const items: { drill: DrillId; reason: string; param?: string }[] = [];
-  if (s.profile.minutes >= 10) items.push({ drill: 'warmup', reason: 'Wake up your voice' });
+  if (s.settings.warmupInPlan && s.profile.minutes >= 10) items.push({ drill: 'warmup', reason: 'Wake up your voice' });
 
   const top = habits(s, 7)[0];
   if (top && top.thisWeek >= 3 && SWAPS.some((c) => c.rule === top.ruleId)) items.push({ drill: 'swaps', reason: `Your habit: "${top.label}" ×${top.thisWeek} this week`, param: `habit:${top.ruleId}` });

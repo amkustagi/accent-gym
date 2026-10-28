@@ -3,6 +3,7 @@
 // checks that lesson's specific skill (on top of the usual voice report).
 import type { DrillId } from './catalog';
 import type { PresenceSummary } from '../engine/face';
+import { analyzeDirectness } from '../engine/direct';
 
 export type Check =
   | { t: 'avoid'; words: string[]; label: string }
@@ -13,6 +14,10 @@ export type Check =
   | { t: 'pace'; lo: number; hi: number; label: string }
   | { t: 'variety'; min: number; label: string }
   | { t: 'fillers'; maxPerMin: number; label: string }
+  /** The point (answer, ask, decision, status) comes within this many words. */
+  | { t: 'lead'; max: number; label: string }
+  /** Opens with yes, no, a number or "short answer". */
+  | { t: 'answerFirst'; label: string }
   /** Something only the user (or the camera check, when it's on) can see. */
   | { t: 'self'; label: string; camera?: 'eye' | 'light' | 'still' | 'framing' | 'smile' };
 
@@ -24,7 +29,14 @@ export interface CourseLesson {
   why: string;
   how: string[];
   example: { weak: string; strong: string };
-  practice: { context: string; prompt: string; frame: string[]; secs: number };
+  practice: {
+    context: string;
+    prompt: string;
+    frame: string[];
+    secs: number;
+    /** Ask the user to type their own real situation first; it replaces the context. */
+    custom?: { label: string; placeholder: string };
+  };
   checks: Check[];
   /** A drill that trains this further. */
   deeper?: DrillId;
@@ -47,6 +59,69 @@ const CALM_PACE: Check = { t: 'pace', lo: 120, hi: 165, label: 'Calm pace (120�
 const PAUSES: Check = { t: 'pauses', min: 2, label: 'At least 2 deliberate pauses' };
 
 export const COURSES: Course[] = [
+  {
+    id: 'direct', title: 'Get to the point', area: 'Message', icon: 'target',
+    blurb: 'Say the important thing first, in fewer words. Built for manager-level conversations.',
+    lessons: [
+      {
+        id: 'd-point', title: 'Point first',
+        idea: 'Your first sentence is the answer. Everything else is optional detail.',
+        why: 'Senior people listen for the point and stop listening while they wait for it. When the context comes first, they have to work to find what you mean, and you sound unsure even when you are not.',
+        how: ['Before you speak, finish this sentence in your head: "The one thing they need is…"', 'Say that sentence first.', 'Add detail only if they ask, or in one short sentence.'],
+        example: { weak: 'So, a lot happened this week, the vendor called on Monday, then we had a few meetings and looked at options, and in the end it looks like we need more time.', strong: 'We need two more weeks. The vendor is late. I will confirm the new date on Friday.' },
+        practice: { context: 'Your manager stops you in the hallway: "Where are we on the project?"', prompt: 'Give the point in your first sentence, then stop after one reason.', frame: ['The point', 'One reason', 'Stop'], secs: 25 },
+        checks: [{ t: 'lead', max: 8, label: 'Point within the first 8 words' }, { t: 'words', max: 60, label: 'Short (60 words or fewer)' }, NO_HEDGE],
+        deeper: 'structure',
+      },
+      {
+        id: 'd-prep', title: 'Point, reason, example',
+        idea: 'Point, one reason, one example, point again. Four parts, about 30 seconds.',
+        why: 'Rambling usually happens because there is no shape. Point–Reason–Example–Point gives every answer a beginning and an end, so you know when you are done.',
+        how: ['Point: your answer in one sentence.', 'Reason: "because…", just one.', 'Example: one real case, then repeat the point in a few words.'],
+        example: { weak: 'There are a lot of things to think about with the new tool, some people like it, others not so much, it depends on the team really.', strong: 'I recommend we adopt the new tool. It saves review time because it flags errors early. For example, last sprint it caught four bugs before QA. So yes, let\'s adopt it.' },
+        practice: { context: 'Your director asks: "Should we move the team to the new tool?"', prompt: 'Answer with point, reason, example, point.', frame: ['Point', 'Reason', 'Example', 'Point again'], secs: 40 },
+        checks: [{ t: 'lead', max: 10, label: 'Point within the first 10 words' }, { t: 'include', any: ['because', 'since', 'the reason', 'that\'s why', 'so that'], label: 'Gave a reason ("because…")' }, { t: 'include', any: ['for example', 'for instance', 'last week', 'last month', 'last sprint', 'last quarter', 'when we', 'like when'], label: 'Gave an example' }, { t: 'words', max: 90, label: 'Under 90 words' }],
+      },
+      {
+        id: 'd-half', title: 'Say it in half',
+        idea: 'Whatever you were going to say, say it in half the words.',
+        why: 'Most first drafts are twice as long as they need to be. Cutting forces you to choose what matters, and the shorter version almost always sounds more confident.',
+        how: ['Keep the point, the one number and the next step.', 'Cut background, history and "just to give some context".', 'If a sentence does not change what they decide, cut it.'],
+        example: { weak: 'Hi everyone, so I just wanted to give a quick update on where things are with the migration, basically we have been working on it for a while and there have been some issues but I think we are now in a good place and maybe we can finish next week if everything goes well.', strong: 'The migration finishes next week. The last issue is fixed. No help needed.' },
+        practice: { context: 'You wrote this update: "Hi everyone, so I just wanted to give a quick update on where things are with the migration. Basically we have been working on it for a while and there have been some issues, but I think we are now in a good place and maybe we can finish next week if everything goes well." (60 words)', prompt: 'Say the same update out loud in 30 words or fewer.', frame: ['Status', 'One fact', 'Next step'], secs: 20 },
+        checks: [{ t: 'words', max: 30, label: '30 words or fewer' }, { t: 'lead', max: 5, label: 'Point within the first 5 words' }, NO_HEDGE],
+      },
+      {
+        id: 'd-yesno', title: 'Yes or no first',
+        idea: 'When asked a yes-or-no question, start with yes or no. Then the "but".',
+        why: 'A direct question that gets a story back feels evasive, even when it is not. Starting with yes, no or a number shows you know the answer and respect their time.',
+        how: ['Say "Yes", "No" or the number as your first word.', 'Add the one condition or caveat.', 'Offer the detail: "I can walk you through it."'],
+        example: { weak: 'Well, it depends, there are a few dependencies and the testing team is still looking at some things, so it could be possible.', strong: 'Yes, if testing passes Thursday. The only risk is the payment screen. I will confirm Thursday at noon.' },
+        practice: { context: 'Your director, in a meeting: "Can we ship on Friday?"', prompt: 'Start with yes or no, then one condition and a next step.', frame: ['Yes or no', 'The condition', 'Next step'], secs: 25 },
+        checks: [{ t: 'answerFirst', label: 'Started with yes, no or a number' }, { t: 'words', max: 45, label: 'Brief (45 words or fewer)' }, NO_HEDGE],
+        deeper: 'pressure',
+      },
+      {
+        id: 'd-ask', title: 'The director\'s question',
+        idea: 'Leaders ask "What do you need from me?" Have the ask ready: what, why, by when.',
+        why: 'A senior director gives you two minutes between meetings. If the ask is buried, you leave without it. Clear asks get decisions and show you think like a manager.',
+        how: ['The ask: "I need your approval for…"', 'Why it matters in one line.', 'By when: a day or date.'],
+        example: { weak: 'So there is this thing with the budget, and the vendor and finance have been going back and forth, and I am not sure what the best way is.', strong: 'I need your approval for the extra vendor budget. Without it we slip a month. Can you sign off by Wednesday?' },
+        practice: { context: 'A senior director, between meetings: "You have two minutes. What do you need from me?"', prompt: 'Make the ask, give one reason, and name the deadline.', frame: ['The ask', 'Why it matters', 'By when'], secs: 25 },
+        checks: [{ t: 'lead', max: 6, label: 'Ask within the first 6 words' }, { t: 'include', any: ['approve', 'approval', 'sign off', 'i need', 'can you', 'could you', 'decision', 'decide'], label: 'Made a clear ask' }, { t: 'include', any: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'tomorrow', 'today', 'this week', 'next week', 'by end of'], label: 'Named a deadline' }, { t: 'words', max: 50, label: 'Under 50 words' }],
+        deeper: 'pressure',
+      },
+      {
+        id: 'd-real', title: 'Rehearse your real meeting',
+        idea: 'Practice the opening line of a real conversation before you walk in.',
+        why: 'The first sentence sets how the rest goes. Rehearsing it once out loud makes it come out clean when it counts.',
+        how: ['Type what tomorrow\'s meeting or call is about.', 'Decide the one thing you want from it.', 'Say your opening line: the point or the ask.'],
+        example: { weak: 'Hi, thanks for joining, so I thought it would be good to sync up on a few things, there is a lot going on.', strong: 'Thanks for joining. I need a decision on the launch date today. Here are the two options.' },
+        practice: { context: 'Your next real meeting', prompt: 'Say your opening line: the point or the ask first.', frame: ['Greeting (optional)', 'Point or ask', 'What happens next'], secs: 30, custom: { label: 'What is the meeting about, and who is in it?', placeholder: 'e.g. 1:1 with my director about taking on the platform team' } },
+        checks: [{ t: 'lead', max: 8, label: 'Point within the first 8 words' }, { t: 'words', max: 60, label: 'Under 60 words' }, FEW_FILLERS],
+      },
+    ],
+  },
   {
     id: 'confidence', title: 'Confidence from the inside', area: 'Mindset', icon: 'flame',
     blurb: 'Calm nerves, speak up, and sound sure of what you know.',
@@ -470,6 +545,16 @@ export function runChecks(checks: Check[], take: TakeData, selfTicks: Record<str
         return { label: c.label, pass: take.pitchRangeSt === null ? null : take.pitchRangeSt >= c.min };
       case 'fillers':
         return { label: c.label, pass: take.fillersPerMin === null ? null : take.fillersPerMin <= c.maxPerMin };
+      case 'lead': {
+        if (!raw.trim()) return { label: c.label, pass: null };
+        const d = analyzeDirectness(raw);
+        return { label: c.label, pass: d.wordsToPoint !== null && d.wordsToPoint <= c.max };
+      }
+      case 'answerFirst': {
+        if (!raw.trim()) return { label: c.label, pass: null };
+        const first = text.trim().split(' ').slice(0, 3).join(' ');
+        return { label: c.label, pass: /^(yes|yeah|yep|no|nope|short answer|\d|one|two|three|four|five|six|seven|eight|nine|ten|about \d)/.test(first) };
+      }
       case 'self':
         if (c.camera && cam && cam.facePct >= 40) {
           const pass = c.camera === 'eye' ? cam.eyeContactPct >= 60 : c.camera === 'light' ? cam.lighting === 'good' : c.camera === 'still' ? cam.stillness >= 55 : c.camera === 'framing' ? cam.framing === 'good' : cam.smilePct >= 10;

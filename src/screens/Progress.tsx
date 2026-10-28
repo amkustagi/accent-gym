@@ -52,6 +52,7 @@ export function Progress() {
         <div className="progress"><i style={{ width: `${(lv.into / lv.need) * 100}%` }} /></div>
         <p className="small muted">{lv.need - lv.into} XP to {levelName(lv.lvl + 1)}</p>
       </section>
+      <DirectTrend />
       <ChallengesCard />
       {scored.length > 0 && <section className="grid2">
         <div className="card tight stat"><b>{streak(s)}</b><span>day streak · best {bestStreak(s)}</span></div>
@@ -176,5 +177,35 @@ export function Progress() {
         )}
       </section>
     </div>
+  );
+}
+
+/** Words before the point, recent takes vs the ones before: the number a manager notices. */
+function DirectTrend() {
+  const sessions = useStore((x) => x.sessions);
+  const pts = useMemo(() => sessions.filter((x) => typeof x.extra?.toPoint === 'number' && (x.extra.toPoint as number) >= 0).map((x) => x.extra!.toPoint as number), [sessions]);
+  if (pts.length < 2) return null;
+  const avg = (a: number[]) => Math.round(a.reduce((p, c) => p + c, 0) / a.length);
+  const recent = pts.slice(-5);
+  const before = pts.slice(-10, -5);
+  const now = avg(recent);
+  const prev = before.length ? avg(before) : null;
+  return (
+    <section className="card">
+      <div className="row spread">
+        <h3>Getting to the point</h3>
+        <button className="btn ghost sm" onClick={() => open({ kind: 'course', id: 'direct' })}>Course</button>
+      </div>
+      <div className="row" style={{ alignItems: 'baseline', gap: 10 }}>
+        <span style={{ fontFamily: 'var(--display)', fontSize: '2.2rem', fontWeight: 800 }}>{now}</span>
+        <span className="muted">words before your point, last {recent.length} takes</span>
+      </div>
+      {prev !== null && (
+        <p className="small" style={{ color: now <= prev ? 'var(--good)' : 'var(--bad)' }}>
+          {now < prev ? `Down from ${prev}. You're getting there faster.` : now === prev ? `Same as before (${prev}).` : `Up from ${prev}. Lead with the answer.`}
+        </p>
+      )}
+      <p className="small muted">Aim for under 10.</p>
+    </section>
   );
 }

@@ -103,7 +103,9 @@ function Shadow({ target, feature, onClose }: { target: AccentId; feature?: Feat
   };
 
   const [miss, setMiss] = useState(false);
+  const [recOn, setRecOn] = useState(false);
   const done = async (r: CaptureResult) => {
+    setRecOn(false);
     if (!r.transcript.trim() && !r.voice?.hadSpeech) {
       setMiss(true);
       return;
@@ -147,18 +149,18 @@ function Shadow({ target, feature, onClose }: { target: AccentId; feature?: Feat
         <span className="eyebrow">Listen, then repeat it the same way</span>
         <p className="script" style={{ color: 'var(--ink)' }}>{line}</p>
         <div className="row">
-          <button className="btn quiet grow" onClick={() => play(1)}><Icon name="speaker" />Hear {t.adjective}</button>
-          <button className="btn quiet grow" onClick={() => play(0.75)}>Slow</button>
+          <button className="btn quiet grow" disabled={recOn} onClick={() => play(1)}><Icon name="speaker" />Hear {t.adjective}</button>
+          <button className="btn quiet grow" disabled={recOn} onClick={() => play(0.75)}>Slow</button>
         </div>
         <p className="small muted">Copy the melody, the stress and the speed, not just the words. Listen two or three times first.</p>
       </section>
 
       {phase === 'listen' && (
-        <button className="btn signal block" disabled={heard === 0} onClick={() => setPhase('speak')}>
+        <button className="btn signal block" disabled={heard === 0} onClick={() => { stopSpeaking(); setPhase('speak'); }}>
           <Icon name="mic" />{heard === 0 ? 'Listen first' : 'I\'m ready to repeat'}
         </button>
       )}
-      {phase === 'speak' && <MicStage autoStart={!miss} maxSec={15} lang={t.locale} needsTranscript showCounters={false} showTranscript={false} autoStopSilence={1.6} idleHint="Tap and repeat the line" onDone={done} />}
+      {phase === 'speak' && <MicStage autoStart={!miss} maxSec={15} lang={t.locale} needsTranscript showCounters={false} showTranscript={false} autoStopSilence={1.6} idleHint="Tap and repeat the line" onStart={() => setRecOn(true)} onDone={done} />}
       {phase === 'speak' && miss && <div className="note bad"><b>I didn't hear you</b>Check the microphone, hold the phone closer, and try again.</div>}
 
       {phase === 'result' && res && (

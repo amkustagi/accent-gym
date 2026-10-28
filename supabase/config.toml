@@ -13,3 +13,6 @@ verify_jwt = true
 
 [functions.pronunciation]
 verify_jwt = true
+
+[functions.report]
+verify_jwt = false
