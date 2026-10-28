@@ -1,7 +1,7 @@
 // One recording session: microphone → voice analyzer + recorder, plus speech-to-text, with graceful fallbacks.
 import { closeMic, listen, openMic, Recorder, sttSupported, type SttError, type SttHandle } from './speech';
 import { summarize, VoiceAnalyzer, type Frame, type VoiceSummary } from './voice';
-import { stopSpeaking } from './tts';
+import { setRecording } from './tts';
 
 export type ListeningMode = 'full' | 'transcript' | 'voice';
 
@@ -37,8 +37,8 @@ export class CaptureSession {
   constructor(private mode: ListeningMode, private cb: CaptureCallbacks = {}, private opts: { record?: boolean; continuous?: boolean; lang?: string } = {}) {}
 
   async start(): Promise<{ ok: boolean; error?: string }> {
-    // Never let the model voice leak into the microphone.
-    stopSpeaking();
+    // Never let the model voice leak into the microphone, including a voice still being synthesized.
+    setRecording(true);
     this.t0 = performance.now();
     this.running = true;
     const wantVoice = this.mode !== 'transcript';
@@ -61,6 +61,7 @@ export class CaptureSession {
         this.analyzer = null;
         if (!wantStt) {
           this.running = false;
+          setRecording(false);
           return { ok: false, error: this.micError };
         }
       }
@@ -88,6 +89,7 @@ export class CaptureSession {
 
     if (!this.analyzer && !this.stt) {
       this.running = false;
+      setRecording(false);
       return { ok: false, error: this.micError ?? 'No microphone available.' };
     }
     return { ok: true };
@@ -100,6 +102,7 @@ export class CaptureSession {
   async stop(): Promise<CaptureResult> {
     const durationSec = this.elapsed();
     this.running = false;
+    setRecording(false);
     this.stt?.stop();
     const frames = this.analyzer?.stop() ?? [];
     const audio = this.recorder ? await this.recorder.stop() : null;
@@ -119,6 +122,7 @@ export class CaptureSession {
   /** Abandons the session without results. */
   cancel(): void {
     this.running = false;
+    setRecording(false);
     this.stt?.stop();
     this.analyzer?.stop();
     this.recorder?.stop();

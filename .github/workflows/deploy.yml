@@ -15,6 +15,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SB_REF: ${{ secrets.SUPABASE_SPEAKCO_REF }}
+      REPORT_GH: ${{ secrets.REPORT_GITHUB_TOKEN }}
+      AI_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,13 +28,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # In-app reports: deploy the `report` function once the Supabase secrets exist (see SETUP.md).
+      - name: Deploy the report function
+        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SB_REF != '' && env.REPORT_GH != '' }}
+        run: |
+          npx --yes supabase@2 secrets set --project-ref "$SB_REF" GITHUB_TOKEN="$REPORT_GH" ${AI_KEY:+ANTHROPIC_API_KEY="$AI_KEY"}
+          npx --yes supabase@2 functions deploy report --project-ref "$SB_REF" --no-verify-jwt --use-api
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_PRICE_MONTHLY_LABEL: ${{ secrets.VITE_PRICE_MONTHLY_LABEL }}
           VITE_PRICE_LIFETIME_LABEL: ${{ secrets.VITE_PRICE_LIFETIME_LABEL }}
-          VITE_FEEDBACK_EMAIL: ${{ secrets.VITE_FEEDBACK_EMAIL }}
+          VITE_REPORT_URL: ${{ secrets.VITE_REPORT_URL || (secrets.SUPABASE_SPEAKCO_REF && secrets.REPORT_GITHUB_TOKEN && format('https://{0}.supabase.co/functions/v1/report', secrets.SUPABASE_SPEAKCO_REF)) || '' }}
       - name: Publish dist to the gh-pages branch
         run: |
           cd dist

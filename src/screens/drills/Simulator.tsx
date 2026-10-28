@@ -6,6 +6,7 @@ import { speak, stopSpeaking } from '../../engine/tts';
 import { LEVEL_LABEL, levelFor, nextScenario, recordScore } from '../../learn/adapt';
 import { upcomingScenario } from '../../learn/learner';
 import { aiAvailable, followUp, freshScenarios } from '../../lib/ai';
+import { localFollowUp } from '../../content/followups';
 import { isPro } from '../../lib/backend';
 import { canStartRound, requirePro } from '../../lib/gate';
 import { scoreAndSave, tooShort } from '../../lib/session';
@@ -48,7 +49,6 @@ export function SpeakRound({ scenario, pressure, drill, onClose, onNext, closeLa
   const [result, setResult] = useState<{ rec: SessionRecord; xp: number; note: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const compare = useMemo(() => skillAverages(getState()), []);
-  const ai = useStore((s) => aiAvailable(s));
 
   useEffect(() => {
     if (phase !== 'prep') return;
@@ -95,12 +95,9 @@ export function SpeakRound({ scenario, pressure, drill, onClose, onNext, closeLa
         extraAction={
           drill !== 'baseline' && result.rec.metrics.words >= 15 ? (
             <section className="card sunken">
-              <div className="row spread">
-                <h3>Handle a follow-up</h3>
-                {!ai && <span className="pill">Pro</span>}
-              </div>
+              <h3>Handle a follow-up</h3>
               <p className="small muted">The other person asks a realistic follow-up question out loud. Answer it like you would in the room.</p>
-              <button className="btn primary" onClick={() => (ai ? setPhase('followup') : requirePro('Follow-up questions use AI'))}>
+              <button className="btn primary" onClick={() => setPhase('followup')}>
                 <Icon name="chat" />Take a follow-up question
               </button>
             </section>
@@ -151,6 +148,7 @@ export function SpeakRound({ scenario, pressure, drill, onClose, onNext, closeLa
 
 /** AI role-play: the other person asks follow-up questions; each answer is scored. */
 function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; firstAnswer: string; onFinish: () => void }) {
+  const ai = useStore((s) => aiAvailable(s));
   const [turns, setTurns] = useState<{ q: string; a: string; score?: number }[]>([{ q: scenario.prompt, a: firstAnswer }]);
   const [current, setCurrent] = useState<{ question: string; persona: string } | null>(null);
   const [state, setState] = useState<'loading' | 'ask' | 'scored' | 'error'>('loading');
@@ -160,8 +158,10 @@ function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; fi
 
   const ask = async (history: typeof turns) => {
     setState('loading');
+    const asked = history.map((t) => t.q);
     try {
-      const q = await followUp({ scenario, turns: history.map(({ q, a }) => ({ q, a })) });
+      // AI questions react to what you said; without AI (or if it fails) a realistic question from the bank.
+      const q = ai ? await followUp({ scenario, turns: history.map(({ q, a }) => ({ q, a })) }).catch(() => localFollowUp(scenario, asked)) : localFollowUp(scenario, asked);
       setCurrent(q);
       setState('ask');
       void speak(q.question);

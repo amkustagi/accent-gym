@@ -335,3 +335,8 @@ button.card:disabled { opacity: 0.6; }
   background: var(--surface); color: var(--ink); border: 2px solid var(--line); border-radius: 16px; cursor: pointer; font: inherit;
 }
 .coach-card[aria-checked="true"] { border-color: var(--coach); box-shadow: 0 0 0 3px color-mix(in srgb, var(--coach) 20%, transparent); }
+
+/* Report sending */
+.spinner { width: 44px; height: 44px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--signal); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.5s; } }

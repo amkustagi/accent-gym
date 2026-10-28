@@ -75,6 +75,25 @@ Pro users get word-by-word scoring for every accent, plus sound-by-sound scoring
 
 **Owner build (no server):** Settings → Precise accent scoring → paste the key and region. The key stays on your phone. If the browser blocks direct calls to Azure, use the server route above.
 
+## In-app reports (one-tap Send → GitHub ticket)
+
+Works on its own: it doesn't turn on accounts or the paywall. About 10 minutes, once.
+
+1. **Supabase project** `speakco` (free). Note its **project ref** (in the dashboard URL). Create an
+   **access token** at supabase.com/dashboard/account/tokens.
+2. **GitHub token for tickets**: github.com/settings/personal-access-tokens → *Fine-grained* →
+   repository access **Only amkustagi/accent-gym** → permissions **Issues: Read and write** and
+   **Contents: Read and write** (screenshots go to the `feedback-assets` branch, never `main`).
+3. **Anthropic API key** (console.anthropic.com) for the AI write-up. Optional: without it tickets
+   use the phone's cleaned-up title and your words.
+4. Repo → Settings → Secrets and variables → Actions → **New repository secret**:
+   `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SPEAKCO_REF`, `REPORT_GITHUB_TOKEN`, `ANTHROPIC_API_KEY`.
+5. Actions → *Test and deploy* → **Run workflow** (or merge any PR). The workflow deploys the
+   `report` function, sets its secrets and builds the app pointed at it.
+
+Check: in the app tap the flag, say something, Send. You should see "Sent · ticket #N" and the issue
+appears with the `from-app` label. Limits: 12 reports per hour per network (`REPORT_HOURLY_LIMIT`).
+
 ## Reading feedback
 Supabase → Table editor:
 - `feedback`: every rating, thumbs, transcript fix, check-in, bug report and idea, with device details.

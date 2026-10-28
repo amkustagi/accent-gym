@@ -96,8 +96,20 @@ export function systemVoiceIsBasic(): boolean {
 
 let current: HTMLAudioElement | null = null;
 let currentEnd: (() => void) | null = null;
+/** Bumped on every stop, so a voice that finishes synthesizing late never starts playing. */
+let speakGen = 0;
+/** True while the microphone is recording: nothing plays, so no voice leaks into the take. */
+let recording = false;
+
+/** Called by the recorder. Starting a take silences the app and blocks playback until it ends. */
+export function setRecording(on: boolean) {
+  if (on) stopSpeaking();
+  recording = on;
+}
+export const isRecording = () => recording;
 
 export function stopSpeaking() {
+  speakGen++;
   if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
   if (current) {
     current.pause();
@@ -111,6 +123,11 @@ export function stopSpeaking() {
 
 /** Plays a recording or synthesized clip; returns a stop function. */
 export function playBlob(blob: Blob, opts: { rate?: number; onEnd?: () => void } = {}): () => void {
+  if (recording) {
+    // Playing now would be picked up by the mic (and on iPhone it would close the mic).
+    opts.onEnd?.();
+    return () => undefined;
+  }
   stopSpeaking();
   releaseMicForPlayback();
   setAudioMode('playback');
@@ -135,7 +152,7 @@ export function playBlob(blob: Blob, opts: { rate?: number; onEnd?: () => void }
 }
 
 function speakSystem(text: string, rate: number, onEnd?: () => void, accent?: AccentId) {
-  if (typeof speechSynthesis === 'undefined') return onEnd?.();
+  if (typeof speechSynthesis === 'undefined' || recording) return onEnd?.();
   releaseMicForPlayback();
   setAudioMode('playback');
   speechSynthesis.cancel();
@@ -281,10 +298,14 @@ export async function modelBlob(text: string, accent?: AccentId): Promise<Blob |
 export async function speak(text: string, opts: SpeakOptions = {}): Promise<void> {
   const rate = opts.rate ?? 1;
   stopSpeaking();
+  const gen = speakGen;
+  if (recording) return opts.onEnd?.();
   const nv = opts.voice ?? naturalVoiceFor(opts.accent);
   if (nv && engine === 'natural' && natural.status === 'ready') {
     try {
       const blob = await synthNatural(text, nv);
+      // Stopped, replaced or the mic opened while the voice was being made: stay quiet.
+      if (gen !== speakGen || recording) return opts.onEnd?.();
       opts.onStart?.();
       playBlob(blob, { rate, onEnd: opts.onEnd });
       return;

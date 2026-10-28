@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.13 (branch release_0.13): one-tap reports, and fixes from your reports
+- **Report in one tap.** The flag → talk → **Send**. The report goes straight to the issue tracker: no email, no GitHub page to finish. A new `report` server function asks Claude (Haiku) to turn what you said, the screenshot and the screen you were on into a proper ticket (clear title, summary, steps, expected/actual), uploads the screenshot and opens the GitHub issue with labels `from-app` + `bug`/`enhancement`/`question`. The phone shows the ticket number and title. Offline reports are kept and sent automatically later. Crash screens send the same way. Turn it on once with the secrets in SETUP.md (step "In-app reports"); until then reports are saved and a "Send through GitHub instead" fallback is shown.
+- **Better titles even without AI.** Spoken filler ("hey", "so", "basically") is dropped, the first sentence is used, the screen name is added ("Shadowing: …") and nothing is cut mid-word. Device details now record the screen you reported from, not the report screen.
+- **Fix #15:** *Take a follow-up question* did nothing without AI. It now always asks one: from the AI when available, otherwise from a bank of realistic questions for each situation.
+- **Fix #13 and #14:** in Shadowing and sound lessons the model voice could finish loading after the mic opened. It then played into your recording (#14) and, on iPhone, closed the mic so the next take recorded nothing (#13). No voice can start while you're recording now, and the Hear buttons are off during a take.
+- **Fix #12:** the warm-up is no longer in the daily plan every day. It's still in Practice, and Settings › Your profile › *Warm-up in my daily plan* brings it back.
+- Version 0.1.3 (build 13) for the iPhone and Android apps.
+
 ## v0.12 (branch release_0.12): your coach, and getting to the point
 - **Tiny Hustler coaches.** Pick **Hustle** (the coach), **Mira** (the mentor) or **Pip** (the sidekick) during setup or in Settings › Your coach. Each is an animated character that breathes, blinks, listens while you speak and moves its mouth while it talks. Your coach greets you on Today and, after each course lesson, says what to fix in its own voice (natural voice when it's on). Settings can switch it to text only.
 - **New course: Get to the point** (first in the list). Point first; point, reason, example; say it in half; yes or no first; the director's question (the ask, why, by when); rehearse your real meeting (type what it's about, then practice the opening line).

@@ -156,6 +156,13 @@ export function Settings({ onClose }: { onClose: () => void }) {
           <button className="btn quiet sm" onClick={() => open({ kind: 'profile' })}><Icon name="edit" />Edit</button>
         </div>
         <p className="small muted">Role, industry, situations and challenges shape your scenarios and daily plan.</p>
+        <div className="row spread">
+          <div className="stack-sm grow">
+            <b>Warm-up in my daily plan</b>
+            <span className="small muted">Off: it stays in Practice for before a big meeting</span>
+          </div>
+          <Switch label="Warm-up in my daily plan" checked={s.settings.warmupInPlan} onChange={(v) => updateSettings({ warmupInPlan: v })} />
+        </div>
         <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => open({ kind: 'coach' })}><Icon name="sparkle" />What your coach knows</button>
         <div className="field">
           <label>Daily practice</label>

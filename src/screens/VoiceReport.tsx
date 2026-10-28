@@ -1,9 +1,9 @@
 import { set as idbSet } from 'idb-keyval';
 import { useMemo, useState } from 'react';
 import type { CaptureResult } from '../engine/capture';
-import { backendEnabled } from '../lib/backend';
-import { FEEDBACK_EMAIL, diagnostics, githubIssueUrl, mailtoUrl, reportBody, sendFeedback } from '../lib/feedback';
-import { dataUrlToBlob } from '../lib/screenshot';
+import { diagnostics, githubIssueUrl, reportBody, sendFeedback } from '../lib/feedback';
+import { fileReport, reportsOnline, type Ticket } from '../lib/report';
+import { areaName, localTitle } from '../lib/ticket';
 import { useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
 import { MicStage } from '../ui/MicStage';
@@ -18,11 +18,13 @@ export function VoiceReportScreen({ shot, type = 'bug', onClose }: { shot?: stri
   const [withShot, setWithShot] = useState(!!shot);
   const [withDiag, setWithDiag] = useState(true);
   const [showDiag, setShowDiag] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [stage, setStage] = useState<'edit' | 'sending' | 'sent' | 'saved' | 'setup'>('edit');
+  const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [pending, setPending] = useState<{ id: string; shot?: string } | null>(null);
   const diag = useMemo(() => diagnostics(), []);
   const all = useStore((s) => s.feedback);
   const mine = useMemo(() => all.filter((f) => f.kind === 'bug' || f.kind === 'idea' || f.kind === 'other').slice(-5).reverse(), [all]);
-  const title = `${LABEL[kind]}: ${text.split('\n')[0].slice(0, 70)}`;
+  const title = localTitle(text, areaName(diag.screen as string));
   const body = reportBody(LABEL[kind], text, withDiag);
 
   const heard = (r: CaptureResult) => {
@@ -31,40 +33,63 @@ export function VoiceReportScreen({ shot, type = 'bug', onClose }: { shot?: stri
     setText((x) => (x.trim() ? `${x.trim()} ${t}` : t));
   };
 
-  const submit = async () => {
-    const f = sendFeedback(kind, { text: text.trim(), meta: { ...(withDiag ? diag : { version: __APP_VERSION__ }), screenshot: withShot && !!shot, via: 'report' } });
-    if (withShot && shot) await idbSet(`shot:${f.id}`, shot).catch(() => undefined);
-    setSent(true);
-  };
-
-  const share = async () => {
-    const files = withShot && shot ? [new File([dataUrlToBlob(shot)], 'speakco-screenshot.jpg', { type: 'image/jpeg' })] : [];
-    const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-    const data: ShareData = { title, text: `${body}\n\nSend to: ${FEEDBACK_EMAIL}`, ...(files.length ? { files } : {}) };
+  const deliver = async (f: Parameters<typeof fileReport>[0], img?: string) => {
+    setStage('sending');
     try {
-      if (nav.share && (!files.length || nav.canShare?.(data))) await nav.share(data);
-      else location.href = mailtoUrl(title, body);
+      setTicket(await fileReport(f, img));
+      setStage('sent');
     } catch {
-      /* cancelled */
+      setStage('saved');
     }
   };
 
-  if (sent)
+  const submit = async () => {
+    const f = sendFeedback(kind, { text: text.trim(), meta: { ...(withDiag ? diag : { version: __APP_VERSION__, screen: diag.screen }), screenshot: withShot && !!shot, via: 'report', autoFile: true } });
+    const img = withShot ? shot : undefined;
+    if (img) await idbSet(`shot:${f.id}`, img).catch(() => undefined);
+    setPending({ id: f.id, shot: img });
+    if (!reportsOnline) return setStage('setup');
+    await deliver(f, img);
+  };
+
+  const retry = () => {
+    const f = all.find((x) => x.id === pending?.id);
+    if (f) void deliver(f, pending?.shot);
+  };
+
+  if (stage === 'sending')
+    return (
+      <SessionShell title="Sending" onClose={onClose} noReport>
+        <section className="card" style={{ alignItems: 'center', textAlign: 'center' }}>
+          <span className="spinner" aria-hidden="true" />
+          <h2>Writing up your report</h2>
+          <p className="muted">Turning what you said into a clear ticket for the team…</p>
+        </section>
+      </SessionShell>
+    );
+
+  if (stage !== 'edit')
     return (
       <SessionShell title="Thanks" onClose={onClose} noReport>
         <section className="card" style={{ alignItems: 'center', textAlign: 'center' }}>
           <span className="ic" style={{ width: 60, height: 60, borderRadius: 18, display: 'grid', placeItems: 'center', background: 'var(--good-soft)', color: 'var(--good)' }}><Icon name="check" size={32} /></span>
-          <h2>Got it</h2>
-          <p className="muted">{backendEnabled ? 'Your report was sent. You can see it under Settings › Help us improve.' : 'Saved on this phone. Send it with your screenshot in one tap:'}</p>
+          <h2>{stage === 'sent' ? 'Sent' : 'Got it'}</h2>
+          {stage === 'sent' && ticket && (
+            <>
+              <p className="muted">The team has it as ticket #{ticket.number}:</p>
+              <p><b>{ticket.title}</b></p>
+              {ticket.summary && <p className="small muted">{ticket.summary}</p>}
+            </>
+          )}
+          {stage === 'saved' && <p className="muted">Saved on this phone. It sends by itself as soon as you're back online.</p>}
+          {stage === 'setup' && <p className="muted">Saved on this phone. Automatic sending isn't switched on in this build yet.</p>}
         </section>
-        {!backendEnabled && (
-          <div className="stack">
-            <button className="btn primary block" onClick={() => void share()}><Icon name="mail" />Send{withShot && shot ? ' with screenshot' : ''}</button>
-            <a className="btn quiet block" href={githubIssueUrl(title, body)} target="_blank" rel="noreferrer">Open a GitHub issue</a>
-            <p className="small muted" style={{ textAlign: 'center' }}>Choose Mail or any app. It goes to {FEEDBACK_EMAIL}.</p>
-          </div>
-        )}
-        <div className="foot"><button className="btn block" onClick={onClose}>Done</button></div>
+        <div className="stack">
+          {stage === 'saved' && <button className="btn quiet block" onClick={retry}><Icon name="refresh" />Try sending now</button>}
+          {stage === 'sent' && ticket && <a className="btn ghost block" href={ticket.url} target="_blank" rel="noreferrer">View ticket</a>}
+          {stage === 'setup' && <a className="btn quiet block" href={githubIssueUrl(title, body)} target="_blank" rel="noreferrer">Send through GitHub instead</a>}
+        </div>
+        <div className="foot"><button className="btn primary block" onClick={onClose}>Done</button></div>
       </SessionShell>
     );
 
@@ -107,15 +132,16 @@ export function VoiceReportScreen({ shot, type = 'bug', onClose }: { shot?: stri
           <div className="stack-sm">
             {mine.map((f) => (
               <div key={f.id} className="row spread">
-                <span className="small grow">{(f.text || '(no text)').slice(0, 60)}</span>
-                <span className="pill">{f.synced ? 'Sent' : 'Saved'}</span>
+                <span className="small grow">{f.ticket?.title ?? (f.text || '(no text)').slice(0, 60)}</span>
+                <span className="pill">{f.ticket ? `#${f.ticket.number}` : f.synced ? 'Sent' : 'Saved'}</span>
               </div>
             ))}
           </div>
         </section>
       )}
       <div className="foot">
-        <button className="btn signal block" disabled={text.trim().length < 3} onClick={() => void submit()}>Send</button>
+        <button className="btn signal block" disabled={text.trim().length < 3} onClick={() => void submit()}><Icon name="send" />Send</button>
+        <p className="small muted" style={{ textAlign: 'center', margin: 0 }}>Goes straight to the Speakco team. AI writes it up as a ticket. Tickets are public; your name and email are never included.</p>
       </div>
     </SessionShell>
   );
