@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.14 (branch release_0.14): security updates
+- **All 13 known package vulnerabilities fixed (2 critical, 4 high, 7 moderate).** Found by the new shared security check. Test and build tools updated: Vite 7.3, Vitest 4.1, the React plugin 5.2, the single-file plugin 2.3 and the Capacitor CLI 8.6. The image library `sharp` (pulled in by the voice engine but never used by the app) is pinned to 0.35.5, which fixes three image-format flaws. `npm audit`: 0 vulnerabilities.
+- No change to what you see or hear. All 105 tests pass; the app and the single-file preview build as before.
+- One test now stubs only `URL.createObjectURL`, which Vitest 4 needs.
+- Version 0.1.4 (build 14) for the iPhone and Android apps.
+
 ## v0.13 (branch release_0.13): one-tap reports, and fixes from your reports
 - **Report in one tap.** The flag → talk → **Send**. The report goes straight to the issue tracker: no email, no GitHub page to finish. A new `report` server function asks Claude (Haiku) to turn what you said, the screenshot and the screen you were on into a proper ticket (clear title, summary, steps, expected/actual), uploads the screenshot and opens the GitHub issue with labels `from-app` + `bug`/`enhancement`/`question`. The phone shows the ticket number and title. Offline reports are kept and sent automatically later. Crash screens send the same way. Turn it on once with the secrets in SETUP.md (step "In-app reports"); until then reports are saved and a "Send through GitHub instead" fallback is shown.
 - **Better titles even without AI.** Spoken filler ("hey", "so", "basically") is dropped, the first sentence is used, the screen name is added ("Shadowing: …") and nothing is cut mid-word. Device details now record the screen you reported from, not the report screen.
