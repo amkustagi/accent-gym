@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.15 (branch release_0.15): real back-and-forth, and a coach you can hear
+- **Conversation works for everyone (Fix #17).** Practice › *AI conversation* showed "Unlock with Pro" even when everything was unlocked, and the button did nothing. It is now **Conversation**, and it always works: you answer, then the other person asks up to three follow-ups out loud. With AI (Pro or your own key) they can ask anything; without it the questions still react to what you said.
+- **Follow-ups that react to your answer.** No point heard → "Sorry, I lost you. Are we on track or not?". Point after 20+ words → "Can you give me the short version?". Hedging → "You sound unsure. Is that a yes or a no?". No number → "Can you put a number on that?". No date → "By when?". Each shows *why they asked*. Also used by *Take a follow-up question* in the Meeting simulator.
+- **Hands-free turns.** The mic opens by itself when they finish asking (or tap *Answer now*). After the last answer, a **conversation debrief** shows your average score, words before your point across the whole conversation, your best answer and the one thing to practice next.
+- **Fix #20: the coach moved its mouth but made no sound on iPhone.** Two causes: the coach speaks a moment after the lesson ends, without a tap, which iPhone can refuse; and if the natural voice failed, the phone's own voice was used, which iPhone silently ignores without a tap and never says it finished, so the mouth kept moving. Now all playback goes through one audio element that your first tap unlocks, sound waits a moment for iPhone to move audio back to the speaker after the mic closes, the coach only animates once sound is really playing, and if the phone still won't play it after 3 seconds the coach stops and shows **Tap to hear Hustle**.
+- 17 new tests (122 in total).
+- Builds on v0.14 (security updates), now merged too.
+- Version 0.1.5 (build 15) for the iPhone and Android apps.
+
+## v0.14 (branch release_0.14): security updates
+- **All 13 known package vulnerabilities fixed (2 critical, 4 high, 7 moderate).** Found by the new shared security check. Test and build tools updated: Vite 7.3, Vitest 4.1, the React plugin 5.2, the single-file plugin 2.3 and the Capacitor CLI 8.6. The image library `sharp` (pulled in by the voice engine but never used by the app) is pinned to 0.35.5, which fixes three image-format flaws. `npm audit`: 0 vulnerabilities.
+- No change to what you see or hear. All 105 tests pass; the app and the single-file preview build as before.
+- One test now stubs only `URL.createObjectURL`, which Vitest 4 needs.
+- Version 0.1.4 (build 14) for the iPhone and Android apps.
+
 ## v0.13 (branch release_0.13): one-tap reports, and fixes from your reports
 - **Report in one tap.** The flag → talk → **Send**. The report goes straight to the issue tracker: no email, no GitHub page to finish. A new `report` server function asks Claude (Haiku) to turn what you said, the screenshot and the screen you were on into a proper ticket (clear title, summary, steps, expected/actual), uploads the screenshot and opens the GitHub issue with labels `from-app` + `bug`/`enhancement`/`question`. The phone shows the ticket number and title. Offline reports are kept and sent automatically later. Crash screens send the same way. Turn it on once with the secrets in SETUP.md (step "In-app reports"); until then reports are saved and a "Send through GitHub instead" fallback is shown.
 - **Better titles even without AI.** Spoken filler ("hey", "so", "basically") is dropped, the first sentence is used, the screen name is added ("Shadowing: …") and nothing is cut mid-word. Device details now record the screen you reported from, not the report screen.

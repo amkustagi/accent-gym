@@ -57,17 +57,22 @@ describe('no voice while recording', () => {
     class FakeAudio {
       playbackRate = 1;
       src = '';
-      onended: null | (() => void) = null;
-      onerror: null | (() => void) = null;
-      constructor(public url: string) {}
+      currentTime = 0;
+      paused = true;
+      preload = '';
+      setAttribute() {}
+      addEventListener() {}
+      removeEventListener() {}
       play() {
-        played.push(this.url);
+        played.push(this.src);
         return Promise.resolve();
       }
       pause() {}
     }
     vi.stubGlobal('Audio', FakeAudio);
-    vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: () => undefined });
+    // Spy on the static methods only: replacing the whole URL global breaks Vitest 4's module loader.
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:x');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
     const tts = await import('../engine/tts');
     tts.setRecording(true);
     tts.playBlob(new Blob(['a']));

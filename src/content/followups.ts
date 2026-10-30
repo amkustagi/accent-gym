@@ -1,6 +1,8 @@
 // Follow-up questions that work on the phone with no AI: realistic next questions per situation.
 // The AI version (lib/ai.ts followUp) is used when Pro or an API key is available.
 import type { CategoryId, Scenario } from './scenarios';
+import { analyzeDirectness } from '../engine/direct';
+import { countWords } from '../engine/text';
 
 const PERSONA: Record<CategoryId, string> = {
   update: 'Your manager',
@@ -41,4 +43,119 @@ export function localFollowUp(scenario: Scenario, asked: string[]): { question: 
   const list = fresh.length ? fresh : pool;
   const question = list[Math.floor(Math.random() * list.length)];
   return { question, persona: PERSONA[scenario.category] ?? 'Your colleague' };
+}
+
+// ---------- follow-ups that react to what you said (no AI needed) ----------
+
+
+export interface FollowUpQ {
+  question: string;
+  persona: string;
+  /** Why the listener asked this, in a few words (shown under the question). */
+  why?: string;
+}
+
+/** Categories where a real listener expects a number. */
+const WANTS_NUMBER: CategoryId[] = ['update', 'problem', 'client', 'negotiate', 'present', 'influence', 'pushback'];
+/** Small-talk situations: no answer or ask is expected. */
+const SOCIAL: CategoryId[] = ['intro', 'network'];
+/** Categories where a real listener expects a date or deadline. */
+const WANTS_DATE: CategoryId[] = ['update', 'problem', 'pushback', 'client', 'influence'];
+
+const NUMBER_RE = /\b\d[\d,.]*\b|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|million|billion|half|percent|dozen)\b/i;
+const DATE_RE = /\b(?:today|tonight|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekend|week|weeks|month|months|quarter|q[1-4]|january|february|march|april|may|june|july|august|september|october|november|december|eod|end of (?:day|week|month)|by (?:the )?\w+|deadline|days?|hours?)\b/i;
+
+/** "Sorry, what do you need from me?" in the words a person in this situation would use. */
+const NO_POINT: Record<CategoryId, string> = {
+  update: 'Sorry, I lost you. Are we on track or not?',
+  pushback: 'So what are you actually asking me for?',
+  influence: 'Okay, but what exactly are you proposing?',
+  problem: 'Hang on. What do you need me to decide?',
+  intro: 'Sorry, so what is it you do?',
+  interview: 'Let me stop you. What\'s the short answer?',
+  impromptu: 'Sorry, what\'s your recommendation?',
+  client: 'I\'m not following. What are you proposing we do?',
+  present: 'What\'s the main point here?',
+  negotiate: 'So what\'s your number?',
+  feedback: 'Sorry, what\'s the actual feedback?',
+  network: 'So what are you working on these days?',
+};
+
+/**
+ * The next question, reacting to the answer the way a busy listener would: no point → "what do you
+ * need?", a long build-up → "short version?", hedging → "yes or no?", vague → "what's the number?" /
+ * "by when?". Each reaction is used once per conversation; otherwise a realistic question from the bank.
+ */
+export function reactiveFollowUp(scenario: Scenario, answer: string, asked: string[]): FollowUpQ {
+  const persona = PERSONA[scenario.category] ?? 'Your colleague';
+  const fresh = (q: string) => !asked.includes(q);
+  const n = countWords(answer);
+  const d = analyzeDirectness(answer);
+  const candidates: FollowUpQ[] = [];
+  if (n < 6) candidates.push({ question: 'Sorry, I didn\'t catch that. What\'s your answer, in one sentence?', persona, why: 'Your answer was very short' });
+  else {
+    // Introductions and networking have no "ask" to wait for, so only check for the point elsewhere.
+    if (d.wordsToPoint === null && !SOCIAL.includes(scenario.category)) candidates.push({ question: NO_POINT[scenario.category] ?? 'Sorry, what do you need from me?', persona, why: 'They never heard your point' });
+    else if (d.wordsToPoint !== null && d.wordsToPoint > 20) candidates.push({ question: 'Can you give me the short version?', persona, why: `Your point came after ${d.wordsToPoint} words` });
+    if (d.hedges.length >= 2 || (d.hedges.length && /\b(?:maybe|i think|i guess|probably|not sure)\b/i.test(answer.slice(0, 80))))
+      candidates.push({ question: 'You sound unsure. Is that a yes or a no?', persona, why: `You hedged ("${d.hedges[0]}")` });
+    if (n > 130) candidates.push({ question: 'That\'s a lot. What\'s the one thing I should remember?', persona, why: `${n} words is long for one answer` });
+    if (WANTS_NUMBER.includes(scenario.category) && !NUMBER_RE.test(answer)) candidates.push({ question: 'Can you put a number on that?', persona, why: 'No numbers in your answer' });
+    if (WANTS_DATE.includes(scenario.category) && !DATE_RE.test(answer)) candidates.push({ question: 'By when?', persona, why: 'No date or deadline' });
+  }
+  const reaction = candidates.find((c) => fresh(c.question));
+  if (reaction) return reaction;
+  return localFollowUp(scenario, asked);
+}
+
+export interface Turn {
+  q: string;
+  a: string;
+  score?: number;
+}
+
+export interface Debrief {
+  answers: number;
+  avgScore: number | null;
+  best: { q: string; score: number } | null;
+  /** Average words before the point, over answers where a point was found. */
+  avgWordsToPoint: number | null;
+  /** Answers where no point was heard. */
+  missedPoint: number;
+  hedged: number;
+  headline: string;
+  next: string;
+}
+
+/** End-of-conversation summary: how the whole back-and-forth went and one thing to practice. */
+export function conversationDebrief(turns: Turn[]): Debrief {
+  const answered = turns.filter((t) => countWords(t.a) > 0);
+  const scored = answered.filter((t) => typeof t.score === 'number') as Required<Turn>[];
+  const avgScore = scored.length ? Math.round(scored.reduce((a, t) => a + t.score, 0) / scored.length) : null;
+  const best = scored.length ? scored.reduce((b, t) => (t.score > b.score ? t : b)) : null;
+  const ds = answered.map((t) => analyzeDirectness(t.a));
+  const withPoint = ds.filter((d) => d.wordsToPoint !== null);
+  const avgWordsToPoint = withPoint.length ? Math.round(withPoint.reduce((a, d) => a + (d.wordsToPoint ?? 0), 0) / withPoint.length) : null;
+  const missedPoint = ds.length - withPoint.length;
+  const hedged = ds.filter((d) => d.hedges.length > 0).length;
+
+  let headline: string;
+  let next: string;
+  if (!answered.length) {
+    headline = 'No answers recorded yet.';
+    next = 'Answer the first question out loud to start the conversation.';
+  } else if (missedPoint > answered.length / 2) {
+    headline = `They had to dig for your point in ${missedPoint} of ${answered.length} answers.`;
+    next = 'Open every answer with the answer itself: "Yes", "We need…", "I recommend…". Then one reason.';
+  } else if (avgWordsToPoint !== null && avgWordsToPoint > 15) {
+    headline = `You got to the point after about ${avgWordsToPoint} words on average.`;
+    next = 'Aim for under 10 words before your point. Cut the set-up and say it first.';
+  } else if (hedged > answered.length / 2) {
+    headline = `Clear points, but you hedged in ${hedged} of ${answered.length} answers.`;
+    next = 'Drop "I think", "maybe" and "kind of" under pressure. State it as fact, then stop.';
+  } else {
+    headline = avgWordsToPoint !== null ? `Direct all the way through: point after about ${avgWordsToPoint} words.` : 'You held the conversation well.';
+    next = 'Next time, try a harder listener: the Pressure round or a fresh scenario.';
+  }
+  return { answers: answered.length, avgScore, best: best ? { q: best.q, score: best.score } : null, avgWordsToPoint, missedPoint, hedged, headline, next };
 }
