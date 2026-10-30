@@ -235,9 +235,12 @@ export function releaseMic(): void {
   warm = null;
 }
 
-/** Before playing audio: iPhone plays quietly through the earpiece route while the mic is open. */
-export function releaseMicForPlayback(): void {
-  if (isIOS() || isSafari()) releaseMic();
+/** Before playing audio: iPhone plays quietly through the earpiece route while the mic is open. True if it was open. */
+export function releaseMicForPlayback(): boolean {
+  if (!(isIOS() || isSafari())) return false;
+  const wasOpen = live(warm);
+  releaseMic();
+  return wasOpen;
 }
 
 /** Number of permission prompts seen in this app session (used to offer the "always allow" tip). */

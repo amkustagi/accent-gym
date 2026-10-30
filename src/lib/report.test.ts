@@ -57,11 +57,14 @@ describe('no voice while recording', () => {
     class FakeAudio {
       playbackRate = 1;
       src = '';
-      onended: null | (() => void) = null;
-      onerror: null | (() => void) = null;
-      constructor(public url: string) {}
+      currentTime = 0;
+      paused = true;
+      preload = '';
+      setAttribute() {}
+      addEventListener() {}
+      removeEventListener() {}
       play() {
-        played.push(this.url);
+        played.push(this.src);
         return Promise.resolve();
       }
       pause() {}

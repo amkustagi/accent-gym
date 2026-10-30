@@ -2,6 +2,7 @@
 import { get, set } from 'idb-keyval';
 import { releaseMicForPlayback, setAudioMode } from './speech';
 import type { AccentId } from '../content/accents';
+import { SILENT_WAV, playWatched, watchUtterance, type PlayEnd, type UtteranceLike } from './player';
 
 export type VoiceEngine = 'natural' | 'system';
 
@@ -94,12 +95,65 @@ export function systemVoiceIsBasic(): boolean {
 
 // ---------- playback ----------
 
-let current: HTMLAudioElement | null = null;
-let currentEnd: (() => void) | null = null;
+/** One audio element for every clip. iPhone lets an element play later only if a tap started it once. */
+let shared: HTMLAudioElement | null = null;
+let unlocked = false;
+const audioEl = (): HTMLAudioElement => {
+  if (!shared) {
+    shared = new Audio();
+    shared.setAttribute('playsinline', '');
+    shared.preload = 'auto';
+  }
+  return shared;
+};
+
+/** Runs inside a tap: primes the shared element and the system voice so later playback is allowed. */
+export function unlockAudio(): void {
+  if (unlocked || typeof Audio === 'undefined') return;
+  unlocked = true;
+  try {
+    const a = audioEl();
+    if (!a.src || a.paused) {
+      a.src = SILENT_WAV;
+      const p = a.play();
+      if (p && typeof p.catch === 'function') p.catch(() => (unlocked = false));
+    }
+  } catch {
+    unlocked = false;
+  }
+  try {
+    if (typeof speechSynthesis !== 'undefined' && !speechSynthesis.speaking) {
+      const u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0;
+      speechSynthesis.speak(u);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+if (typeof document !== 'undefined') {
+  const onTap = () => {
+    unlockAudio();
+    if (unlocked) {
+      document.removeEventListener('touchend', onTap, true);
+      document.removeEventListener('click', onTap, true);
+    }
+  };
+  document.addEventListener('touchend', onTap, true);
+  document.addEventListener('click', onTap, true);
+}
+
+let currentStop: (() => void) | null = null;
+let currentUrl: string | null = null;
+let waitTimer: ReturnType<typeof setTimeout> | undefined;
+let waitEnd: (() => void) | null = null;
 /** Bumped on every stop, so a voice that finishes synthesizing late never starts playing. */
 let speakGen = 0;
 /** True while the microphone is recording: nothing plays, so no voice leaks into the take. */
 let recording = false;
+/** After the mic closes, iPhone needs a moment to move audio back to the loudspeaker. */
+const ROUTE_SETTLE_MS = 350;
 
 /** Called by the recorder. Starting a take silences the app and blocks playback until it ends. */
 export function setRecording(on: boolean) {
@@ -110,49 +164,77 @@ export const isRecording = () => recording;
 
 export function stopSpeaking() {
   speakGen++;
+  clearTimeout(waitTimer);
+  const pendingEnd = waitEnd;
+  waitEnd = null;
+  pendingEnd?.();
+  const stop = currentStop;
+  currentStop = null;
+  stop?.();
   if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
-  if (current) {
-    current.pause();
-    current.src = '';
-    current = null;
-  }
-  const end = currentEnd;
-  currentEnd = null;
-  end?.();
+}
+
+export interface PlayOptions {
+  rate?: number;
+  onEnd?: () => void;
+  /** Called when sound actually starts (not when playback is merely requested). */
+  onStart?: () => void;
+  /** Called (before onEnd) when the phone wouldn't play it, e.g. no tap allowed it. */
+  onBlocked?: () => void;
 }
 
 /** Plays a recording or synthesized clip; returns a stop function. */
-export function playBlob(blob: Blob, opts: { rate?: number; onEnd?: () => void } = {}): () => void {
+export function playBlob(blob: Blob, opts: PlayOptions = {}): () => void {
   if (recording) {
     // Playing now would be picked up by the mic (and on iPhone it would close the mic).
     opts.onEnd?.();
     return () => undefined;
   }
   stopSpeaking();
-  releaseMicForPlayback();
+  const gen = speakGen;
+  const micWasOpen = releaseMicForPlayback();
   setAudioMode('playback');
   const url = URL.createObjectURL(blob);
-  const a = new Audio(url);
-  a.playbackRate = opts.rate ?? 1;
-  (a as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true;
-  current = a;
-  const end = () => {
+  let done = false;
+  const end = (how: PlayEnd) => {
+    if (done) return;
+    done = true;
+    if (currentUrl === url) currentUrl = null;
     URL.revokeObjectURL(url);
-    if (current === a) current = null;
-    if (currentEnd === end) currentEnd = null;
+    if (how === 'blocked') opts.onBlocked?.();
     opts.onEnd?.();
   };
-  currentEnd = end;
-  a.onended = end;
-  a.onerror = end;
-  a.play().catch(end);
+  const go = () => {
+    waitEnd = null;
+    if (gen !== speakGen || recording) return end('stopped');
+    const a = audioEl();
+    a.src = url;
+    a.playbackRate = opts.rate ?? 1;
+    (a as HTMLAudioElement & { preservesPitch?: boolean }).preservesPitch = true;
+    currentUrl = url;
+    const stop = playWatched(a, {
+      onStart: opts.onStart,
+      onDone: (how) => {
+        if (currentStop === stop) currentStop = null;
+        end(how);
+      },
+    });
+    currentStop = stop;
+  };
+  if (micWasOpen) {
+    waitEnd = () => end('stopped');
+    waitTimer = setTimeout(go, ROUTE_SETTLE_MS);
+  } else go();
   return () => {
-    if (current === a) stopSpeaking();
+    if (gen === speakGen) stopSpeaking();
   };
 }
 
-function speakSystem(text: string, rate: number, onEnd?: () => void, accent?: AccentId) {
-  if (typeof speechSynthesis === 'undefined' || recording) return onEnd?.();
+function speakSystem(text: string, rate: number, opts: PlayOptions, accent?: AccentId) {
+  if (typeof speechSynthesis === 'undefined' || recording) {
+    opts.onBlocked?.();
+    return opts.onEnd?.();
+  }
   releaseMicForPlayback();
   setAudioMode('playback');
   speechSynthesis.cancel();
@@ -161,13 +243,16 @@ function speakSystem(text: string, rate: number, onEnd?: () => void, accent?: Ac
   if (v) u.voice = v;
   u.lang = v?.lang ?? 'en-US';
   u.rate = rate;
-  const end = () => {
-    if (currentEnd === end) currentEnd = null;
-    onEnd?.();
-  };
-  currentEnd = end;
-  u.onend = end;
-  u.onerror = end;
+  const stop = watchUtterance(u as unknown as UtteranceLike, {
+    cancel: () => speechSynthesis.cancel(),
+    onStart: opts.onStart,
+    onDone: (how) => {
+      if (currentStop === stop) currentStop = null;
+      if (how === 'blocked') opts.onBlocked?.();
+      opts.onEnd?.();
+    },
+  });
+  currentStop = stop;
   speechSynthesis.speak(u);
 }
 
@@ -280,7 +365,10 @@ export function prefetch(texts: string[]) {
 export interface SpeakOptions {
   rate?: number;
   onEnd?: () => void;
+  /** Called when the voice is actually heard. */
   onStart?: () => void;
+  /** Called when the phone wouldn't play the voice (a tap is needed). */
+  onBlocked?: () => void;
   /** Speak in this target accent. */
   accent?: AccentId;
   /** A specific natural voice id (a coach's voice); overrides the accent's voice. */
@@ -300,21 +388,21 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<void
   stopSpeaking();
   const gen = speakGen;
   if (recording) return opts.onEnd?.();
+  const play: PlayOptions = { rate, onStart: opts.onStart, onEnd: opts.onEnd, onBlocked: opts.onBlocked };
   const nv = opts.voice ?? naturalVoiceFor(opts.accent);
   if (nv && engine === 'natural' && natural.status === 'ready') {
     try {
       const blob = await synthNatural(text, nv);
       // Stopped, replaced or the mic opened while the voice was being made: stay quiet.
       if (gen !== speakGen || recording) return opts.onEnd?.();
-      opts.onStart?.();
-      playBlob(blob, { rate, onEnd: opts.onEnd });
+      playBlob(blob, play);
       return;
     } catch {
       /* fall through to the system voice */
     }
+    if (gen !== speakGen || recording) return opts.onEnd?.();
   }
-  opts.onStart?.();
-  speakSystem(text, rate, opts.onEnd, opts.accent);
+  speakSystem(text, rate, play, opts.accent);
 }
 
 if (typeof speechSynthesis !== 'undefined') speechSynthesis.getVoices();
