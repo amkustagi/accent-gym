@@ -6,7 +6,7 @@ import { speak, stopSpeaking } from '../../engine/tts';
 import { LEVEL_LABEL, levelFor, nextScenario, recordScore } from '../../learn/adapt';
 import { upcomingScenario } from '../../learn/learner';
 import { aiAvailable, followUp, freshScenarios } from '../../lib/ai';
-import { localFollowUp } from '../../content/followups';
+import { conversationDebrief, reactiveFollowUp, type FollowUpQ, type Turn } from '../../content/followups';
 import { isPro } from '../../lib/backend';
 import { canStartRound, requirePro } from '../../lib/gate';
 import { scoreAndSave, tooShort } from '../../lib/session';
@@ -78,10 +78,11 @@ export function SpeakRound({ scenario, pressure, drill, onClose, onNext, closeLa
     if (drill !== 'baseline') recordScore(drill === 'roleplay' ? 'simulator' : drill, rec.overall);
     const note = r.sttError ? `${STT_HELP[r.sttError]} Voice metrics were still measured.` : !r.voice ? 'Voice metrics (pauses, pitch) need the full listening mode.' : null;
     setResult({ rec, xp, note });
-    setPhase('report');
+    // AI conversation is a back-and-forth: go straight to their first follow-up.
+    setPhase(drill === 'roleplay' && rec.metrics.words >= 6 ? 'followup' : 'report');
   };
 
-  if (phase === 'followup' && result) return <FollowUps scenario={scenario} firstAnswer={result.rec.transcript} onFinish={onNext ?? onClose} />;
+  if (phase === 'followup' && result) return <FollowUps scenario={scenario} firstAnswer={result.rec.transcript} firstScore={result.rec.overall} onFinish={onNext ?? onClose} />;
 
   if (phase === 'report' && result)
     return (
@@ -146,25 +147,34 @@ export function SpeakRound({ scenario, pressure, drill, onClose, onNext, closeLa
   );
 }
 
-/** AI role-play: the other person asks follow-up questions; each answer is scored. */
-function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; firstAnswer: string; onFinish: () => void }) {
+/**
+ * Back-and-forth: the other person asks a follow-up out loud, the mic opens when they finish,
+ * and each answer is scored. With AI the questions can say anything; without it they still react
+ * to what you said (no point, hedging, no number…). Ends with a debrief of the whole conversation.
+ */
+function FollowUps({ scenario, firstAnswer, firstScore, onFinish }: { scenario: Scenario; firstAnswer: string; firstScore?: number; onFinish: () => void }) {
   const ai = useStore((s) => aiAvailable(s));
-  const [turns, setTurns] = useState<{ q: string; a: string; score?: number }[]>([{ q: scenario.prompt, a: firstAnswer }]);
-  const [current, setCurrent] = useState<{ question: string; persona: string } | null>(null);
-  const [state, setState] = useState<'loading' | 'ask' | 'scored' | 'error'>('loading');
+  const [turns, setTurns] = useState<Turn[]>([{ q: scenario.prompt, a: firstAnswer, score: firstScore }]);
+  const [current, setCurrent] = useState<FollowUpQ | null>(null);
+  const [state, setState] = useState<'loading' | 'ask' | 'scored' | 'error' | 'debrief'>('loading');
+  const [micReady, setMicReady] = useState(false);
   const [last, setLast] = useState<{ rec: SessionRecord } | null>(null);
   const [err, setErr] = useState('');
   const MAX = 3;
 
-  const ask = async (history: typeof turns) => {
+  const ask = async (history: Turn[]) => {
     setState('loading');
+    setMicReady(false);
     const asked = history.map((t) => t.q);
+    const lastAnswer = history[history.length - 1]?.a ?? '';
+    const local = () => reactiveFollowUp(scenario, lastAnswer, asked);
     try {
-      // AI questions react to what you said; without AI (or if it fails) a realistic question from the bank.
-      const q = ai ? await followUp({ scenario, turns: history.map(({ q, a }) => ({ q, a })) }).catch(() => localFollowUp(scenario, asked)) : localFollowUp(scenario, asked);
+      // AI questions can say anything; without AI (or if it fails) they still react to your answer.
+      const q: FollowUpQ = ai ? await followUp({ scenario, turns: history.map(({ q, a }) => ({ q, a })) }).catch(local) : local();
       setCurrent(q);
       setState('ask');
-      void speak(q.question);
+      // Hands-free: the mic opens when they finish asking (or right away if the phone won't play it).
+      void speak(q.question, { onEnd: () => setMicReady(true) });
     } catch (e) {
       setErr((e as Error).message);
       setState('error');
@@ -188,14 +198,49 @@ function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; fi
     const next = [...turns, { q: current.question, a: r.transcript, score: rec.overall }];
     setTurns(next);
     setLast({ rec });
-    setState('scored');
+    if (next.length - 1 >= MAX) setState('debrief');
+    else setState('scored');
   };
 
   const followups = turns.slice(1);
+  const finish = () => {
+    stopSpeaking();
+    if (followups.length) setState('debrief');
+    else onFinish();
+  };
+
+  if (state === 'debrief') {
+    const d = conversationDebrief(turns);
+    return (
+      <div className="stack" style={{ gap: 14 }}>
+        <section className="card hero">
+          <span className="eyebrow">Conversation debrief</span>
+          <h2 style={{ color: 'inherit' }}>{d.headline}</h2>
+          <div className="row wrap" style={{ gap: 6 }}>
+            <span className="pill" style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>{d.answers} answers</span>
+            {d.avgScore !== null && <span className="pill" style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>Average {d.avgScore}</span>}
+            {d.avgWordsToPoint !== null && <span className="pill" style={{ background: 'rgba(255,255,255,.15)', color: '#fff' }}>Point after ~{d.avgWordsToPoint} words</span>}
+          </div>
+        </section>
+        <section className="card">
+          <span className="eyebrow">Practice next</span>
+          <p>{d.next}</p>
+          {d.best && turns.length > 2 && <p className="small muted">Best answer ({d.best.score}): "{d.best.q}"</p>}
+        </section>
+        <div className="foot">
+          <button className="btn signal block" onClick={onFinish}>Done</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="stack" style={{ gap: 14 }}>
       <section className="card sunken tight">
-        <span className="eyebrow">Your answer</span>
+        <div className="row spread">
+          <span className="eyebrow">Your answer</span>
+          {typeof firstScore === 'number' && <span className="pill" style={{ color: scoreTone(firstScore) }}>{firstScore}</span>}
+        </div>
         <p className="small">{scenario.prompt}</p>
       </section>
       {followups.map((t, i) => (
@@ -214,11 +259,16 @@ function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; fi
           <section className="card hero">
             <span className="eyebrow">{current.persona} asks</span>
             <p style={{ fontFamily: 'var(--display)', fontSize: '1.3rem', fontWeight: 600, lineHeight: 1.35 }}>{current.question}</p>
+            {current.why && <span className="small" style={{ opacity: 0.8 }}>Why they asked: {current.why.toLowerCase()}</span>}
             <button className="btn sm" style={{ alignSelf: 'flex-start', background: 'rgba(255,255,255,.15)', color: '#fff', border: 0 }} onClick={() => void speak(current.question)}>
               <Icon name="speaker" />Hear again
             </button>
           </section>
-          <MicStage maxSec={60} onDone={answered} needsTranscript idleHint="Tap and answer" autoStopSilence={4} />
+          {micReady ? (
+            <MicStage key={turns.length} maxSec={60} onDone={answered} needsTranscript autoStart idleHint="Tap and answer" autoStopSilence={4} />
+          ) : (
+            <button className="btn quiet block" onClick={() => { stopSpeaking(); setMicReady(true); }}><Icon name="mic" />Answer now</button>
+          )}
           {err && <div className="note bad">{err}</div>}
         </>
       )}
@@ -237,7 +287,7 @@ function FollowUps({ scenario, firstAnswer, onFinish }: { scenario: Scenario; fi
         {state === 'scored' && followups.length < MAX && (
           <button className="btn signal block" onClick={() => void ask(turns)}><Icon name="chat" />Next question</button>
         )}
-        <button className="btn block" onClick={onFinish}>{followups.length >= MAX ? 'Finish conversation' : 'Done'}</button>
+        <button className="btn block" onClick={finish}>{followups.length ? 'Finish conversation' : 'Done'}</button>
       </div>
     </div>
   );
@@ -278,43 +328,44 @@ export function SimulatorDrill({ param, pressure, onClose }: { param?: string; p
   );
 }
 
-/** Standalone AI conversation: one scenario, then up to three follow-up questions. */
+/**
+ * Standalone conversation: one scenario, then up to three follow-up questions out loud.
+ * Always works: with AI (Pro or your own key) the other person can say anything; without it they
+ * react to your answer from built-in questions. Before, it showed a dead "Unlock with Pro" button (#17).
+ */
 export function RolePlayDrill({ onClose }: { onClose: () => void }) {
   const ai = useStore((s) => aiAvailable(s));
+  const pro = useStore((s) => isPro(s));
   const [scenario, setScenario] = useState<Scenario>(() => nextScenario({ allowGenerated: true, drill: 'simulator' }));
   const [key, setKey] = useState(0);
   const [fresh, setFresh] = useState<'idle' | 'loading' | 'error'>('idle');
-  if (!ai)
-    return (
-      <SessionShell title="AI conversation" onClose={onClose}>
-        <section className="card">
-          <h2>Practice real back-and-forth</h2>
-          <p className="muted">You answer a scenario, then an AI plays your manager, client or interviewer and asks follow-up questions out loud. Every answer is scored.</p>
-          <button className="btn signal" onClick={() => requirePro('AI conversations')}>Unlock with Pro</button>
-          <p className="small muted">Or add your own Anthropic API key in Settings › AI coach.</p>
-        </section>
-      </SessionShell>
-    );
   return (
-    <SessionShell title="AI conversation" onClose={onClose}>
-      <button
-        className="btn quiet sm"
-        style={{ alignSelf: 'flex-start' }}
-        disabled={fresh === 'loading'}
-        onClick={async () => {
-          setFresh('loading');
-          try {
-            const [s] = await freshScenarios(1);
-            setScenario(s);
-            setKey((k) => k + 1);
-            setFresh('idle');
-          } catch {
-            setFresh('error');
-          }
-        }}
-      >
-        <Icon name="sparkle" />{fresh === 'loading' ? 'Writing a scenario…' : 'Write me a fresh scenario'}
-      </button>
+    <SessionShell title="Conversation" onClose={onClose} right={<span className="pill" title={ai ? 'Questions written by AI' : 'Built-in questions that react to your answer'}>{ai ? 'AI' : 'Built-in'}</span>}>
+      {ai ? (
+        <button
+          className="btn quiet sm"
+          style={{ alignSelf: 'flex-start' }}
+          disabled={fresh === 'loading'}
+          onClick={async () => {
+            setFresh('loading');
+            try {
+              const [s] = await freshScenarios(1);
+              setScenario(s);
+              setKey((k) => k + 1);
+              setFresh('idle');
+            } catch {
+              setFresh('error');
+            }
+          }}
+        >
+          <Icon name="sparkle" />{fresh === 'loading' ? 'Writing a scenario…' : 'Write me a fresh scenario'}
+        </button>
+      ) : (
+        <p className="small muted" style={{ margin: 0 }}>
+          Answer, then they ask follow-ups out loud that react to what you said.{' '}
+          {pro ? 'For an AI that can ask anything, add your Anthropic API key in Settings › AI coach.' : <button className="btn ghost sm" style={{ padding: 0, minHeight: 0, display: 'inline' }} onClick={() => requirePro('AI conversations')}>Unlock AI questions with Pro</button>}
+        </p>
+      )}
       {fresh === 'error' && <div className="note bad">Couldn't write a new scenario. Using one from the library.</div>}
       <SpeakRound key={key} scenario={scenario} drill="roleplay" onClose={onClose} onNext={() => { setScenario(nextScenario({ allowGenerated: true, exclude: scenario.id })); setKey((k) => k + 1); }} />
     </SessionShell>

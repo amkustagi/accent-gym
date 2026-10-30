@@ -43,7 +43,7 @@ export const DRILLS: DrillInfo[] = [
   { id: 'pressure', name: 'Pressure round', area: 'presence', skill: 'language', blurb: 'Random question, 10 seconds to prepare.', minutes: 2, icon: 'bolt' },
   { id: 'camera', name: 'Video presence', area: 'presence', skill: 'language', blurb: 'Talk to the camera: eye contact, framing, light and steadiness.', minutes: 2, icon: 'user' },
   { id: 'course', name: 'Course lesson', area: 'presence', skill: 'language', blurb: 'A lesson from a course, practiced out loud.', minutes: 3, icon: 'book', hidden: true },
-  { id: 'roleplay', name: 'AI conversation', area: 'presence', skill: 'language', blurb: 'Answer, then handle real follow-up questions.', minutes: 4, icon: 'chat', pro: true },
+  { id: 'roleplay', name: 'Conversation', area: 'presence', skill: 'language', blurb: 'Back-and-forth: they ask follow-ups out loud that react to your answer.', minutes: 4, icon: 'chat' },
 ];
 
 export const drillById = (id: DrillId) => DRILLS.find((d) => d.id === id)!;

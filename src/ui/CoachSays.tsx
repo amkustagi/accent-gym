@@ -12,12 +12,15 @@ export function CoachSays({ text, autoSpeak = false, mode, size = 84, children }
   const allowSpeak = useStore((s) => s.settings.coachSpeaks);
   const c = coachById(id);
   const [talking, setTalking] = useState(false);
+  // The phone wouldn't play the voice on its own (iPhone needs a tap): say so instead of miming.
+  const [blocked, setBlocked] = useState(false);
   const spoke = useRef<string | null>(null);
   const mine = useRef(false);
 
   const say = () => {
     mine.current = true;
-    void speak(text, { voice: c.voice, onStart: () => setTalking(true), onEnd: () => setTalking(false) });
+    setBlocked(false);
+    void speak(text, { voice: c.voice, onStart: () => setTalking(true), onBlocked: () => setBlocked(true), onEnd: () => setTalking(false) });
   };
 
   useEffect(() => {
@@ -41,8 +44,8 @@ export function CoachSays({ text, autoSpeak = false, mode, size = 84, children }
         <span className="eyebrow">{c.name}</span>
         <p aria-live="polite">{text}</p>
         {children}
-        <button type="button" className="btn ghost sm" style={{ alignSelf: 'flex-start', paddingInline: 0 }} onClick={talking ? () => stopSpeaking() : say}>
-          <Icon name={talking ? 'stop' : 'play'} size={16} />{talking ? 'Stop' : 'Hear it'}
+        <button type="button" className={blocked && !talking ? 'btn signal sm' : 'btn ghost sm'} style={{ alignSelf: 'flex-start', paddingInline: blocked && !talking ? undefined : 0 }} onClick={talking ? () => stopSpeaking() : say}>
+          <Icon name={talking ? 'stop' : 'play'} size={16} />{talking ? 'Stop' : blocked ? `Tap to hear ${c.name}` : 'Hear it'}
         </button>
       </div>
     </section>

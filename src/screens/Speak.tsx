@@ -39,8 +39,8 @@ export function Speak() {
         </button>
         <button className="card" style={{ cursor: 'pointer', textAlign: 'left', font: 'inherit', color: 'inherit' }} onClick={() => open({ kind: 'drill', id: 'roleplay' })}>
           <Icon name="chat" size={26} />
-          <b style={{ fontFamily: 'var(--display)', fontSize: '1.1rem' }}>AI conversation</b>
-          <span className="small muted">Handle follow-up questions{pro ? '' : ' · Pro'}</span>
+          <b style={{ fontFamily: 'var(--display)', fontSize: '1.1rem' }}>Conversation</b>
+          <span className="small muted">Back-and-forth with follow-up questions</span>
         </button>
       </section>
       <div className="chips wrap" role="group" aria-label="Category">

@@ -1,4 +1,4 @@
-# Speakco  ·  v0.10
+# Speakco  ·  v0.15
 
 A phone app that coaches you to speak with confidence in meetings, with an optional pronunciation track. It listens while you talk and scores **what you say** (fillers, hedges, apologies, regional phrases), **how your voice sounds** (pace, pauses, pitch variety, uptalk), and **how clearly you're understood**.
 

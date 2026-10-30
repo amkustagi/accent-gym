@@ -4,12 +4,11 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
+  ['chat', 'Real back-and-forth', 'Practice › Conversation now works for everyone. They ask a follow-up out loud, the mic opens when they finish, and the questions react to what you said: no point, hedging, no number or date. You end with a debrief of the whole conversation.'],
+  ['speaker', 'Your coach is heard, not just seen', 'On iPhone the coach could move its mouth with no sound. It now only animates when its voice is really playing, and shows "Tap to hear" when the phone needs a tap first.'],
   ['send', 'Report in one tap', 'Tap the flag, say what happened, tap Send. AI writes it up as a clear ticket and it goes straight to the team, with your screenshot.'],
-  ['chat', 'Follow-up questions work for everyone', 'After a Meeting simulator answer, Take a follow-up question now always asks you one, even without AI.'],
-  ['mic', 'Cleaner recordings', 'The app voice can no longer start while you\'re recording, so Shadowing and sound lessons record every take.'],
   ['user', 'Meet your coach', 'Pick Hustle, Mira or Pip in Settings. Your coach greets you on Today and tells you, out loud, what to fix after each lesson.'],
   ['target', 'New course: Get to the point', 'Six lessons on saying the important thing first: point first, point–reason–example, say it in half, yes or no first, the director\'s ask, and rehearsing your real meeting.'],
-  ['chart', 'Words before your point', 'Every answer now shows how many words it took to reach your point. Progress tracks the number, so you can watch it drop.'],
 ]
 
 export function WhatsNew({ onClose }: { onClose: () => void }) {
