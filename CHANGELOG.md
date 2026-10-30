@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.16 (2026-10-30): a slimmer Today
+- **Today is the plan and one suggestion.** Under your plan Today now shows just one thing to do next: your week in review (end of the week), the weekly check-in when it's due, a phrase review when 5 or more cards are waiting, or otherwise your course. (tinyhustlers/hq#27)
+- **One setup card.** The natural-voice download and "add to home screen" are one *Finish setting up* card with both steps; it goes away when both are done, or for good when you close it. Its close button is now a full 44-point tap target.
+- **Moved to Progress:** cards due for review and your biggest change vs last week. Habits were already there. The accent card, swap of the day and 2-minute lesson are no longer on Today; they stay in the Accent tab and Practice.
+- 7 new tests (129 in total).
+- Version 0.1.6 (build 16) for the iPhone and Android apps.
+
 ## v0.15 (branch release_0.15): real back-and-forth, and a coach you can hear
 - **Conversation works for everyone (Fix #17).** Practice › *AI conversation* showed "Unlock with Pro" even when everything was unlocked, and the button did nothing. It is now **Conversation**, and it always works: you answer, then the other person asks up to three follow-ups out loud. With AI (Pro or your own key) they can ask anything; without it the questions still react to what you said.
 - **Follow-ups that react to your answer.** No point heard → "Sorry, I lost you. Are we on track or not?". Point after 20+ words → "Can you give me the short version?". Hedging → "You sound unsure. Is that a yes or a no?". No number → "Can you put a number on that?". No date → "By when?". Each shows *why they asked*. Also used by *Take a follow-up question* in the Meeting simulator.
