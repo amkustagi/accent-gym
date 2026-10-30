@@ -4,6 +4,7 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
+  ['home', 'A calmer Today', 'Today is now your plan and one suggestion for what to do next. Setup is one card, and your stats moved to Progress.'],
   ['chat', 'Real back-and-forth', 'Practice › Conversation now works for everyone. They ask a follow-up out loud, the mic opens when they finish, and the questions react to what you said: no point, hedging, no number or date. You end with a debrief of the whole conversation.'],
   ['speaker', 'Your coach is heard, not just seen', 'On iPhone the coach could move its mouth with no sound. It now only animates when its voice is really playing, and shows "Tap to hear" when the phone needs a tap first.'],
   ['send', 'Report in one tap', 'Tap the flag, say what happened, tap Send. AI writes it up as a clear ticket and it goes straight to the team, with your screenshot.'],

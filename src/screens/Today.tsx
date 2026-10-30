@@ -1,84 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { drillById } from '../content/catalog';
-import { LESSONS } from '../content/lessons';
-import { SWAPS } from '../content/drills';
 import { open } from '../lib/nav';
 import { streak, useStore } from '../store/store';
-import { dueCount, habits, todayPlan, weeklyDelta } from '../learn/adapt';
+import { dueCount, todayPlan } from '../learn/adapt';
 import { FREE_DAILY_ROUNDS, isPro } from '../lib/backend';
 import { checkinDue } from '../lib/feedback';
 import { scoredToday } from '../store/store';
 import { CheckinCard } from './FeedbackScreen';
-import { NaturalVoiceCard, naturalCardShowing } from './NaturalVoiceCard';
+import { SetupCard } from './SetupCard';
 import { weeklyDue } from '../lib/weekly';
 import { ContinueCourseCard } from './Courses';
 import { ReportButton } from '../ui/ReportButton';
-import { accentTarget, nextSoundFor } from '../learn/adapt';
-import { targetById } from '../content/accents';
-import { go } from '../lib/nav';
-import { skillName } from '../ui/ui';
 import { Icon } from '../ui/Icon';
 import { CoachSays } from '../ui/CoachSays';
 import { coachById, dailyLine } from '../content/coaches';
-
-interface BIPEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<unknown>;
-}
-let deferred: BIPEvent | null = null;
-const bipListeners = new Set<() => void>();
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferred = e as BIPEvent;
-  bipListeners.forEach((l) => l());
-});
-const standalone = () => window.matchMedia('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
-
-function InstallCard() {
-  const [, force] = useState(0);
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return localStorage.getItem('install-dismissed') === '1';
-    } catch {
-      return false;
-    }
-  });
-  useEffect(() => {
-    const l = () => force((n) => n + 1);
-    bipListeners.add(l);
-    return () => void bipListeners.delete(l);
-  }, []);
-  if (standalone() || dismissed || (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()) return null;
-  const iOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const hide = () => {
-    setDismissed(true);
-    try {
-      localStorage.setItem('install-dismissed', '1');
-    } catch {
-      /* ignore */
-    }
-  };
-  return (
-    <section className="card">
-      <div className="row spread">
-        <h3>Install the app</h3>
-        <button className="iconbtn ghost" style={{ width: 36, height: 36 }} onClick={hide} aria-label="Dismiss"><Icon name="close" size={18} /></button>
-      </div>
-      {deferred ? (
-        <>
-          <p className="small muted">Add Speakco to your home screen. It opens full-screen and works offline.</p>
-          <button className="btn primary" onClick={async () => { await deferred!.prompt(); await deferred!.userChoice; deferred = null; force((n) => n + 1); }}>
-            <Icon name="download" />Install
-          </button>
-        </>
-      ) : iOS ? (
-        <p className="small muted">In Safari, tap <b>Share</b>, then <b>Add to Home Screen</b>. It opens full-screen and works offline.</p>
-      ) : (
-        <p className="small muted">In Chrome, tap <b>⋮</b>, then <b>Install app</b> or <b>Add to Home screen</b>.</p>
-      )}
-    </section>
-  );
-}
+import { todaySuggestion } from '../learn/today';
 
 const greet = () => {
   const h = new Date().getHours();
@@ -92,13 +28,11 @@ export function Today() {
   const st = streak(s);
   const doneCount = plan.filter((p) => p.done).length;
   const next = plan.find((p) => !p.done);
-  const myHabits = useMemo(() => habits(s, 7).slice(0, 3), [s]);
   const due = dueCount(s);
   const pro = isPro(s);
   const left = FREE_DAILY_ROUNDS - scoredToday(s);
-  const delta = useMemo(() => weeklyDelta(s).sort((a, b) => Math.abs(b.now - b.prev) - Math.abs(a.now - a.prev))[0], [s]);
-  const rule = SWAPS[Math.floor(Date.now() / 864e5) % SWAPS.length];
-  const lesson = LESSONS.find((l) => !s.lessonsDone.includes(l.id)) ?? LESSONS[Math.floor(Date.now() / 864e5) % LESSONS.length];
+  // Today = the plan, one suggestion and (until done) one setup card. Stats and habits live in Progress.
+  const pick = todaySuggestion({ weeklyDue: weeklyDue(s), checkinDue: checkinDue(), reviewDue: due });
 
   return (
     <div className="page">
@@ -160,10 +94,9 @@ export function Today() {
         </div>
       )}
 
-      <ContinueCourseCard />
+      {pick === 'course' && <ContinueCourseCard />}
 
-
-      {weeklyDue(s) && (
+      {pick === 'weekly' && (
         <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left', borderColor: 'var(--brand)' }} onClick={() => open({ kind: 'weekly' })}>
           <div className="row">
             <span className="ic" style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--brand-soft)', color: 'var(--brand)' }}><Icon name="trophy" /></span>
@@ -173,86 +106,19 @@ export function Today() {
         </button>
       )}
 
-      {accentTarget(s) && (() => {
-        const t = targetById(accentTarget(s)!);
-        const next = nextSoundFor(s);
-        const checked = s.accentChecks.some((c) => c.target === t.id);
-        return (
-          <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }} onClick={() => go('accent')}>
-            <div className="row">
-              <span className="ic" style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--signal-soft)', color: 'var(--warn)' }}><Icon name="globe" /></span>
-              <span className="grow">
-                <span className="eyebrow">{t.adjective} accent</span>
-                <br />
-                <b>{checked ? (next ? `Next sound: ${next.feature.name}` : 'Keep practicing') : 'Take your 2-minute accent check'}</b>
-              </span>
-              <Icon name="chevron" className="chev" />
-            </div>
-          </button>
-        );
-      })()}
+      {pick === 'checkin' && <CheckinCard />}
 
-      {checkinDue() && <CheckinCard />}
-
-      {myHabits.length > 0 && (
-        <section className="card">
-          <div className="row spread">
-            <h3>Your habits this week</h3>
-            <span className="small muted">from your own words</span>
+      {pick === 'review' && (
+        <button className="card" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }} onClick={() => open({ kind: 'drill', id: 'swaps' })}>
+          <div className="row">
+            <span className="ic" style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--signal-soft)', color: 'var(--warn)' }}><Icon name="target" /></span>
+            <span className="grow"><b>{due} phrase cards to review</b><br /><span className="small muted">A quick round keeps the stronger swaps fresh.</span></span>
+            <Icon name="chevron" className="chev" />
           </div>
-          <div className="stack-sm">
-            {myHabits.map((h) => (
-              <div key={h.ruleId} className="row spread">
-                <span><b>"{h.label}"</b> <span className="small muted">{h.kind === 'filler' ? 'filler' : 'weak phrase'}</span></span>
-                <span className="row" style={{ gap: 6 }}>
-                  <span className="pill warn">×{h.thisWeek}</span>
-                  {h.lastWeek > 0 && <span className="small" style={{ color: h.thisWeek < h.lastWeek ? 'var(--good)' : 'var(--bad)' }}>{h.thisWeek < h.lastWeek ? '▼' : '▲'} {h.lastWeek}</span>}
-                </span>
-              </div>
-            ))}
-          </div>
-          <button className="btn quiet sm" style={{ alignSelf: 'flex-start' }} onClick={() => open({ kind: 'drill', id: 'swaps', param: `habit:${myHabits[0].ruleId}` })}>
-            <Icon name="target" />Drill "{myHabits[0].label}"
-          </button>
-        </section>
+        </button>
       )}
 
-      {(due > 0 || delta) && (
-        <section className="grid2">
-          {due > 0 && (
-            <button className="card tight" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }} onClick={() => open({ kind: 'drill', id: 'swaps' })}>
-              <span className="stat"><b>{due}</b><span>cards due for review</span></span>
-            </button>
-          )}
-          {delta && (
-            <div className="card tight stat">
-              <b style={{ color: delta.now >= delta.prev ? 'var(--good)' : 'var(--bad)' }}>{delta.now >= delta.prev ? '+' : ''}{delta.now - delta.prev}</b>
-              <span>{skillName(delta.skill)} vs last week</span>
-            </div>
-          )}
-        </section>
-      )}
-
-      {naturalCardShowing(s.settings.voiceEngine) ? <NaturalVoiceCard /> : <InstallCard />}
-
-      <section className="card">
-        <span className="eyebrow">Swap of the day</span>
-        <p className="strike" style={{ fontSize: '1.05rem' }}>{rule.weak}</p>
-        <p style={{ fontFamily: 'var(--display)', fontWeight: 700, fontSize: '1.15rem', color: 'var(--good)' }}>{rule.strong}</p>
-        <p className="small muted">{rule.why}</p>
-      </section>
-
-      <button className="card" style={{ textAlign: 'left', cursor: 'pointer', font: 'inherit', color: 'inherit' }} onClick={() => open({ kind: 'lesson', id: lesson.id })}>
-        <div className="row">
-          <span className="ic" style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'var(--signal-soft)', color: 'var(--warn)' }}><Icon name="book" /></span>
-          <span className="grow">
-            <span className="eyebrow">2-minute lesson</span>
-            <br />
-            <b>{lesson.title}</b>
-          </span>
-          <Icon name="chevron" className="chev" />
-        </div>
-      </button>
+      <SetupCard />
     </div>
   );
 }

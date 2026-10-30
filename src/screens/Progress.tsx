@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { DRILLS, drillById } from '../content/catalog';
-import { LEVEL_LABEL, habits, levelFor } from '../learn/adapt';
+import { LEVEL_LABEL, dueCount, habits, levelFor, weeklyDelta } from '../learn/adapt';
 import { SKILLS, type Skill } from '../engine/score';
 import { open } from '../lib/nav';
 import { baseline, bestStreak, level, levelName, skillAverages, streak, useStore } from '../store/store';
 import { ChallengesCard } from './Challenges';
 import { Icon } from '../ui/Icon';
-import { Radar, Trend, scoreTone } from '../ui/ui';
+import { Radar, Trend, scoreTone, skillName } from '../ui/ui';
 import { targetById, type AccentId } from '../content/accents';
 
 const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -24,6 +24,8 @@ export function Progress() {
   const base = baseline(s);
   const minutes = Math.round(s.sessions.reduce((a, x) => a + x.durationSec, 0) / 60);
   const daysActive = Object.keys(s.days).length;
+  const due = dueCount(s);
+  const delta = useMemo(() => weeklyDelta(s).sort((a, b) => Math.abs(b.now - b.prev) - Math.abs(a.now - a.prev))[0], [s]);
   const history = [...s.sessions].filter((x) => x.durationSec > 0).reverse().slice(0, 40);
 
   return (
@@ -60,6 +62,22 @@ export function Progress() {
         <div className="card tight stat"><b>{scored.length}</b><span>scored rounds</span></div>
         <div className="card tight stat"><b>{minutes}</b><span>minutes speaking</span></div>
       </section>}
+
+      {(due > 0 || delta) && (
+        <section className="grid2">
+          {due > 0 && (
+            <button className="card tight" style={{ cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }} onClick={() => open({ kind: 'drill', id: 'swaps' })}>
+              <span className="stat"><b>{due}</b><span>cards due for review</span></span>
+            </button>
+          )}
+          {delta && (
+            <div className="card tight stat">
+              <b style={{ color: delta.now >= delta.prev ? 'var(--good)' : 'var(--bad)' }}>{delta.now >= delta.prev ? '+' : ''}{delta.now - delta.prev}</b>
+              <span>{skillName(delta.skill)} vs last week</span>
+            </div>
+          )}
+        </section>
+      )}
 
       <button className="btn quiet block" onClick={() => open({ kind: 'weekly' })}><Icon name="trophy" />Weekly report card</button>
 
