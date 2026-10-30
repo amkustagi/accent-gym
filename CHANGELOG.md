@@ -6,7 +6,7 @@
 - **Hands-free turns.** The mic opens by itself when they finish asking (or tap *Answer now*). After the last answer, a **conversation debrief** shows your average score, words before your point across the whole conversation, your best answer and the one thing to practice next.
 - **Fix #20: the coach moved its mouth but made no sound on iPhone.** Two causes: the coach speaks a moment after the lesson ends, without a tap, which iPhone can refuse; and if the natural voice failed, the phone's own voice was used, which iPhone silently ignores without a tap and never says it finished, so the mouth kept moving. Now all playback goes through one audio element that your first tap unlocks, sound waits a moment for iPhone to move audio back to the speaker after the mic closes, the coach only animates once sound is really playing, and if the phone still won't play it after 3 seconds the coach stops and shows **Tap to hear Hustle**.
 - 17 new tests (122 in total).
-- Includes v0.14 (security updates), which was waiting in its own PR.
+- Builds on v0.14 (security updates), now merged too.
 - Version 0.1.5 (build 15) for the iPhone and Android apps.
 
 ## v0.14 (branch release_0.14): security updates
