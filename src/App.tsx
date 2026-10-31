@@ -30,6 +30,7 @@ import { ProfileScreen } from './screens/Profile';
 import { WhatsNew } from './screens/WhatsNew';
 import { SwapsDrill } from './screens/drills/Swaps';
 import { ConcisionDrill, StructureDrill } from './screens/drills/Content';
+import { SayItFirstDrill } from './screens/drills/SayItFirst';
 import { PaceDrill, PausesDrill, VarietyDrill } from './screens/drills/Voice';
 import { ClarityDrill, WarmupDrill } from './screens/drills/Articulation';
 
@@ -82,6 +83,7 @@ function OverlayHost() {
       case 'roleplay': el = <RolePlayDrill key={k} onClose={done} />; break;
       case 'structure': el = <StructureDrill key={k} onClose={done} />; break;
       case 'concision': el = <ConcisionDrill key={k} onClose={done} />; break;
+      case 'sayitfirst': el = <SayItFirstDrill key={k} onClose={done} />; break;
       case 'pace': el = <PaceDrill key={k} onClose={done} />; break;
       case 'pauses': el = <PausesDrill key={k} onClose={done} />; break;
       case 'variety': el = <VarietyDrill key={k} onClose={done} />; break;

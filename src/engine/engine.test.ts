@@ -149,3 +149,18 @@ describe('summarize edge cases', () => {
     expect(s.goodPauses).toBe(1);
   });
 });
+
+describe('apologies and the "is it?" tag (hq#91, hq#92)', () => {
+  it('counts every form of apologize as an apology (hq#91)', () => {
+    for (const t of ['Apologizing for the delay, the report is late.', 'I apologized to the client.', 'I apologise for that.', 'He apologizes a lot.', 'My apologies, the deck is late.'])
+      expect(analyzeText(t).weakByRule.find((e) => e.rule.id === 'apologize')?.count, t).toBe(1);
+  });
+  it('does not flag ordinary questions ending in "is it?" (hq#92)', () => {
+    for (const t of ['What time is it?', 'Where is it? I need the file.', 'How big is it?'])
+      expect(analyzeText(t).weakByRule.some((e) => e.rule.id === 'isit'), t).toBe(false);
+  });
+  it('still flags the stand-alone "is it?" tag (hq#92)', () => {
+    for (const t of ['You are coming tomorrow, is it?', 'Is it? I did not know.', 'Okay. Is it?'])
+      expect(analyzeText(t).weakByRule.some((e) => e.rule.id === 'isit'), t).toBe(true);
+  });
+});
