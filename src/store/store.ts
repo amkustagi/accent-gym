@@ -501,15 +501,32 @@ export function setAccount(a: Account | null) {
   setState((s) => ({ ...s, account: a }));
 }
 
+/** Keys the user typed in (their own Claude and Azure keys) stay on this phone: never in backups or account sync. */
+export function stripDeviceKeys<T extends Partial<Settings>>(settings: T): T {
+  return { ...settings, aiKey: '', azureKey: '' };
+}
+
+/** Takes settings from a backup or the cloud but keeps this phone's own keys. */
+export function keepDeviceKeys<T extends Partial<Settings>>(incoming: T, local: Settings): T & Pick<Settings, 'aiKey' | 'azureKey'> {
+  return { ...incoming, aiKey: local.aiKey, azureKey: local.azureKey };
+}
+
+/** The backup file for a state. */
+export function backupOf(s: State): string {
+  const { loaded: _loaded, ...rest } = s;
+  void _loaded;
+  return JSON.stringify({ app: 'speakco', exportedAt: new Date().toISOString(), ...rest, settings: stripDeviceKeys(s.settings), account: null }, null, 2);
+}
+
 export function exportData(): string {
-  return JSON.stringify({ app: 'speakco', exportedAt: new Date().toISOString(), ...snapshot(), settings: { ...state.settings, aiKey: '' }, account: null }, null, 2);
+  return backupOf(state);
 }
 
 export function importData(json: string): boolean {
   try {
     const d = JSON.parse(json);
     if ((d.app !== 'speakco' && d.app !== 'speak-sharp') || !Array.isArray(d.sessions)) return false;
-    const next = migrate({ ...d, settings: { ...d.settings, aiKey: state.settings.aiKey }, account: state.account });
+    const next = migrate({ ...d, settings: keepDeviceKeys({ ...d.settings }, state.settings), account: state.account });
     replaceState({ ...next, sessions: next.sessions.map((x) => ({ ...x, hasAudio: false })) });
     return true;
   } catch {
