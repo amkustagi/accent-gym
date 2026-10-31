@@ -1,0 +1,12 @@
+# Time-boxed exceptions for the shared security check (OSV-Scanner).
+# Each entry: why it is safe for now, and when to re-check. Remove an entry as soon as a fix ships.
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2026-11-30T00:00:00Z
+reason = "minimatch (DoS via glob patterns) pulled in by build tooling (Capacitor/Expo CLI via rimraf/glob): runs only on the developer's machine and CI with our own patterns, never shipped in the app and never fed untrusted input. Fixed only in minimatch 11 / glob 14, which these CLIs don't support yet. Re-check by the date; tracked in tinyhustlers/hq."
+
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+ignoreUntil = 2026-11-30T00:00:00Z
+reason = "glob 13 (AbortSignal bypass) pulled in by build tooling via rimraf: build-time only, our own paths, never shipped. Fixed only in glob 14, not yet supported by the CLI. Re-check by the date; tracked in tinyhustlers/hq."
