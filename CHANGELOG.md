@@ -1,6 +1,17 @@
 # Changelog
 
-## v0.15 (branch release_0.15): real back-and-forth, and a coach you can hear
+Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last number (v0.16.1), new features
+the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
+The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
+
+## v0.16.0 (2026-10-30): a slimmer Today
+- **Today is the plan and one suggestion.** Under your plan Today now shows just one thing to do next: your week in review (end of the week), the weekly check-in when it's due, a phrase review when 5 or more cards are waiting, or otherwise your course. (tinyhustlers/hq#27)
+- **One setup card.** The natural-voice download and "add to home screen" are one *Finish setting up* card with both steps; it goes away when both are done, or for good when you close it. Its close button is now a full 44-point tap target.
+- **Moved to Progress:** cards due for review and your biggest change vs last week. Habits were already there. The accent card, swap of the day and 2-minute lesson are no longer on Today; they stay in the Accent tab and Practice.
+- 7 new tests (129 in total).
+- Version 0.1.6 (build 16) for the iPhone and Android apps.
+
+## v0.15.0 (branch release_0.15): real back-and-forth, and a coach you can hear
 - **Conversation works for everyone (Fix #17).** Practice › *AI conversation* showed "Unlock with Pro" even when everything was unlocked, and the button did nothing. It is now **Conversation**, and it always works: you answer, then the other person asks up to three follow-ups out loud. With AI (Pro or your own key) they can ask anything; without it the questions still react to what you said.
 - **Follow-ups that react to your answer.** No point heard → "Sorry, I lost you. Are we on track or not?". Point after 20+ words → "Can you give me the short version?". Hedging → "You sound unsure. Is that a yes or a no?". No number → "Can you put a number on that?". No date → "By when?". Each shows *why they asked*. Also used by *Take a follow-up question* in the Meeting simulator.
 - **Hands-free turns.** The mic opens by itself when they finish asking (or tap *Answer now*). After the last answer, a **conversation debrief** shows your average score, words before your point across the whole conversation, your best answer and the one thing to practice next.
@@ -9,13 +20,13 @@
 - Builds on v0.14 (security updates), now merged too.
 - Version 0.1.5 (build 15) for the iPhone and Android apps.
 
-## v0.14 (branch release_0.14): security updates
+## v0.14.0 (branch release_0.14): security updates
 - **All 13 known package vulnerabilities fixed (2 critical, 4 high, 7 moderate).** Found by the new shared security check. Test and build tools updated: Vite 7.3, Vitest 4.1, the React plugin 5.2, the single-file plugin 2.3 and the Capacitor CLI 8.6. The image library `sharp` (pulled in by the voice engine but never used by the app) is pinned to 0.35.5, which fixes three image-format flaws. `npm audit`: 0 vulnerabilities.
 - No change to what you see or hear. All 105 tests pass; the app and the single-file preview build as before.
 - One test now stubs only `URL.createObjectURL`, which Vitest 4 needs.
 - Version 0.1.4 (build 14) for the iPhone and Android apps.
 
-## v0.13 (branch release_0.13): one-tap reports, and fixes from your reports
+## v0.13.0 (branch release_0.13): one-tap reports, and fixes from your reports
 - **Report in one tap.** The flag → talk → **Send**. The report goes straight to the issue tracker: no email, no GitHub page to finish. A new `report` server function asks Claude (Haiku) to turn what you said, the screenshot and the screen you were on into a proper ticket (clear title, summary, steps, expected/actual), uploads the screenshot and opens the GitHub issue with labels `from-app` + `bug`/`enhancement`/`question`. The phone shows the ticket number and title. Offline reports are kept and sent automatically later. Crash screens send the same way. Turn it on once with the secrets in SETUP.md (step "In-app reports"); until then reports are saved and a "Send through GitHub instead" fallback is shown.
 - **Better titles even without AI.** Spoken filler ("hey", "so", "basically") is dropped, the first sentence is used, the screen name is added ("Shadowing: …") and nothing is cut mid-word. Device details now record the screen you reported from, not the report screen.
 - **Fix #15:** *Take a follow-up question* did nothing without AI. It now always asks one: from the AI when available, otherwise from a bank of realistic questions for each situation.
@@ -23,13 +34,13 @@
 - **Fix #12:** the warm-up is no longer in the daily plan every day. It's still in Practice, and Settings › Your profile › *Warm-up in my daily plan* brings it back.
 - Version 0.1.3 (build 13) for the iPhone and Android apps.
 
-## v0.12 (branch release_0.12): your coach, and getting to the point
+## v0.12.0 (branch release_0.12): your coach, and getting to the point
 - **Tiny Hustler coaches.** Pick **Hustle** (the coach), **Mira** (the mentor) or **Pip** (the sidekick) during setup or in Settings › Your coach. Each is an animated character that breathes, blinks, listens while you speak and moves its mouth while it talks. Your coach greets you on Today and, after each course lesson, says what to fix in its own voice (natural voice when it's on). Settings can switch it to text only.
 - **New course: Get to the point** (first in the list). Point first; point, reason, example; say it in half; yes or no first; the director's question (the ask, why, by when); rehearse your real meeting (type what it's about, then practice the opening line).
 - **Directness on every answer.** A new check counts the words you say before your point (an answer, ask, decision or status), plus hedges and throat-clearing openers. Course results show a "Getting to the point" card; when the point comes late in the new course, the listener cuts in with "Sorry, what do you need from me?". Progress shows your average words-to-point and whether it is falling.
 - Version 0.1.2 (build 12) for the iPhone and Android apps.
 
-## v0.11 (branch release_0.11): launch-ready
+## v0.11.0 (branch release_0.11): launch-ready
 - **Calmer Today.** The plan, your course, one setup card at a time (natural voice, then install) and the tip of the day. Level, weekly challenges and the six-skill profile moved to **Progress**, which now opens with a "Do your first scored round" card for new users.
 - **Practice switcher.** Courses · Drills · Lessons at the top of Practice (sticky) instead of one long scroll; course rows show their area under the title.
 - **Chips that fit.** Simulator categories and Progress trend chips wrap on phones instead of running off-screen; scrolling chip rows fade at the edge.
@@ -37,16 +48,16 @@
 - **In-app purchases.** In the app, Pro is bought through the App Store / Google Play via RevenueCat (Apple and Google require it), with Restore purchases and store subscription management. The new `revenuecat-webhook` server function writes the same `entitlements` row as Stripe, so Pro works the same on web and phone. Migration `0004_store_billing.sql`.
 - **Store basics.** Privacy policy and terms (`privacy.html`, `terms.html`, linked from Settings and the paywall), subscription terms on the paywall, opaque home-screen icon, store listing and launch checklist (`docs/`), App Store screenshots.
 
-## v0.10 (branch release_0.10)
+## v0.10.0 (branch release_0.10)
 - **Voice feedback from any screen.** A flag button sits in every screen header and on Today. It takes a screenshot (anything typed is blanked out), then you talk or type. Device details go with it: app version, phone and browser, recent screens and errors, never recordings, transcripts, name or location, and you can see exactly what's sent. Reports are saved on the phone. With accounts on they upload; until then **Send with screenshot** opens the share sheet (Mail, Gmail…) with the image attached.
 - **Video presence.** A new **Video presence** drill and an optional camera check in the presence lessons. The front camera measures eye contact with the lens, face in view, framing, lighting, head steadiness and smiling, with tips. Analysis runs on the phone with MediaPipe; the runtime is served from the app and the face model downloads once from Google, then works offline. Video is never recorded or uploaded.
 - **Weekly challenges.** Three goals each week, one matched to your coach focus, tracked automatically, with XP rewards, badges, and a five-week XP chart.
 - **Leaderboard.** Opt-in, first name and weekly XP only. Turns on when accounts are connected (run `supabase/migrations/0003_leaderboard.sql`).
 
-## v0.09 (branch release_0.09)
+## v0.9.0 (branch release_0.09)
 - Renamed the app from Speak Sharp to **Speakco**: app name, home-screen name, page title, share card, reminders, backups and feedback emails. Older Speak Sharp backup files still restore. The repo and web address are unchanged.
 
-## v0.08 (branch release_0.08)
+## v0.8.0 (branch release_0.08)
 **Courses**: 6 courses, 36 lessons, covering every part of speaking well at work:
 - **Confidence from the inside** (mindset): nerves, speaking up, owning what you know, recovering from a blank mind, being wrong, talking about wins.
 - **Presence and first impressions**: first impressions, body language, video calls, a trustworthy voice, the power of a pause, finishing strong.
@@ -57,17 +68,17 @@
 
 Each lesson: the idea, why it matters, how to do it, and a before/after example with the model voice. Then you practice it out loud and the app checks that lesson's specific skill (phrases, structure, pauses, pace, vocal variety, plus self-checks for body language), on top of the full voice report. A lesson completes when its checks pass. Courses show progress on the Practice tab, and Today shows the next lesson.
 
-## v0.07 (branch release_0.07)
+## v0.7.0 (branch release_0.07)
 - Fix: the sound-lesson listening test never ended and its counter kept growing (5, 10, 20, 26…). It is now a round of 10 questions that cycles through every word pair, shows "It was ___" after a miss, and ends with a score, a next step, and **Another round**.
 
-## v0.06 (branch release_0.06)
+## v0.6.0 (branch release_0.06)
 **Fixes**
 - Microphone prompts every round: the microphone stayed closed between takes, so the phone asked again each time. It now stays open between takes and closes after 90 seconds of no use, when the app goes to the background, or (on iPhone) before playback, so the model voice stays loud.
 - Two taps to record: after "I'm ready", the accent check Start, shadowing's "I'm ready to repeat", or the 10-second prepare countdown, the app now starts listening right away. The accent check moves to the next sentence and keeps listening. If the browser doesn't allow an automatic start, the mic button simply waits for a tap.
 - If the app still has to ask more than once in a session, a one-time tip explains how to set the microphone to Allow permanently.
 - Simulator tab: "A fresh scenario for a other / general" now reads "A fresh scenario about your work".
 
-## v0.05 (branch release_0.05)
+## v0.5.0 (branch release_0.05)
 **A coach that gets to know you.** The coach learns in the background and adds no new steps:
 - **Learns your world from what you say.** Projects ("the Atlas migration"), clients and products ("Northwind Bank") and people ("Priya") are picked up from free-speaking rounds. A name is used once it has come up in two rounds. Past rounds are learned from too.
 - **Personal content.** Generated scenarios, read-aloud passages and AI prompts use your own projects and people about two times in three.
@@ -77,12 +88,12 @@ Each lesson: the idea, why it matters, how to do it, and a before/after example 
 - **Upcoming meeting.** Mention one and the plan adds a practice round for it until it has passed.
 - **Settings › What your coach knows.** See, add or remove anything. Removed names are never learned again. Everything stays on the device and syncs only if you sign in.
 
-## v0.04 (branch release_0.04)
+## v0.4.0 (branch release_0.04)
 - Pace trainer and Pause power no longer open on the same passage. Each visit gives you a new script: either a hand-written one you haven't read in 3 weeks, or one generated for your role. There are 16 meeting situations (update, push back, stand-up, bad news, escalation, saying no and more) and thousands of combinations. You can also pick a topic or tap **New passage**.
 - Tongue twisters and Vocal variety start at a random line.
 - App updates apply automatically: a new version switches over the next time the app goes to the background, or at launch.
 
-## v0.03 (branch release_0.03)
+## v0.3.0 (branch release_0.03)
 **New**
 - Accent Coach tab: choose American, British, Australian or Canadian English and say how you speak English today (20 first-language profiles plus Indian, Nigerian, Filipino and other English accents). Your sound map puts the sounds that matter most for that pair first.
 - 2-minute accent check: 9 sentences (10 for Canadian), each sound scored, "fix these first", tracked over time.
@@ -96,7 +107,7 @@ Each lesson: the idea, why it matters, how to do it, and a before/after example 
 - The old Pronunciation drill is replaced by Sound lessons in the Accent tab.
 - Settings: accent goal and starting point; optional Azure key for precise scoring.
 
-## v0.02 (branch release_0.02)
+## v0.2.0 (branch release_0.02)
 **Fixes**
 - iPhone: model voice and playback were silent or very quiet after recording (audio session stayed in record mode).
 - iPhone: recordings saved as WebM couldn't play back; Safari now records MP4/AAC.
@@ -115,5 +126,5 @@ Each lesson: the idea, why it matters, how to do it, and a before/after example 
 - Accounts (email + 6-digit code), cloud sync, Pro monthly and lifetime via Stripe, free tier of 3 speaking rounds a day. Dormant until the server is configured (see SETUP.md).
 - What's new screen; version shown as v0.02.
 
-## v0.01
+## v0.1.0
 First React + TypeScript release: live voice analysis, 11 drills, simulator, reports, progress, offline install.
