@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { close, go, useOverlay, useTab, type Tab } from './lib/nav';
 import { configureVoice } from './engine/tts';
 import { open as openOverlay } from './lib/nav';
+import { sameVersion } from './lib/version';
 import { noteDrillOpened, useStore } from './store/store';
 import { CoachScreen } from './screens/CoachScreen';
 import { CourseLessonView, CourseView } from './screens/Courses';
@@ -106,7 +107,7 @@ export function App() {
   useEffect(() => configureVoice({ engine: voiceEngine, naturalVoice, systemVoice }), [voiceEngine, naturalVoice, systemVoice]);
   useEffect(() => {
     // Existing users see what changed once after an update.
-    if (loaded && onboarded && lastSeen !== __APP_VERSION__) openOverlay({ kind: 'whatsnew' });
+    if (loaded && onboarded && !sameVersion(lastSeen, __APP_VERSION__)) openOverlay({ kind: 'whatsnew' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, onboarded]);
 
