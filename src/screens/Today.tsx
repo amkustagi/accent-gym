@@ -87,6 +87,10 @@ export function Today() {
         )}
       </section>
 
+      <button className="btn quiet block" onClick={() => open({ kind: 'drill', id: 'sayitfirst' })}>
+        <Icon name="scissors" />Big message coming? Say it first
+      </button>
+
       {!pro && (
         <div className="note" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span className="grow">{left > 0 ? `${left} of ${FREE_DAILY_ROUNDS} free speaking rounds left today.` : 'You\'ve used today\'s free speaking rounds. Drills are still unlimited.'}</span>

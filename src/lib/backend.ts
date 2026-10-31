@@ -2,7 +2,7 @@
 // Everything here is inert until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set at build time.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { configureStore } from './storePurchases';
-import { DEFAULT_LEARNER, getState, onChange, replaceState, setAccount, setState, type Account, type Learner, type Plan, type State, type Term } from '../store/store';
+import { DEFAULT_LEARNER, getState, keepDeviceKeys, onChange, replaceState, setAccount, setState, stripDeviceKeys, type Account, type Learner, type Plan, type State, type Term } from '../store/store';
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -114,11 +114,11 @@ export async function openBillingPortal(): Promise<void> {
 // ---------- sync ----------
 
 /** Data synced to the account. Voice traces and recordings stay on the device. */
-function syncPayload(s: State) {
+export function syncPayload(s: State) {
   const { loaded: _l, account: _a, ...rest } = s;
   void _l;
   void _a;
-  return { ...rest, settings: { ...rest.settings, aiKey: '' }, sessions: rest.sessions.map(({ trace: _t, ...x }) => (void _t, x)) };
+  return { ...rest, settings: stripDeviceKeys(rest.settings), sessions: rest.sessions.map(({ trace: _t, ...x }) => (void _t, x)) };
 }
 
 function mergeSounds(a: State['sounds'], b: State['sounds']): State['sounds'] {
@@ -175,7 +175,7 @@ export function mergeStates(local: State, remote: Partial<State>): State {
   return {
     ...local,
     profile: remoteNewer && remote.profile ? { ...local.profile, ...remote.profile } : local.profile,
-    settings: remoteNewer && remote.settings ? { ...local.settings, ...remote.settings, aiKey: local.settings.aiKey } : local.settings,
+    settings: remoteNewer && remote.settings ? keepDeviceKeys({ ...local.settings, ...remote.settings }, local.settings) : local.settings,
     xp: Math.max(local.xp, remote.xp ?? 0),
     days,
     sessions: [...byId.values()].sort((a, b) => a.t - b.t).slice(-500),

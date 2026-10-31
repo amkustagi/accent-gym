@@ -4,6 +4,14 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.17.0 (2026-10-31): Say it first
+- **Say it first.** About to push back on a deadline, ask for budget or give bad news in stand-up? Practice › *Say it first* (or *Big message coming?* on Today): type or paste what you need to say and Speakco gives it back point-first. The ask, decision or status moves to the first sentence; greetings, "sorry to bother you", "I just wanted to give some context", "I think", "just", "maybe" and "Does that make sense?" are cut, and "Sorry for the delay" becomes "Thanks for your patience". Edit it, hear it, then say it out loud twice and compare take 1 and take 2 (score, words before your point, hedges, pace). The rewrite runs on the phone; nothing you type leaves it unless you tap *Rewrite with AI* (Pro or your own key), which sends only that message, and the message can't give the AI instructions. (tinyhustlers/hq#34)
+- **Fix: your own Azure speech key now stays on your phone.** It was copied into account sync and into backup files; now it is blanked in both like the Claude key, and a newer cloud copy or a restored backup no longer replaces the key on this phone. The next sync clears the old cloud copy. (Fix tinyhustlers/hq#90)
+- **Fix: every form of "apologize" counts as an apology.** "Apologizing for the delay" and "I apologized" scored zero apologies on Confident words. (Fix tinyhustlers/hq#91)
+- **Fix: ordinary questions aren't flagged.** "What time is it?" and "Where is it?" no longer count as the regional "is it?" tag; "You're coming tomorrow, is it?" still does. (Fix tinyhustlers/hq#92)
+- 16 new tests (147 in total).
+- Version 0.17.0 (build 17) for the iPhone and Android apps.
+
 ## v0.16.0 (2026-10-30): a slimmer Today
 - **Today is the plan and one suggestion.** Under your plan Today now shows just one thing to do next: your week in review (end of the week), the weekly check-in when it's due, a phrase review when 5 or more cards are waiting, or otherwise your course. (tinyhustlers/hq#27)
 - **One setup card.** The natural-voice download and "add to home screen" are one *Finish setting up* card with both steps; it goes away when both are done, or for good when you close it. Its close button is now a full 44-point tap target.
