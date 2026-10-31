@@ -40,6 +40,12 @@ function firstIndex(words: string[], phrases: string[]): number | null {
   return best;
 }
 
+/** Index of the first word that starts the point (answer, ask, decision or status), or null. */
+export function pointIndex(text: string): number | null {
+  const t = norm(text);
+  return firstIndex(t ? t.split(' ') : [], POINT_MARKERS);
+}
+
 export interface Directness {
   words: number;
   /** Words spoken before the point, or null if no point was found. */

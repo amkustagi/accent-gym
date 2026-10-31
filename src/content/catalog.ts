@@ -1,6 +1,6 @@
 import type { Skill } from '../engine/score';
 
-export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure' | 'roleplay' | 'accentcheck' | 'shadow' | 'course' | 'camera';
+export type DrillId = 'swaps' | 'structure' | 'concision' | 'pace' | 'pauses' | 'variety' | 'warmup' | 'clarity' | 'pronunciation' | 'simulator' | 'pressure' | 'roleplay' | 'accentcheck' | 'shadow' | 'course' | 'camera' | 'sayitfirst';
 export type Area = 'content' | 'voice' | 'articulation' | 'presence';
 
 export interface DrillInfo {
@@ -30,6 +30,7 @@ export const AREAS: { id: Area; name: string; question: string }[] = [
 export const DRILLS: DrillInfo[] = [
   { id: 'swaps', name: 'Word swaps', area: 'content', skill: 'language', blurb: 'Trade weak phrases for strong ones, then say them.', minutes: 3, icon: 'swap' },
   { id: 'structure', name: 'Structure', area: 'content', skill: 'language', blurb: 'Answer with BLUF, PREP or STAR.', minutes: 3, icon: 'blocks' },
+  { id: 'sayitfirst', name: 'Say it first', area: 'content', skill: 'language', blurb: 'Paste what you need to say. Get it point-first, then say it twice.', minutes: 2, icon: 'scissors' },
   { id: 'concision', name: 'Say it short', area: 'content', skill: 'language', blurb: 'Make your point inside a word budget.', minutes: 2, icon: 'scissors' },
   { id: 'pace', name: 'Pace trainer', area: 'voice', skill: 'pace', blurb: 'Read along with a guide at 130–160 words/min.', minutes: 2, icon: 'metronome' },
   { id: 'pauses', name: 'Pause power', area: 'voice', skill: 'pauses', blurb: 'Hold a real pause at every marker.', minutes: 2, icon: 'pause' },
