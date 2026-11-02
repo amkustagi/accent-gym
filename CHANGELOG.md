@@ -4,6 +4,15 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.19.0 (2026-11-02): Meeting mode
+- **Meeting mode: get coached on a real meeting.** Today › *Real meeting? Meeting mode*. Put the phone on the table and press Start: Speakco is completely silent (no voice, sounds or pop-ups) and shows a dark "Recording · 12:40" screen with one Stop button. Words are turned into text on the phone as people talk, and the audio is never recorded or saved. Afterwards each turn is tagged **You** or **Person 1 / Person 2**: rename anyone ("Meera"), tap "This is me", or fix a single turn, and it applies to the whole meeting. Then you get coaching on **your turns only**: talk share, words before your point, fillers, hedges, apologies, your longest turn, and your two weakest moments rewritten point-first with *Say it again*. It's saved to Progress as a "Real meeting". (tinyhustlers/hq#105)
+- **Your voice print.** Read two sentences once (about 15 seconds) so Speakco can tell which turns are yours. It keeps three numbers about your pitch, only on this phone: never in backups or account sync, and you can delete it. Telling two voices apart works best when they differ in pitch; any wrong tag is one tap to fix.
+- **Paste a transcript instead.** If live capture isn't possible, paste a Zoom, Teams or Meet transcript ("Name: text", WebVTT or Teams name-and-time lines) and get the same coaching. What was said in real meetings is not synced to your account; only the scores are.
+- The first time, Speakco reminds you to tell people you're taking notes, since recording rules differ by place.
+- **Fix: the directness score counted some fillers twice.** "Okay so like…" was two fillers (the rules for "okay so" and "so like" share a word), so the directness score in Say it first and the simulator came out too low and disagreed with the voice report. It now counts them the same way as the report. (Fix tinyhustlers/hq#141)
+- 19 new tests (172 in total).
+- Version 0.19.0 (build 19) for the iPhone and Android apps.
+
 ## v0.18.0 (2026-11-02): See how far the natural voice download has got
 - **Natural voice download shows its size.** The one-time 92 MB download now reads "42% · 38 of 92 MB" in Setup, Settings and Accent, and the bar only moves forward (it used to jump back to 0% when the main model file started). It reads 100% only when the voice is ready. If the download stops, the message says how far it got; trying again reuses the parts that already finished. (tinyhustlers/hq#44)
 - **Fix: hedges and fillers typed on an iPhone now count.** iPhone keyboards type curly apostrophes (I’m, I’ll, it’s), so "I’m not sure… I’ll try" in *Say it first* scored 100 with no hedges. Curly and straight apostrophes now score the same. (Fix tinyhustlers/hq#99)

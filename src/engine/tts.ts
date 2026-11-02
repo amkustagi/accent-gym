@@ -1,4 +1,5 @@
 // Model voice: a natural neural voice (Kokoro, on-device) with the best system voice as fallback.
+import { meetingQuiet } from '../lib/quiet';
 import { get, set } from 'idb-keyval';
 import { releaseMicForPlayback, setAudioMode } from './speech';
 import type { AccentId } from '../content/accents';
@@ -186,7 +187,7 @@ export interface PlayOptions {
 
 /** Plays a recording or synthesized clip; returns a stop function. */
 export function playBlob(blob: Blob, opts: PlayOptions = {}): () => void {
-  if (recording) {
+  if (recording || meetingQuiet()) {
     // Playing now would be picked up by the mic (and on iPhone it would close the mic).
     opts.onEnd?.();
     return () => undefined;
@@ -207,7 +208,7 @@ export function playBlob(blob: Blob, opts: PlayOptions = {}): () => void {
   };
   const go = () => {
     waitEnd = null;
-    if (gen !== speakGen || recording) return end('stopped');
+    if (gen !== speakGen || recording || meetingQuiet()) return end('stopped');
     const a = audioEl();
     a.src = url;
     a.playbackRate = opts.rate ?? 1;
@@ -232,7 +233,7 @@ export function playBlob(blob: Blob, opts: PlayOptions = {}): () => void {
 }
 
 function speakSystem(text: string, rate: number, opts: PlayOptions, accent?: AccentId) {
-  if (typeof speechSynthesis === 'undefined' || recording) {
+  if (typeof speechSynthesis === 'undefined' || recording || meetingQuiet()) {
     opts.onBlocked?.();
     return opts.onEnd?.();
   }
@@ -395,20 +396,21 @@ export async function speak(text: string, opts: SpeakOptions = {}): Promise<void
   const rate = opts.rate ?? 1;
   stopSpeaking();
   const gen = speakGen;
-  if (recording) return opts.onEnd?.();
+  // Meeting mode is completely silent (hq#105).
+  if (recording || meetingQuiet()) return opts.onEnd?.();
   const play: PlayOptions = { rate, onStart: opts.onStart, onEnd: opts.onEnd, onBlocked: opts.onBlocked };
   const nv = opts.voice ?? naturalVoiceFor(opts.accent);
   if (nv && engine === 'natural' && natural.status === 'ready') {
     try {
       const blob = await synthNatural(text, nv);
       // Stopped, replaced or the mic opened while the voice was being made: stay quiet.
-      if (gen !== speakGen || recording) return opts.onEnd?.();
+      if (gen !== speakGen || recording || meetingQuiet()) return opts.onEnd?.();
       playBlob(blob, play);
       return;
     } catch {
       /* fall through to the system voice */
     }
-    if (gen !== speakGen || recording) return opts.onEnd?.();
+    if (gen !== speakGen || recording || meetingQuiet()) return opts.onEnd?.();
   }
   speakSystem(text, rate, play, opts.accent);
 }
