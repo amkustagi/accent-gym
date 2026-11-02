@@ -56,3 +56,14 @@ describe('iPhone apostrophes (tinyhustlers/hq#99)', () => {
     expect(curly.score).toBe(straight.score);
   });
 });
+
+// Regression test for tinyhustlers/hq#141: overlapping filler rules ("okay so" + "so like") counted one filler twice.
+import { analyzeText } from './text';
+describe('directness fillers (hq#141)', () => {
+  it.each(['Okay so like we need two more weeks.', 'Yeah so like I recommend option B.', 'So yeah, like, we are on track.'])('match the report count for "%s"', (s) => {
+    expect(analyzeDirectness(s).fillers).toBe(analyzeText(s).fillerCount);
+  });
+  it('does not lower the score for a filler that is not there', () => {
+    expect(analyzeDirectness('Okay so like we need two more weeks.').fillers).toBe(1);
+  });
+});

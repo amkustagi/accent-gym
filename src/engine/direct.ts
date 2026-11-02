@@ -1,7 +1,7 @@
 // Directness: how fast a speaker gets to the point, and what slows them down.
 // Pure functions over the transcript. Speech-to-text often drops punctuation, so nothing here
 // relies on sentences: "the point" is the first phrase that states an answer, ask, decision or status.
-import { FILLER_RULES, WEAK_RULES, countWords, tokenize } from './text';
+import { WEAK_RULES, analyzeText, countWords, tokenize } from './text';
 
 /** Phrases that usually mean "here is the point": an answer, ask, recommendation, decision or status. */
 const POINT_MARKERS = [
@@ -75,7 +75,8 @@ export function analyzeDirectness(transcript: string): Directness {
     const m = transcript.match(r.re);
     if (m && m.length > (r.allow ?? 0)) hedges.push(r.label);
   }
-  const fillers = FILLER_RULES.reduce((a, r) => a + (transcript.match(r.re)?.length ?? 0), 0);
+  // Same overlap-aware count as the voice report ("okay so like" is one filler, not two: hq#141).
+  const fillers = analyzeText(transcript).fillerCount;
 
   let score = 100;
   if (wtp === null) score -= 45;

@@ -28,6 +28,8 @@ export interface SttOptions {
   continuous?: boolean;
   /** Recognition locale, e.g. en-GB for a British accent target. */
   lang?: string;
+  /** How many times the recognizer may restart after the browser ends a phrase (Meeting mode needs many more). */
+  maxRestarts?: number;
 }
 
 /**
@@ -87,7 +89,7 @@ export function listen(opts: SttOptions): SttHandle {
     rec.onend = () => {
       committed = all();
       sessionFinal = '';
-      if (stopped || !(opts.continuous ?? true) || restarts > 60) finish();
+      if (stopped || !(opts.continuous ?? true) || restarts > (opts.maxRestarts ?? 60)) finish();
       else {
         restarts++;
         try {
@@ -147,7 +149,7 @@ function listenNative(opts: SttOptions): SttHandle {
         if (d.status !== 'stopped') return;
         committed = all();
         current = '';
-        if (stopped || !(opts.continuous ?? true) || restarts > 60) finish();
+        if (stopped || !(opts.continuous ?? true) || restarts > (opts.maxRestarts ?? 60)) finish();
         else {
           restarts++;
           void NativeSR.start({ language: opts.lang ?? 'en-US', maxResults: opts.alternatives ? 5 : 1, partialResults: true, popup: false }).catch(() => finish());

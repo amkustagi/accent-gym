@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { meetingQuiet } from '../lib/quiet';
 import { segments } from '../engine/text';
 import { SKILLS, type Scores, type Skill } from '../engine/score';
 import { Icon } from './Icon';
@@ -210,7 +211,8 @@ export function SessionShell({ title, onClose, children, progress, right, noRepo
 }
 
 let toastSetter: ((m: string | null) => void) | null = null;
-export const toast = (m: string) => toastSetter?.(m);
+/** Shows a short message, except during Meeting mode, which stays silent and still (hq#105). */
+export const toast = (m: string) => (meetingQuiet() ? undefined : toastSetter?.(m));
 export function ToastHost() {
   const [msg, setMsg] = useState<string | null>(null);
   useEffect(() => {

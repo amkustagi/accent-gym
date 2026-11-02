@@ -4,6 +4,7 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
+  ['chat', 'Meeting mode', 'Coaching for your real meetings. Put the phone on the table: Speakco stays silent, turns speech into text on the phone and keeps no audio. Afterwards it shows who spoke and coaches your turns only: talk share, words to your point, fillers, hedges and your two weakest moments, rewritten point-first.'],
   ['scissors', 'Say it first', 'About to push back on a deadline or ask for budget? Type what you need to say. Speakco puts your point first and cuts the hedges and apologies, then you say it out loud twice and see the difference. It stays on your phone unless you tap Rewrite with AI.'],
   ['check', 'Fairer scoring', '"Apologizing" and "apologized" now count as apologies, and ordinary questions like "What time is it?" are no longer flagged.'],
   ['home', 'A calmer Today', 'Today is now your plan and one suggestion for what to do next. Setup is one card, and your stats moved to Progress.'],

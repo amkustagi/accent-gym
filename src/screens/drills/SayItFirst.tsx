@@ -26,9 +26,10 @@ export const SAY_IT_FIRST_EXAMPLES = [
 type Phase = 'write' | 'review' | 'take' | 'result';
 interface Take { rec: SessionRecord; xp: number; d: Directness; audio: Blob | null }
 
-export function SayItFirstDrill({ onClose }: { onClose: () => void }) {
+/** `param` pre-fills the message (Meeting mode's "Say it again" sends a point-first rewrite). */
+export function SayItFirstDrill({ onClose, param }: { onClose: () => void; param?: string }) {
   const [phase, setPhase] = useState<Phase>('write');
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(param ?? '');
   const [after, setAfter] = useState('');
   const [via, setVia] = useState<'rules' | 'ai'>('rules');
   const [busy, setBusy] = useState(false);

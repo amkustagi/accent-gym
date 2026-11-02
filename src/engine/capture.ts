@@ -34,7 +34,7 @@ export class CaptureSession {
   private micError: string | undefined;
   running = false;
 
-  constructor(private mode: ListeningMode, private cb: CaptureCallbacks = {}, private opts: { record?: boolean; continuous?: boolean; lang?: string } = {}) {}
+  constructor(private mode: ListeningMode, private cb: CaptureCallbacks = {}, private opts: { record?: boolean; continuous?: boolean; lang?: string; maxRestarts?: number } = {}) {}
 
   async start(): Promise<{ ok: boolean; error?: string }> {
     // Never let the model voice leak into the microphone, including a voice still being synthesized.
@@ -72,6 +72,7 @@ export class CaptureSession {
         this.stt = listen({
           continuous: this.opts.continuous ?? true,
           lang: this.opts.lang,
+          maxRestarts: this.opts.maxRestarts,
           onText: (t) => {
             this.transcript = t;
             this.cb.onTranscript?.(t);
