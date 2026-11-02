@@ -45,3 +45,14 @@ describe('analyzeDirectness', () => {
     expect(COACHES[2].nudge.some((p) => coachLine(bad, COACHES[2]).startsWith(p))).toBe(true);
   });
 });
+
+describe('iPhone apostrophes (tinyhustlers/hq#99)', () => {
+  it('scores curly and straight apostrophes the same', () => {
+    const straight = analyzeDirectness("I'm not sure, but it's like we should ship. I'll try to finish Friday.");
+    const curly = analyzeDirectness('I’m not sure, but it’s like we should ship. I’ll try to finish Friday.');
+    expect(straight.hedges).toEqual(expect.arrayContaining(["I'll try", 'self-doubt']));
+    expect(curly.hedges).toEqual(straight.hedges);
+    expect(curly.fillers).toBe(straight.fillers);
+    expect(curly.score).toBe(straight.score);
+  });
+});

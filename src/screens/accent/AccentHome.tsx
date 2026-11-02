@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { guessStarting, profileByKey, soundMap, startingById, targetById, type AccentId } from '../../content/accents';
 import { nextSoundFor } from '../../learn/adapt';
-import { accentVoiceInfo, loadNatural, naturalState, onNaturalState } from '../../engine/tts';
+import { accentVoiceInfo, loadNatural, naturalProgressLabel, naturalState, onNaturalState } from '../../engine/tts';
 import { isIOS } from '../../engine/speech';
 import { precisionAvailable } from '../../lib/accentScore';
 import { backendEnabled } from '../../lib/backend';
@@ -36,7 +36,7 @@ function VoiceNote({ target }: { target: AccentId }) {
         <b>Hear a natural {t.adjective} voice</b>
         Download the natural voice once (about 90 MB, best on Wi-Fi) for a human-sounding {t.adjective} model.
         <button className="btn primary sm" style={{ marginTop: 8 }} onClick={() => void loadNatural().catch(() => undefined)}>
-          <Icon name="download" />{naturalState().status === 'loading' ? `Downloading ${Math.round(naturalState().progress * 100)}%` : 'Download'}
+          <Icon name="download" />{naturalState().status === 'loading' ? `Downloading ${naturalProgressLabel(naturalState())}` : 'Download'}
         </button>
       </div>
     );
