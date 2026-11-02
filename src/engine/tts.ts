@@ -3,6 +3,7 @@ import { get, set } from 'idb-keyval';
 import { releaseMicForPlayback, setAudioMode } from './speech';
 import type { AccentId } from '../content/accents';
 import { SILENT_WAV, playWatched, watchUtterance, type PlayEnd, type UtteranceLike } from './player';
+import { NATURAL_VOICE_BYTES, fraction, nextProgress, progressLabel } from './download';
 
 export type VoiceEngine = 'natural' | 'system';
 
@@ -258,7 +259,8 @@ function speakSystem(text: string, rate: number, opts: PlayOptions, accent?: Acc
 
 // ---------- natural voice ----------
 
-export type NaturalState = { status: 'off' | 'loading' | 'ready' | 'error'; progress: number; message?: string };
+/** progress is 0..1; loaded/total are bytes (tinyhustlers/hq#44). */
+export type NaturalState = { status: 'off' | 'loading' | 'ready' | 'error'; progress: number; loaded?: number; total?: number; message?: string };
 let natural: NaturalState = { status: 'off', progress: 0 };
 const naturalListeners = new Set<(s: NaturalState) => void>();
 const setNatural = (s: NaturalState) => {
@@ -266,6 +268,8 @@ const setNatural = (s: NaturalState) => {
   naturalListeners.forEach((l) => l(s));
 };
 export const naturalState = () => natural;
+/** "42% · 38 of 92 MB" for the download bar. */
+export const naturalProgressLabel = (s: NaturalState) => progressLabel({ loaded: s.loaded ?? 0, total: s.total ?? NATURAL_VOICE_BYTES });
 export function onNaturalState(l: (s: NaturalState) => void) {
   naturalListeners.add(l);
   return () => void naturalListeners.delete(l);
@@ -293,10 +297,13 @@ export function loadNatural(): Promise<void> {
       setNatural({ status: 'error', progress: 0, message: 'This browser can\'t run the natural voice.' });
       return Promise.reject(e);
     }
-    setNatural({ status: 'loading', progress: 0 });
+    setNatural({ status: 'loading', progress: 0, loaded: 0, total: NATURAL_VOICE_BYTES });
     worker.onmessage = (e) => {
       const m = e.data;
-      if (m.type === 'progress') setNatural({ status: 'loading', progress: m.total ? m.loaded / m.total : 0 });
+      if (m.type === 'progress') {
+        const p = nextProgress(natural.status === 'loading' && natural.total ? { loaded: natural.loaded ?? 0, total: natural.total } : null, m.loaded ?? 0, m.total ?? 0);
+        setNatural({ status: 'loading', progress: fraction(p), loaded: p.loaded, total: p.total });
+      }
       else if (m.type === 'ready') {
         setNatural({ status: 'ready', progress: 1 });
         try {
@@ -313,7 +320,8 @@ export function loadNatural(): Promise<void> {
           pending.delete(m.id);
         }
         if (natural.status !== 'ready') {
-          setNatural({ status: 'error', progress: 0, message: 'Couldn\'t download the natural voice. Check your connection and try again.' });
+          const got = natural.loaded ? ` (stopped at ${progressLabel({ loaded: natural.loaded, total: natural.total ?? NATURAL_VOICE_BYTES })})` : '';
+          setNatural({ status: 'error', progress: 0, message: `Couldn't download the natural voice${got}. Check your connection (Wi-Fi is best) and try again.` });
           worker?.terminate();
           worker = null;
         }

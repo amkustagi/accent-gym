@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ListeningMode } from '../engine/capture';
-import { NATURAL_VOICES, configureVoice, englishVoices, loadNatural, naturalState, onNaturalState, speak, systemVoiceIsBasic, type NaturalState } from '../engine/tts';
+import { NATURAL_VOICES, configureVoice, englishVoices, loadNatural, naturalProgressLabel, naturalState, onNaturalState, speak, systemVoiceIsBasic, type NaturalState } from '../engine/tts';
 import { isIOS } from '../engine/speech';
 import { testKey } from '../lib/ai';
 import { backendEnabled, isPro, planName } from '../lib/backend';
@@ -70,9 +70,9 @@ function VoiceSection() {
         <div className="stack">
           {natural.status !== 'ready' && (
             <div className="note">
-              <b>{natural.status === 'loading' ? `Downloading natural voice… ${Math.round(natural.progress * 100)}%` : 'Human-sounding voice, runs on your phone'}</b>
+              <b>{natural.status === 'loading' ? `Downloading natural voice… ${naturalProgressLabel(natural)}` : 'Human-sounding voice, runs on your phone'}</b>
               {natural.status === 'loading' ? (
-                <div className="progress" style={{ marginTop: 8 }}><i style={{ width: `${Math.round(natural.progress * 100)}%` }} /></div>
+                <div className="progress" style={{ marginTop: 8 }} role="progressbar" aria-label="Natural voice download" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(natural.progress * 100)}><i style={{ width: `${Math.round(natural.progress * 100)}%` }} /></div>
               ) : natural.status === 'error' ? (
                 <span>{natural.message}</span>
               ) : (

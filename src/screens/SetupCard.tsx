@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { loadNatural, naturalState, onNaturalState, speak } from '../engine/tts';
+import { loadNatural, naturalProgressLabel, naturalState, onNaturalState, speak } from '../engine/tts';
 import { updateSettings, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
 import { toast } from '../ui/ui';
@@ -77,8 +77,8 @@ export function SetupCard() {
           <b>Natural voice</b>
           {st.status === 'loading' ? (
             <>
-              <span className="small muted">Downloading… {Math.round(st.progress * 100)}%. You can keep practicing.</span>
-              <div className="progress"><i style={{ width: `${Math.round(st.progress * 100)}%` }} /></div>
+              <span className="small muted">Downloading… {naturalProgressLabel(st)}. You can keep practicing.</span>
+              <div className="progress" role="progressbar" aria-label="Natural voice download" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(st.progress * 100)}><i style={{ width: `${Math.round(st.progress * 100)}%` }} /></div>
             </>
           ) : (
             <>

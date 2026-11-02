@@ -180,8 +180,8 @@ export function upcoming(l: Learner, now = Date.now()): string | null {
 }
 
 /** A practice round for the meeting the user said is coming up. */
-export function upcomingScenario(l: Learner): Scenario | null {
-  const text = upcoming(l);
+export function upcomingScenario(l: Learner, now = Date.now()): Scenario | null {
+  const text = upcoming(l, now);
   if (!text || !l.upcoming) return null;
   const t = text.toLowerCase();
   const category: CategoryId = /interview/.test(t) ? 'interview' : /client|customer|pitch|sales/.test(t) ? 'client'

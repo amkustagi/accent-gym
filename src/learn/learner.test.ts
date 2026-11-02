@@ -82,10 +82,16 @@ describe('personal content', () => {
     expect(sc).toBeGreaterThan(25);
   });
   it('builds a practice round for an upcoming meeting', () => {
-    const sc = upcomingScenario({ ...DEFAULT_LEARNER, upcoming: { text: 'Pitch to the Northwind client on Thursday', t: NOW } });
+    const sc = upcomingScenario({ ...DEFAULT_LEARNER, upcoming: { text: 'Pitch to the Northwind client on Thursday', t: NOW } }, NOW);
     expect(sc?.category).toBe('client');
     expect(sc?.context).toContain('Northwind');
-    expect(upcomingScenario({ ...DEFAULT_LEARNER, upcoming: { text: 'Old meeting', t: NOW - 20 * DAY } })).toBeNull();
+    expect(upcomingScenario({ ...DEFAULT_LEARNER, upcoming: { text: 'Old meeting', t: NOW - 20 * DAY } }, NOW)).toBeNull();
+  });
+  it('uses the given clock, not the real one (tinyhustlers/hq#98)', () => {
+    const l = { ...DEFAULT_LEARNER, upcoming: { text: 'Budget review with the CFO', t: NOW } };
+    expect(upcomingScenario(l, NOW + 9 * DAY)?.context).toContain('CFO');
+    expect(upcomingScenario(l, NOW + 9 * DAY)).not.toBeNull();
+    expect(upcomingScenario(l, NOW + 11 * DAY)).toBeNull();
   });
 });
 

@@ -4,6 +4,12 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.18.0 (2026-11-02): See how far the natural voice download has got
+- **Natural voice download shows its size.** The one-time 92 MB download now reads "42% · 38 of 92 MB" in Setup, Settings and Accent, and the bar only moves forward (it used to jump back to 0% when the main model file started). It reads 100% only when the voice is ready. If the download stops, the message says how far it got; trying again reuses the parts that already finished. (tinyhustlers/hq#44)
+- **Fix: hedges and fillers typed on an iPhone now count.** iPhone keyboards type curly apostrophes (I’m, I’ll, it’s), so "I’m not sure… I’ll try" in *Say it first* scored 100 with no hedges. Curly and straight apostrophes now score the same. (Fix tinyhustlers/hq#99)
+- **Fix: tests no longer depend on today's date.** The upcoming-meeting practice round now takes the clock it is given, so the test suite (and the website deploy that runs it) went green again after failing from 2026-11-01. No change in the app. (Fix tinyhustlers/hq#98)
+- 6 new tests (153 in total).
+
 ## v0.17.0 (2026-10-31): Say it first
 - **Say it first.** About to push back on a deadline, ask for budget or give bad news in stand-up? Practice › *Say it first* (or *Big message coming?* on Today): type or paste what you need to say and Speakco gives it back point-first. The ask, decision or status moves to the first sentence; greetings, "sorry to bother you", "I just wanted to give some context", "I think", "just", "maybe" and "Does that make sense?" are cut, and "Sorry for the delay" becomes "Thanks for your patience". Edit it, hear it, then say it out loud twice and compare take 1 and take 2 (score, words before your point, hedges, pace). The rewrite runs on the phone; nothing you type leaves it unless you tap *Rewrite with AI* (Pro or your own key), which sends only that message, and the message can't give the AI instructions. (tinyhustlers/hq#34)
 - **Fix: your own Azure speech key now stays on your phone.** It was copied into account sync and into backup files; now it is blanked in both like the Claude key, and a newer cloud copy or a restored backup no longer replaces the key on this phone. The next sync clears the old cloud copy. (Fix tinyhustlers/hq#90)
