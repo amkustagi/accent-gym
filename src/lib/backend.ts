@@ -113,12 +113,16 @@ export async function openBillingPortal(): Promise<void> {
 
 // ---------- sync ----------
 
-/** Data synced to the account. Voice traces and recordings stay on the device. */
+/** Data synced to the account. Voice traces and recordings stay on the device, and so does what was said in real meetings (hq#105). */
 export function syncPayload(s: State) {
   const { loaded: _l, account: _a, ...rest } = s;
   void _l;
   void _a;
-  return { ...rest, settings: stripDeviceKeys(rest.settings), sessions: rest.sessions.map(({ trace: _t, ...x }) => (void _t, x)) };
+  return {
+    ...rest,
+    settings: stripDeviceKeys(rest.settings),
+    sessions: rest.sessions.map(({ trace: _t, ...x }) => (void _t, x.drill === 'meeting' ? { ...x, transcript: '', correctedFrom: undefined } : x)),
+  };
 }
 
 function mergeSounds(a: State['sounds'], b: State['sounds']): State['sounds'] {
