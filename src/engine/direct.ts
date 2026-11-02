@@ -63,6 +63,8 @@ export interface Directness {
 }
 
 export function analyzeDirectness(transcript: string): Directness {
+  // iPhone Smart Punctuation types ’ and ‘; the rules expect a straight apostrophe.
+  transcript = transcript.replace(/[’‘]/g, "'");
   const text = norm(transcript);
   const words = text ? text.split(' ') : [];
   const n = countWords(transcript);
