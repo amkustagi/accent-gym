@@ -25,12 +25,19 @@ const THROAT = [
 
 const norm = (t: string) => tokenize(t.toLowerCase().replace(/[’]/g, "'")).join(' ');
 
+/** Words after "no" / "yes" that make an ordinary phrase, not an answer ("I have no idea": hq#158). */
+const NOT_AN_ANSWER: Record<string, string[]> = {
+  no: ['idea', 'clue', 'one', 'longer', 'matter', 'doubt', 'worries', 'worry'],
+  yes: ['man'],
+};
+
 function firstIndex(words: string[], phrases: string[]): number | null {
   let best: number | null = null;
   for (const p of phrases) {
     const pw = p.split(' ');
     for (let i = 0; i + pw.length <= words.length; i++) {
       if (best !== null && i >= best) break;
+      if (pw.length === 1 && NOT_AN_ANSWER[pw[0]]?.includes(words[i + 1])) continue;
       if (pw.every((w, j) => words[i + j] === w)) {
         best = i;
         break;
