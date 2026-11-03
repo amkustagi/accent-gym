@@ -164,3 +164,24 @@ describe('apologies and the "is it?" tag (hq#91, hq#92)', () => {
       expect(analyzeText(t).weakByRule.some((e) => e.rule.id === 'isit'), t).toBe(true);
   });
 });
+
+describe('apologies and over-politeness only count when they are (hq#396, hq#397)', () => {
+  const count = (t: string, id: string) => analyzeText(t).weakByRule.find((e) => e.rule.id === id)?.count ?? 0;
+  it('does not count "not sorry" or sympathy as an apology (hq#396)', () => {
+    for (const t of ["We're not sorry about the price, it's fair.", "I'm sorry to hear that, Meera.", 'I am so sorry for your loss.', "We're never sorry for shipping early."])
+      expect(count(t, 'sorry'), t).toBe(0);
+  });
+  it('still counts real apologies (hq#396)', () => {
+    expect(count('Sorry for the delay.', 'sorry')).toBe(1);
+    expect(count("Sorry, sorry, I'm so sorry.", 'sorry')).toBe(3);
+    expect(count("Sorry, I'm late. Sorry to bother you.", 'sorry')).toBe(2);
+  });
+  it('does not flag "no issues" or "no problem" stated as a fact (hq#397)', () => {
+    for (const t of ['Testing found no issues and we ship Friday.', "There's no problem with the build.", 'We had no issues with the vendor.'])
+      expect(count(t, 'noproblem'), t).toBe(0);
+  });
+  it('still flags "no problem" given as a reply (hq#397)', () => {
+    for (const t of ["No problem, I'll send it.", 'No worries!', "Sure. No issues, Meera.", "That's no problem at all.", 'Oh, no problem.'])
+      expect(count(t, 'noproblem'), t).toBe(1);
+  });
+});

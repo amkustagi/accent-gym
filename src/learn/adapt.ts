@@ -1,5 +1,6 @@
 // Self-learning: adaptive difficulty, spaced repetition, personal habits, personalized content, daily plan.
 import { DRILL_FOR_SKILL, type DrillId } from '../content/catalog';
+import { goalPlanItem } from './meetingGoal';
 import { SWAPS, swapKey, type SwapCard } from '../content/drills';
 import { guessStarting, soundMap, targetById, type AccentId, type MapEntry } from '../content/accents';
 import { generateScenario } from '../content/generator';
@@ -208,10 +209,13 @@ export function todayPlan(s: State): PlanItem[] {
   const learner = s.learner;
   const pick = (d: DrillId) => preferDrill(learner, d, (x) => x !== 'pronunciation' || s.profile.accentGoal !== 'none');
   const items: { drill: DrillId; reason: string; param?: string }[] = [];
+  // A goal from the last real meeting comes first until the next one is saved (hq#142).
+  const goal = goalPlanItem(s);
+  if (goal) items.push(goal);
   if (s.settings.warmupInPlan && s.profile.minutes >= 10) items.push({ drill: 'warmup', reason: 'Wake up your voice' });
 
   const top = habits(s, 7)[0];
-  if (top && top.thisWeek >= 3 && SWAPS.some((c) => c.rule === top.ruleId)) items.push({ drill: 'swaps', reason: `Your habit: "${top.label}" ×${top.thisWeek} this week`, param: `habit:${top.ruleId}` });
+  if (top && top.thisWeek >= 3 && SWAPS.some((c) => c.rule === top.ruleId) && !items.some((i) => i.drill === 'swaps')) items.push({ drill: 'swaps', reason: `Your habit: "${top.label}" ×${top.thisWeek} this week`, param: `habit:${top.ruleId}` });
 
   if (weakest) {
     const d = pick(DRILL_FOR_SKILL[weakest]);
