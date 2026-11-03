@@ -4,6 +4,13 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.19.1 (2026-11-02): fairer scoring in Meeting mode and Say it first
+- **Fix: "I have no idea" no longer counts as making your point.** A take like "Um so I have no idea why it slipped, maybe the vendor…" scored *Point after 4 words. Good.* because "no" was read as an answer. "No idea", "no one", "no longer", "no matter", "no doubt" and "no worries" no longer count; a real "No, we can't ship Friday" still does. This also keeps rambling turns in Meeting mode's *weakest moments*. (Fix tinyhustlers/hq#158)
+- **Fix: a pasted transcript coaches you, not someone with your first name.** If "Arjun Mehta" spoke before you ("Arjun Rao"), his turns were tagged You and scored. Your full name now wins; first name alone is used only when nobody in the transcript has your full name. (Fix tinyhustlers/hq#159)
+- **Fix: the longest-turn time is exact.** A 91-second turn said "ran 2 minutes"; it now says "1 min 31 s". (Fix tinyhustlers/hq#160)
+- 11 new tests (183 in total).
+- Version 0.19.1 (build 20) for the iPhone and Android apps.
+
 ## v0.19.0 (2026-11-02): Meeting mode
 - **Meeting mode: get coached on a real meeting.** Today › *Real meeting? Meeting mode*. Put the phone on the table and press Start: Speakco is completely silent (no voice, sounds or pop-ups) and shows a dark "Recording · 12:40" screen with one Stop button. Words are turned into text on the phone as people talk, and the audio is never recorded or saved. Afterwards each turn is tagged **You** or **Person 1 / Person 2**: rename anyone ("Meera"), tap "This is me", or fix a single turn, and it applies to the whole meeting. Then you get coaching on **your turns only**: talk share, words before your point, fillers, hedges, apologies, your longest turn, and your two weakest moments rewritten point-first with *Say it again*. It's saved to Progress as a "Real meeting". (tinyhustlers/hq#105)
 - **Your voice print.** Read two sentences once (about 15 seconds) so Speakco can tell which turns are yours. It keeps three numbers about your pitch, only on this phone: never in backups or account sync, and you can delete it. Telling two voices apart works best when they differ in pitch; any wrong tag is one tap to fix.

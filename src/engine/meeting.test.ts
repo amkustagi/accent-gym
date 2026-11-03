@@ -107,6 +107,33 @@ describe('transcript paste fallback (hq#105)', () => {
   });
 });
 
+describe('paste: your full name wins over a shared first name (Fix tinyhustlers/hq#159)', () => {
+  it('tags Arjun Rao as you even when another Arjun speaks first', () => {
+    const m = parseTranscript('Arjun Mehta: Morning all.\nArjun Rao: We need two more weeks.\nMeera Rao: OK.', 'Arjun Rao');
+    expect(m.turns.map((t) => [t.speaker, t.text])).toEqual([['p1', 'Morning all.'], [YOU, 'We need two more weeks.'], ['p2', 'OK.']]);
+    expect(m.names).toEqual({ p1: 'Arjun Mehta', [YOU]: 'You', p2: 'Meera Rao' });
+  });
+  it('still matches by first name when nobody has your full name', () => {
+    const m = parseTranscript('Meera Rao: Where are we?\nArjun: On track.', 'Arjun Rao');
+    expect(m.turns.map((t) => t.speaker)).toEqual(['p1', YOU]);
+  });
+});
+
+describe('debrief: longest turn in minutes and seconds (Fix tinyhustlers/hq#160)', () => {
+  it('a 91-second turn reads 1 min 31 s, not 2 minutes', () => {
+    const text = 'We need two more weeks. The vendor is late and testing found three bugs. I will confirm the new date on Friday.';
+    const m: Meeting = { turns: [{ speaker: 'p1', text: 'Where are we?', start: 0, end: 2 }, { speaker: YOU, text, start: 2, end: 93 }], names: { p1: 'Meera', [YOU]: 'You' }, durationSec: 93, source: 'live' };
+    const d = meetingDebrief(m);
+    expect(d.longestSec).toBe(91);
+    expect(d.headline).toBe('Your longest turn ran 1 min 31 s. Make the point, then stop.');
+  });
+  it('whole minutes read without seconds', () => {
+    const text = 'We need two more weeks. The vendor is late and testing found three bugs. I will confirm the new date on Friday.';
+    const m: Meeting = { turns: [{ speaker: YOU, text, start: 0, end: 120 }], names: { [YOU]: 'You' }, durationSec: 120, source: 'live' };
+    expect(meetingDebrief(m).headline).toBe('Your longest turn ran 2 min. Make the point, then stop.');
+  });
+});
+
 describe('silent while recording (hq#105)', () => {
   afterEach(async () => (await import('../lib/quiet')).setMeetingQuiet(false));
   it('suppresses the coach voice, playback and toasts', async () => {

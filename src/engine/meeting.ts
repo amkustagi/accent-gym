@@ -211,15 +211,18 @@ export function parseTranscript(raw: string, myName = ''): Meeting {
   }
   const ids = new Map<string, string>();
   const names: Record<string, string> = {};
-  const me = myName.trim().toLowerCase();
+  const me = myName.replace(/\s+/g, ' ').trim().toLowerCase();
+  // Your full name wins over a shared first name ("Arjun Mehta" speaking before "Arjun Rao": hq#159).
+  const fullMatch = !!me && rows.some((r) => r.name.replace(/\s+/g, ' ').trim().toLowerCase() === me);
   const turns: Turn[] = [];
   let t = 0;
   for (const r of rows) {
     if (!r.text) continue;
-    const key = r.name.toLowerCase();
+    const key = r.name.replace(/\s+/g, ' ').trim().toLowerCase();
     let id = ids.get(key);
     if (!id) {
-      const isMe = !!me && (key === me || key.split(/\s+/)[0] === me.split(/\s+/)[0]) && !ids.has(YOU) && ![...ids.values()].includes(YOU);
+      const named = fullMatch ? key === me : key.split(' ')[0] === me.split(' ')[0];
+      const isMe = !!me && named && ![...ids.values()].includes(YOU);
       id = isMe ? YOU : `p${[...ids.values()].filter((x) => x !== YOU).length + 1}`;
       ids.set(key, id);
       names[id] = isMe ? 'You' : r.name;
@@ -264,6 +267,13 @@ export interface MeetingDebrief {
   headline: string;
 }
 
+/** 91 → "1 min 31 s", 120 → "2 min" (hq#160: rounding to whole minutes said "2 minutes" for 91 s). */
+const minSec = (sec: number) => {
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return s ? `${m} min ${s} s` : `${m} min`;
+};
+
 const median = (xs: number[]) => (xs.length ? quantile([...xs].sort((a, b) => a - b), 0.5) : null);
 
 /** Coaching for your turns only. Other people's words are never scored. */
@@ -301,7 +311,7 @@ export function meetingDebrief(m: Meeting): MeetingDebrief {
   else if (apologies >= 2) headline = `You said sorry ${apologies} times. Thank people instead.`;
   else if (hedges >= 3) headline = `${hedges} hedges made you sound unsure. State it as fact.`;
   else if (yourWords >= 40 && txt.fillerCount / Math.max(1, yourWords) > 0.04) headline = `${txt.fillerCount} fillers. Pause for a beat instead.`;
-  else if (longestSec > 90) headline = `Your longest turn ran ${Math.round(longestSec / 60)} minutes. Make the point, then stop.`;
+  else if (longestSec > 90) headline = `Your longest turn ran ${minSec(longestSec)}. Make the point, then stop.`;
   else headline = 'Direct and clear. Keep doing this.';
   return { talkShare, yourWords, yourTurns: mine.length, wordsToPoint: toPoint === null ? null : Math.round(toPoint), fillers: txt.fillerCount, hedges, apologies, longestSec, longestWords, directness, weakest, headline };
 }

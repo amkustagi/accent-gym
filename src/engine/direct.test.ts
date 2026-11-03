@@ -67,3 +67,19 @@ describe('directness fillers (hq#141)', () => {
     expect(analyzeDirectness('Okay so like we need two more weeks.').fillers).toBe(1);
   });
 });
+
+describe('"no" and "yes" inside ordinary phrases are not the point (Fix tinyhustlers/hq#158)', () => {
+  it('"I have no idea" is not an answer', () => {
+    const d = analyzeDirectness('Um so I have no idea why it slipped, maybe the vendor was late again');
+    expect(d.wordsToPoint).toBeNull();
+    expect(d.headline).toMatch(/never heard the point/);
+  });
+  it.each(['no one', 'no longer', 'no matter', 'no doubt', 'no worries'])('"%s" is not an answer', (p) => {
+    expect(analyzeDirectness(`Well honestly ${p} was really sure what happened with the vendor last week`).wordsToPoint).toBeNull();
+  });
+  it('a real "No" or "Yes" still is', () => {
+    expect(analyzeDirectness('No, we can\'t ship Friday. Testing found three bugs.').wordsToPoint).toBe(0);
+    expect(analyzeDirectness('Yes, with one condition: we cut the export.').wordsToPoint).toBe(0);
+    expect(analyzeDirectness('Honestly there are no blockers on the launch').wordsToPoint).toBe(3);
+  });
+});
