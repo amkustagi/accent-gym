@@ -13,7 +13,8 @@ export interface Rule {
 }
 
 export const WEAK_RULES: Rule[] = [
-  { id: 'sorry', label: 'sorry', category: 'apology', re: /\b(?:i'?m |i am )?(?:so |very |really )?sorry\b/gi, fix: 'Thank instead of apologizing: "Thanks for waiting" beats "Sorry for the delay."' },
+  // "Not sorry" and sympathy ("sorry to hear") aren't apologies (hq#396).
+  { id: 'sorry', label: 'sorry', category: 'apology', re: /(?<!\b(?:not|never)\s+(?:(?:so|very|really)\s+)?)\b(?:i'?m |i am )?(?:so |very |really )?sorry\b(?!\s+(?:to hear|for your loss))/gi, fix: 'Thank instead of apologizing: "Thanks for waiting" beats "Sorry for the delay."' },
   { id: 'apologize', label: 'apologize', category: 'apology', re: /\b(?:my )?apolog(?:y|ies|i[sz](?:e|es|ed|ing))\b/gi, fix: 'Save apologies for real mistakes.' },
   { id: 'just', label: 'just', category: 'minimizer', re: /\bjust\b/gi, fix: 'Cut it. "I just wanted to check" becomes "I\'m checking on…"' },
   { id: 'quick', label: 'quick / small', category: 'minimizer', re: /\b(?:quick|small|little) (?:question|thing|point|update)\b/gi, fix: 'Don\'t shrink your point before you make it. "One question:" works.' },
@@ -35,7 +36,8 @@ export const WEAK_RULES: Rule[] = [
   { id: 'prepone', label: 'prepone', category: 'regional', re: /\bprepone[sd]?\b/gi, fix: '"Move it earlier" or "move it up."' },
   { id: 'isit', label: 'is it?', category: 'regional', re: /(?<=^|[.!?,;\n]\s*)is it\?/gi, fix: '"Really?" or "Got it."' },
   { id: 'doubt2', label: 'I have a doubt', category: 'regional', re: /\bi have (?:a|one|some) doubts?\b/gi, fix: '"I have a question." In US English, "doubt" means disbelief.' },
-  { id: 'noproblem', label: 'no problem', category: 'overpolite', re: /\bno (?:problem|issues?|worries)\b/gi, fix: '"Happy to" or "Glad to."' },
+  // Only as a reply; "testing found no issues" is a plain fact (hq#397).
+  { id: 'noproblem', label: 'no problem', category: 'overpolite', re: /(?<=(?:^|[.!?,;:\n])\s*|\b(?:that'?s|it'?s|that is|it is|oh|sure|absolutely|totally)\s+)no (?:problem|issues?|worries)\b/gi, fix: '"Happy to" or "Glad to."' },
   { id: 'please', label: 'please (repeated)', category: 'overpolite', re: /\bplease\b/gi, allow: 1, fix: 'One "please" is polite. Repeated, it sounds like pleading.' },
 ];
 

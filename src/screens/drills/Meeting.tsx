@@ -10,7 +10,8 @@ import {
 } from '../../engine/meeting';
 import { deleteVoicePrint, loadVoicePrint, saveVoicePrint, startMeeting, type LiveMeeting } from '../../lib/meeting';
 import { open } from '../../lib/nav';
-import { saveSession, updateSession, useStore, type SessionRecord } from '../../store/store';
+import { getState, saveSession, updateLearner, updateSession, useStore, type Learner, type SessionRecord } from '../../store/store';
+import { goalChoices, goalDef, goalMet, goalPending, goalTrend, suggestGoals, type MeetingGoalId } from '../../learn/meetingGoal';
 import { Icon } from '../../ui/Icon';
 import { SessionShell } from '../../ui/ui';
 
@@ -33,6 +34,9 @@ export function MeetingDrill({ onClose }: { onClose: () => void }) {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const myName = useStore((s) => s.profile.name);
   const savedId = useRef<string | null>(null);
+  // The goal this meeting is judged on: the one still waiting for a real meeting when Meeting mode opened (hq#142).
+  const judged = useRef<Learner['meetingGoal']>(goalPending(getState()) ? getState().learner.meetingGoal : null);
+  const openedAt = useRef(Date.now());
 
   useEffect(() => {
     void loadVoicePrint().then(setPrint);
@@ -67,6 +71,9 @@ export function MeetingDrill({ onClose }: { onClose: () => void }) {
               Speakco stays completely silent while it listens: no voice, sounds or pop-ups. Words are turned into text on this phone and the audio is thrown away as it goes. Afterwards you see who spoke and get coaching on your turns only.
             </p>
           </section>
+          {judged.current && (
+            <p className="small" style={{ margin: 0 }}><b>Goal for this meeting:</b> {goalDef(judged.current.id).short}</p>
+          )}
           {!consent && (
             <div className="note warn">
               <b>Tell people you're taking notes</b>
@@ -101,7 +108,7 @@ export function MeetingDrill({ onClose }: { onClose: () => void }) {
 
       {phase === 'label' && meeting && <Label m={meeting} onChange={setMeeting} onDone={() => setPhase('debrief')} />}
 
-      {phase === 'debrief' && meeting && <Debrief m={meeting} savedId={savedId} onRelabel={() => setPhase('label')} onClose={onClose} />}
+      {phase === 'debrief' && meeting && <Debrief m={meeting} savedId={savedId} goal={judged.current} openedAt={openedAt.current} onRelabel={() => setPhase('label')} onClose={onClose} />}
     </SessionShell>
   );
 }
@@ -273,29 +280,41 @@ function Label({ m, onChange, onDone }: { m: Meeting; onChange: (m: Meeting) => 
 }
 
 /** Saves the meeting once as a "Real meeting" session; fixing names afterwards updates the same session. */
-export function meetingRecord(m: Meeting, d: MeetingDebrief): Omit<SessionRecord, 'id' | 't' | 'hasAudio'> {
+export function meetingRecord(m: Meeting, d: MeetingDebrief, goal?: MeetingGoalId | null): Omit<SessionRecord, 'id' | 't' | 'hasAudio'> {
   const ev = evaluate({ transcript: yourText(m), durationSec: Math.max(1, yourSeconds(m)) });
-  const extra: Record<string, number | string> = { talkShare: d.talkShare, turns: d.yourTurns, longestSec: d.longestSec, toPoint: d.wordsToPoint ?? -1 };
+  const extra: Record<string, number | string> = {
+    talkShare: d.talkShare, turns: d.yourTurns, longestSec: d.longestSec, toPoint: d.wordsToPoint ?? -1,
+    // Counts for the meeting-goal trend (hq#142). Numbers only, never the words.
+    apologies: d.apologies, hedges: d.hedges, fillers: d.fillers,
+  };
   if (d.directness !== null) extra.direct = d.directness;
+  if (goal) {
+    const met = goalMet(goal, goalDef(goal).value(d));
+    if (met !== null) {
+      extra.goal = goal;
+      extra.goalMet = met ? 1 : 0;
+    }
+  }
   return { drill: 'meeting', title: 'Real meeting', overall: ev.overall, scores: ev.scores, metrics: ev.metrics, transcript: meetingText(m), durationSec: m.durationSec, tips: ev.tips, extra };
 }
 
-function Debrief({ m, savedId, onRelabel, onClose }: { m: Meeting; savedId: { current: string | null }; onRelabel: () => void; onClose: () => void }) {
+function Debrief({ m, savedId, goal, openedAt, onRelabel, onClose }: { m: Meeting; savedId: { current: string | null }; goal: Learner['meetingGoal']; openedAt: number; onRelabel: () => void; onClose: () => void }) {
   const d: MeetingDebrief = useMemo(() => meetingDebrief(m), [m]);
   useEffect(() => {
-    const rec = meetingRecord(m, d);
+    const rec = meetingRecord(m, d, goal?.id);
     // Text and scores only: the audio Blob is null, so nothing playable is stored.
     if (savedId.current) updateSession(savedId.current, rec);
     else {
       savedId.current = 'pending';
       void saveSession(rec, null, 15).then((r) => (savedId.current = r.id));
     }
-  }, [m, d, savedId]);
+  }, [m, d, savedId, goal]);
   const stat = (label: string, v: string) => (
     <div className="stat" style={{ minWidth: 0 }}><b>{v}</b><span>{label}</span></div>
   );
   return (
     <div className="stack" style={{ gap: 16 }}>
+      {goal && <GoalResult goal={goal.id} d={d} />}
       <section className="card hero">
         <span className="eyebrow">Your turns · {d.yourTurns}</span>
         <h2 style={{ color: '#fff' }}>{d.headline}</h2>
@@ -322,10 +341,70 @@ function Debrief({ m, savedId, onRelabel, onClose }: { m: Meeting; savedId: { cu
         </section>
       ))}
       {!d.weakest.length && <div className="note good"><b>No weak moments</b>Every longer turn got to the point.</div>}
+      <NextGoal d={d} openedAt={openedAt} />
       <div className="foot stack-sm">
         <button className="btn ghost block" onClick={onRelabel}>Fix who said what</button>
         <button className="btn signal block" onClick={onClose}>Done</button>
       </div>
     </div>
+  );
+}
+
+/** "Goal met / Not yet" for the goal this meeting was held under, with its last 5 real meetings. */
+function GoalResult({ goal, d }: { goal: MeetingGoalId; d: MeetingDebrief }) {
+  const g = goalDef(goal);
+  const v = g.value(d);
+  const met = goalMet(goal, v);
+  const trend = goalTrend(useStore((s) => s.sessions), goal);
+  const unit = goal === 'talk' ? '%' : '';
+  return (
+    <section className="card" aria-label="Meeting goal">
+      <span className="eyebrow">Your goal · {g.short}</span>
+      <h3 style={{ margin: 0, color: met ? 'var(--good)' : undefined }}>
+        {met === null ? 'Not measured this time' : met ? `Goal met: ${v}${unit}` : `Not yet: ${v}${unit}`}
+      </h3>
+      {trend.length >= 2 && <p className="small muted" style={{ margin: 0 }}>Last {trend.length} real meetings: {trend.map((x) => `${x}${unit}`).join(' → ')}</p>}
+    </section>
+  );
+}
+
+/** Suggests one goal for the next real meeting from this one's worst number; tap to accept or pick another. */
+function NextGoal({ d, openedAt }: { d: MeetingDebrief; openedAt: number }) {
+  const current = useStore((s) => s.learner.meetingGoal);
+  const [picking, setPicking] = useState(false);
+  const suggested = suggestGoals(d)[0];
+  const chosen = current && current.setAt >= openedAt ? current : null;
+  const choose = (id: MeetingGoalId) => {
+    updateLearner((l) => ({ ...l, meetingGoal: { id, setAt: Date.now(), from: goalDef(id).value(d) } }));
+    setPicking(false);
+  };
+  if (!d.yourTurns) return null;
+  return (
+    <section className="card" aria-label="Goal for your next meeting">
+      <span className="eyebrow">Your next real meeting</span>
+      {chosen && !picking ? (
+        <>
+          <h3 style={{ margin: 0 }}>Goal: {goalDef(chosen.id).label}</h3>
+          <p className="small muted" style={{ margin: 0 }}>It's first in Today's plan until your next real meeting.</p>
+          <button className="btn ghost sm" style={{ alignSelf: 'flex-start', minHeight: 44 }} onClick={() => setPicking(true)}>Change goal</button>
+        </>
+      ) : (
+        <>
+          <h3 style={{ margin: 0 }}>{suggested ? 'One goal to work on' : 'Everything is on target. Pick a goal if you like.'}</h3>
+          {suggested && !picking && (
+            <button className="btn primary block" style={{ minHeight: 44 }} onClick={() => choose(suggested)}><Icon name="target" />{goalDef(suggested).label}</button>
+          )}
+          {(picking || !suggested) ? (
+            <div className="chips wrap" role="group" aria-label="Pick a goal">
+              {goalChoices(d).map((id) => (
+                <button key={id} className="chip" style={{ minHeight: 44 }} aria-pressed={chosen?.id === id} onClick={() => choose(id)}>{goalDef(id).short}</button>
+              ))}
+            </div>
+          ) : (
+            <button className="btn ghost sm" style={{ alignSelf: 'flex-start', minHeight: 44 }} onClick={() => setPicking(true)}>Pick another</button>
+          )}
+        </>
+      )}
+    </section>
   );
 }

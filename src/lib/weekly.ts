@@ -2,6 +2,7 @@
 import { featureById, type FeatureId } from '../content/accents';
 import { SKILLS, type Skill } from '../engine/score';
 import { habits, weeklyDelta } from '../learn/adapt';
+import { goalsMetThisWeek } from '../learn/meetingGoal';
 import { dayKey, skillAverages, streak, type State } from '../store/store';
 
 export interface WeeklyStats {
@@ -20,6 +21,8 @@ export interface WeeklyStats {
   sounds: { name: string; now: number; before: number }[];
   streak: number;
   focusSkill: { skill: Skill; name: string; score: number } | null;
+  /** Real meetings this week held under a goal, and how many met it (hq#142). */
+  meetingGoals: { met: number; tried: number };
 }
 
 const DAY = 864e5;
@@ -68,6 +71,7 @@ export function weeklyStats(s: State, now = Date.now()): WeeklyStats {
     habits: habits(s, 14).filter((h) => h.thisWeek + h.lastWeek > 0).slice(0, 3).map((h) => ({ label: h.label, thisWeek: h.thisWeek, lastWeek: h.lastWeek })),
     sounds,
     streak: streak(s),
+    meetingGoals: goalsMetThisWeek(s.sessions, now),
     focusSkill: weakest ? { skill: weakest, name: SKILLS.find((k) => k.id === weakest)!.name, score: avgs[weakest]! } : null,
   };
 }
