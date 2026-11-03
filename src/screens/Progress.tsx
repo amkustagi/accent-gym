@@ -8,6 +8,7 @@ import { ChallengesCard } from './Challenges';
 import { Icon } from '../ui/Icon';
 import { Radar, Trend, scoreTone, skillName } from '../ui/ui';
 import { targetById, type AccentId } from '../content/accents';
+import { goalDef, goalTrend } from '../learn/meetingGoal';
 
 const fmtDate = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
@@ -54,6 +55,7 @@ export function Progress() {
         <div className="progress"><i style={{ width: `${(lv.into / lv.need) * 100}%` }} /></div>
         <p className="small muted">{lv.need - lv.into} XP to {levelName(lv.lvl + 1)}</p>
       </section>
+      <RealMeetings />
       <DirectTrend />
       <ChallengesCard />
       {scored.length > 0 && <section className="grid2">
@@ -199,6 +201,25 @@ export function Progress() {
 }
 
 /** Words before the point, recent takes vs the ones before: the number a manager notices. */
+/** Your meeting goal's number across the last real meetings (hq#142). */
+function RealMeetings() {
+  const goal = useStore((x) => x.learner.meetingGoal);
+  const sessions = useStore((x) => x.sessions);
+  const trend = useMemo(() => (goal ? goalTrend(sessions, goal.id) : []), [goal, sessions]);
+  if (!goal || !trend.length) return null;
+  const g = goalDef(goal.id);
+  const unit = g.id === 'talk' ? '%' : '';
+  return (
+    <section className="card tight">
+      <div className="row spread">
+        <span className="eyebrow">Real meetings · {g.short}</span>
+        <button className="btn ghost sm" style={{ minHeight: 44 }} onClick={() => open({ kind: 'drill', id: 'meeting' })}>Meeting mode</button>
+      </div>
+      <p className="small" style={{ margin: 0, overflowWrap: 'anywhere' }}><b>{trend.map((x) => `${x}${unit}`).join(' → ')}</b> <span className="muted">{trend.length === 1 ? 'in your last real meeting' : `over your last ${trend.length} real meetings`}</span></p>
+    </section>
+  );
+}
+
 function DirectTrend() {
   const sessions = useStore((x) => x.sessions);
   const pts = useMemo(() => sessions.filter((x) => typeof x.extra?.toPoint === 'number' && (x.extra.toPoint as number) >= 0).map((x) => x.extra!.toPoint as number), [sessions]);

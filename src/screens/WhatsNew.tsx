@@ -4,9 +4,10 @@ import { Icon } from '../ui/Icon';
 import { SessionShell } from '../ui/ui';
 
 const ITEMS: [string, string, string][] = [
+  ['target', 'One goal for your next meeting', 'After a Meeting mode debrief, pick one goal from your worst number, like "Say sorry at most once". Today\'s plan practises it first until your next real meeting, and the next debrief says Goal met or Not yet, with your last five real meetings.'],
   ['chat', 'Meeting mode', 'Coaching for your real meetings. Put the phone on the table: Speakco stays silent, turns speech into text on the phone and keeps no audio. Afterwards it shows who spoke and coaches your turns only: talk share, words to your point, fillers, hedges and your two weakest moments, rewritten point-first.'],
   ['scissors', 'Say it first', 'About to push back on a deadline or ask for budget? Type what you need to say. Speakco puts your point first and cuts the hedges and apologies, then you say it out loud twice and see the difference. It stays on your phone unless you tap Rewrite with AI.'],
-  ['check', 'Fairer scoring', '"Apologizing" and "apologized" now count as apologies, and ordinary questions like "What time is it?" are no longer flagged.'],
+  ['check', 'Fairer scoring', '"Not sorry" and "sorry to hear that" no longer count as apologies, and "testing found no issues" is no longer called over-polite.'],
   ['home', 'A calmer Today', 'Today is now your plan and one suggestion for what to do next. Setup is one card, and your stats moved to Progress.'],
   ['chat', 'Real back-and-forth', 'Practice › Conversation now works for everyone. They ask a follow-up out loud, the mic opens when they finish, and the questions react to what you said: no point, hedging, no number or date. You end with a debrief of the whole conversation.'],
   ['speaker', 'Your coach is heard, not just seen', 'On iPhone the coach could move its mouth with no sound. It now only animates when its voice is really playing, and shows "Tap to hear" when the phone needs a tap first.'],

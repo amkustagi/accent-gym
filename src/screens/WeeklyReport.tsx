@@ -161,6 +161,16 @@ export function WeeklyReport({ onClose }: { onClose: () => void }) {
         </section>
       )}
 
+      {w.meetingGoals.tried > 0 && (
+        <section className="card tight">
+          <span className="eyebrow">Real meetings</span>
+          <div className="row spread small">
+            <span>Meeting goals met</span>
+            <b style={{ color: w.meetingGoals.met ? 'var(--good)' : undefined }}>{w.meetingGoals.met} of {w.meetingGoals.tried}</b>
+          </div>
+        </section>
+      )}
+
       {w.sounds.length > 0 && (
         <section className="card">
           <h3>{accent ? `${accent} sounds` : 'Sounds'}</h3>

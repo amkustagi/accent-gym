@@ -1,4 +1,5 @@
 // App state: persisted to IndexedDB, exposed to React through useSyncExternalStore.
+import type { MeetingGoalId } from '../learn/meetingGoal';
 import type { CoachId } from '../content/coaches';
 import { del, get, set, keys } from 'idb-keyval';
 import { useSyncExternalStore } from 'react';
@@ -171,9 +172,11 @@ export interface Learner {
   focus: { skill: Skill; since: number; start: number } | null;
   /** Time of the newest session already mined for terms. */
   minedAt: number;
+  /** One goal for the next real meeting (hq#142): which number, when it was set, and that number then. Numbers only. */
+  meetingGoal: { id: MeetingGoalId; setAt: number; from: number | null } | null;
 }
 
-export const DEFAULT_LEARNER: Learner = { terms: [], audience: [], hardest: [], upcoming: null, answered: {}, skipped: {}, lastAsked: 0, drills: {}, focus: null, minedAt: 0 };
+export const DEFAULT_LEARNER: Learner = { terms: [], audience: [], hardest: [], upcoming: null, answered: {}, skipped: {}, lastAsked: 0, drills: {}, focus: null, minedAt: 0, meetingGoal: null };
 
 export interface State {
   loaded: boolean;
