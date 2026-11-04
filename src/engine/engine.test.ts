@@ -184,4 +184,12 @@ describe('apologies and over-politeness only count when they are (hq#396, hq#397
     for (const t of ["No problem, I'll send it.", 'No worries!', "Sure. No issues, Meera.", "That's no problem at all.", 'Oh, no problem.'])
       expect(count(t, 'noproblem'), t).toBe(1);
   });
+  it('flags spoken replies with no punctuation, and after a dash or quote (hq#465)', () => {
+    for (const t of ["yeah no problem I'll send it over", 'okay no problem', 'yes no worries I can do that', 'ok no worries', 'alright no problem', 'yep no problem', 'Sorry—no problem', '"No problem," he said', '(no worries)'])
+      expect(count(t, 'noproblem'), t).toBe(1);
+  });
+  it('still ignores facts after the hq#465 change', () => {
+    for (const t of ['we found no problems and we ship friday', 'there are no issues in the logs', "There's no problem with the build.", 'the vendor had no issues'])
+      expect(count(t, 'noproblem'), t).toBe(0);
+  });
 });
