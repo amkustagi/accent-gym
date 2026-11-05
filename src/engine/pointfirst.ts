@@ -55,11 +55,33 @@ const DROP: { re: RegExp; label: string }[] = [
 /** "Sorry for the delay" becomes "Thanks for your patience": the app's own advice. */
 const THANK_INSTEAD = /^(?:i'?m |i am )?(?:so |really |very )?sorry (?:for|about) (?:the |my )?(?:delay|late (?:reply|response)|wait(?:ing)?)[.!]?$/i;
 
+/** Words whose full stop never ends a sentence ("e.g.", "Mr. Rao"). */
+const NEVER_END = /(?:^|[\s(])(?:e\.g|i\.e|vs|mr|mrs|ms|dr|prof)\.$/i;
+/** "3 p.m." or "etc." end a sentence only when a capital letter follows ("3 p.m. today" stays whole). */
+const TIME_END = /(?:(?:^|\s|\d)[ap]\.m|(?:^|\s)(?:etc|approx|inc|ltd|jr|sr))\.$/i;
+
+/** Splits at . ! ? followed by a space or the end, but not inside "$1.5", "v2.5", "3 p.m." or "e.g." (hq#515). */
 function sentences(raw: string): string[] {
   const text = raw.replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
   if (!text) return [];
-  return (text.match(/[^.!?]+(?:[.!?]+|$)/g) ?? [text]).map((s) => s.trim()).filter(Boolean);
+  const out: string[] = [];
+  let start = 0;
+  const re = /[.!?]+(?=\s|$)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    const end = m.index + m[0].length;
+    const head = text.slice(start, end);
+    const next = text.slice(end).trimStart();
+    if (m[0] === '.' && next && (NEVER_END.test(head) || (TIME_END.test(head) && !/^[A-Z]/.test(next)))) continue;
+    out.push(head);
+    start = end;
+  }
+  out.push(text.slice(start));
+  return out.map((s) => s.trim()).filter(Boolean);
 }
+
+/** A sentence that is only a greeting ("Hi Meera.", "Hello team!") is dropped whole (hq#516). */
+const GREETING_ONLY = /^(?:[Hh]i|[Hh]ey|[Hh]ello)(?: (?:[A-Z][a-z]+|team|all|everyone|there|guys))?[,!.]*$/;
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -76,6 +98,10 @@ export function pointFirst(raw: string): PointFirst {
   const out: string[] = [];
   for (const original of sentences(raw)) {
     let s = original;
+    if (GREETING_ONLY.test(s)) {
+      note('greeting');
+      continue;
+    }
     // Openers first (a greeting can hide a whole-sentence apology: "Hi Meera, sorry to bother you.").
     for (let changed = true; changed; ) {
       changed = false;
