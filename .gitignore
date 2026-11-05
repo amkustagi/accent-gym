@@ -3,3 +3,18 @@ dist
 dist-single
 *.log
 *.tsbuildinfo
+# Never commit secrets, keys or recordings (Tiny Hustlers merge gate)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.p8
+*.keystore
+*.jks
+*.mobileprovision
+*.wav
+*.m4a
+*.webm
+*.caf

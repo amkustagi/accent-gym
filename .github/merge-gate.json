@@ -1,0 +1,17 @@
+{
+  "versions": [
+    {"label": "package.json version", "path": "package.json", "pattern": "^  \"version\": \"([^\"]+)\""},
+    {"label": "package.json appVersion", "path": "package.json", "pattern": "^  \"appVersion\": \"([^\"]+)\""},
+    {"label": "package-lock.json", "path": "package-lock.json", "pattern": "^  \"version\": \"([^\"]+)\""},
+    {"label": "Android versionName", "path": "android/app/build.gradle", "pattern": "versionName \"([^\"]+)\""},
+    {"label": "iOS MARKETING_VERSION", "path": "ios/App/App.xcodeproj/project.pbxproj", "pattern": "MARKETING_VERSION = ([^;]+);"}
+  ],
+  "builds": [
+    {"label": "Android versionCode", "path": "android/app/build.gradle", "pattern": "versionCode (\\d+)"},
+    {"label": "iOS CURRENT_PROJECT_VERSION", "path": "ios/App/App.xcodeproj/project.pbxproj", "pattern": "CURRENT_PROJECT_VERSION = (\\d+);"}
+  ],
+  "changelog": "CHANGELOG.md",
+  "readme": ["README.md"],
+  "allow_recordings": ["public/audio/*", "assets/audio/*"],
+  "allow_email_domains": []
+}
