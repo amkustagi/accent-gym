@@ -4,6 +4,12 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.20.3 (2026-11-05): Say it first keeps your numbers and names whole
+- **Fix: Say it first no longer breaks numbers and abbreviations.** It split a message at every full stop, so "Revenue was $1.5 million" came back as "$1. 5 million" and "by 3 p.m. today" as "3 p." with "M. Today." elsewhere. Decimals, versions, times and e.g., i.e., Mr., Dr. and vs. now stay whole, and the point still moves to the front. (Fix tinyhustlers/hq#515)
+- **Fix: a greeting on its own no longer leaves the name behind.** "Hi Meera. Revenue was up… Can you approve the budget by Friday?" became "Can you approve the budget by Friday? Meera. Revenue was up…". A sentence that is only a greeting ("Hi Meera.", "Hello team!") is now dropped whole. (Fix tinyhustlers/hq#516)
+- 2 new tests (204 in total).
+- Version 0.20.3 (build 24) for the iPhone and Android apps.
+
 ## v0.20.2 (2026-11-05): a current README and a merge gate
 - **The repo's front page is up to date.** The README said "Speakco · v0.15" and listed what was new in v0.02–v0.05. It now describes the app as it is today (Meeting mode, Say it first, practice, accent coach, privacy) and points to this changelog for versions, so it can't go out of date again.
 - **Every pull request is checked before it can merge.** A new *Merge gate* check makes sure all version numbers agree (app, iPhone, Android, changelog), each release moves up exactly one version, only `dev → qa → main` reaches `main`, and no keys, personal data (SINs, card numbers, personal emails) or recordings are added. `.gitignore` now also blocks `.env` files, signing keys and recordings.

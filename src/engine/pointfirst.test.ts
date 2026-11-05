@@ -48,6 +48,24 @@ describe('pointFirst (tinyhustlers/hq#34)', () => {
     const r = pointFirst('um so basically the API is blocked on the security review');
     expect(r.text).toBe('The API is blocked on the security review.');
   });
+  it('keeps decimals, times and abbreviations whole (tinyhustlers/hq#515)', () => {
+    const a = pointFirst('Revenue was $1.5 million last quarter. Can you approve the budget by Friday?');
+    expect(a.text).toBe('Can you approve the budget by Friday? Revenue was $1.5 million last quarter.');
+    const b = pointFirst('We moved to v2.5 yesterday. I need your sign-off by 3 p.m. today.');
+    expect(b.text).toBe('I need your sign-off by 3 p.m. today. We moved to v2.5 yesterday.');
+    const c = pointFirst('The report is 2.5 weeks late, e.g. the vendor part. Mr. Rao asked. Please approve it.');
+    expect(c.text).toContain('2.5 weeks late, e.g. the vendor part.');
+    expect(c.text).toContain('Mr. Rao asked.');
+    // A real full stop still ends a sentence: "no." and "3 p.m." before a capital.
+    expect(pointFirst('The answer is no. We ship at 3 p.m. The demo is ready.').text).toBe('The answer is no. We ship at 3 p.m. The demo is ready.');
+  });
+  it('drops a greeting-only sentence without leaving the name behind (tinyhustlers/hq#516)', () => {
+    const r = pointFirst('Hi Meera. Revenue was up last quarter. Can you approve the budget by Friday?');
+    expect(r.text).toBe('Can you approve the budget by Friday? Revenue was up last quarter.');
+    expect(r.removed).toEqual(['greeting']);
+    expect(pointFirst('Hello team! The demo is ready.').text).toBe('The demo is ready.');
+    expect(pointFirst('Hey all, the demo is ready.').text).toBe('The demo is ready.');
+  });
 });
 
 describe('Say it first AI prompt (hq#34 security)', () => {
