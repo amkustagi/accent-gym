@@ -4,6 +4,11 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.20.1 (2026-11-04): "yeah no problem" counts again
+- **Fix: spoken "yeah no problem" and "okay no worries" count as over-polite again.** Since v0.20.0 "no problem" only counted after a full stop or comma, but speech-to-text rarely adds commas, so "yeah no problem, I'll send it over" said out loud scored as fine in every spoken drill and in Meeting mode. Replies starting with yeah, yes, yep, okay, ok or alright, or after a dash or quote, count again; facts like "testing found no issues" still don't. (Fix tinyhustlers/hq#465)
+- 2 new tests (202 in total).
+- Version 0.20.1 (build 22) for the iPhone and Android apps.
+
 ## v0.20.0 (2026-11-03): One goal for your next meeting
 - **One goal for your next meeting.** At the end of a Meeting mode debrief, Speakco suggests one goal from your worst number: "Make your point within 10 words", "Say sorry at most once", "Hedge at most once", "Three fillers or fewer" or "Talk under 40% of the meeting". Tap it, or *Pick another*. Until your next real meeting it is the first item in Today's plan, with the drill that trains it (Word swaps for sorry and hedges, Say it short for the point and talk share, Pause power for fillers) and your last number ("Meeting goal: sorry ≤ 1 · last meeting 3"). The Start screen shows it in one line; the recording screen stays silent and blank. The next debrief opens with **Goal met** or **Not yet** and the number across your last 5 real meetings ("3 → 2 → 1"). Progress has a *Real meetings* row and the weekly report card counts goals met. Only counts are used: no transcript, no network. (tinyhustlers/hq#142)
 - **Fix: "not sorry" and sympathy no longer count as apologies.** "We're not sorry about the price" and "I'm sorry to hear that, Meera" each counted as an apology, so a direct speaker was told to stop apologising. "Sorry for the delay" and "I'm so sorry" still count. (Fix tinyhustlers/hq#396)

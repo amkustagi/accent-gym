@@ -36,8 +36,9 @@ export const WEAK_RULES: Rule[] = [
   { id: 'prepone', label: 'prepone', category: 'regional', re: /\bprepone[sd]?\b/gi, fix: '"Move it earlier" or "move it up."' },
   { id: 'isit', label: 'is it?', category: 'regional', re: /(?<=^|[.!?,;\n]\s*)is it\?/gi, fix: '"Really?" or "Got it."' },
   { id: 'doubt2', label: 'I have a doubt', category: 'regional', re: /\bi have (?:a|one|some) doubts?\b/gi, fix: '"I have a question." In US English, "doubt" means disbelief.' },
-  // Only as a reply; "testing found no issues" is a plain fact (hq#397).
-  { id: 'noproblem', label: 'no problem', category: 'overpolite', re: /(?<=(?:^|[.!?,;:\n])\s*|\b(?:that'?s|it'?s|that is|it is|oh|sure|absolutely|totally)\s+)no (?:problem|issues?|worries)\b/gi, fix: '"Happy to" or "Glad to."' },
+  // Only as a reply; "testing found no issues" is a plain fact (hq#397). Speech has no commas, so spoken reply
+  // openers ("yeah no problem", "okay no worries") and a dash, quote or bracket also start a reply (hq#465).
+  { id: 'noproblem', label: 'no problem', category: 'overpolite', re: /(?<=(?:^|[.!?,;:\n—–"“(])\s*|\s-\s*|\b(?:that'?s|it'?s|that is|it is|oh|sure|absolutely|totally|yeah|yes|yep|okay|ok|alright|all right)\s+)no (?:problem|issues?|worries)\b/gi, fix: '"Happy to" or "Glad to."' },
   { id: 'please', label: 'please (repeated)', category: 'overpolite', re: /\bplease\b/gi, allow: 1, fix: 'One "please" is polite. Repeated, it sounds like pleading.' },
 ];
 
