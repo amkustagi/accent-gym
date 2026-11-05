@@ -4,6 +4,12 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.20.2 (2026-11-05): a current README and a merge gate
+- **The repo's front page is up to date.** The README said "Speakco · v0.15" and listed what was new in v0.02–v0.05. It now describes the app as it is today (Meeting mode, Say it first, practice, accent coach, privacy) and points to this changelog for versions, so it can't go out of date again.
+- **Every pull request is checked before it can merge.** A new *Merge gate* check makes sure all version numbers agree (app, iPhone, Android, changelog), each release moves up exactly one version, only `dev → qa → main` reaches `main`, and no keys, personal data (SINs, card numbers, personal emails) or recordings are added. `.gitignore` now also blocks `.env` files, signing keys and recordings.
+- No change in the app itself.
+- Version 0.20.2 (build 23) for the iPhone and Android apps.
+
 ## v0.20.1 (2026-11-04): "yeah no problem" counts again
 - **Fix: spoken "yeah no problem" and "okay no worries" count as over-polite again.** Since v0.20.0 "no problem" only counted after a full stop or comma, but speech-to-text rarely adds commas, so "yeah no problem, I'll send it over" said out loud scored as fine in every spoken drill and in Meeting mode. Replies starting with yeah, yes, yep, okay, ok or alright, or after a dash or quote, count again; facts like "testing found no issues" still don't. (Fix tinyhustlers/hq#465)
 - 2 new tests (202 in total).
