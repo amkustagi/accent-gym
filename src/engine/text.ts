@@ -32,7 +32,8 @@ export const WEAK_RULES: Rule[] = [
   { id: 'canijust', label: 'can I just', category: 'permission', re: /\bcan i (?:just|quickly)\b/gi, fix: '"I\'d like to add one point."' },
   { id: 'kindly', label: 'kindly', category: 'regional', re: /\bkindly\b/gi, fix: '"Could you…" sounds natural in North American offices.' },
   { id: 'needful', label: 'do the needful', category: 'regional', re: /\bdo the needful\b/gi, fix: 'Name the action: "Could you approve it by Friday?"' },
-  { id: 'revert', label: 'revert', category: 'regional', re: /\brevert(?:ed|ing)?(?: back)?\b/gi, fix: 'Here "revert" means undo. Say "reply" or "get back to me."' },
+  // Only "revert" meaning reply; "we reverted the deploy" / "revert to the old version" means undo (hq#575).
+  { id: 'revert', label: 'revert', category: 'regional', re: /\brevert(?:ed|ing|s)?\b(?!(?:\s+back)?\s+(?:the|this|that|these|those|it|its|a|an|our|my|your|his|their|all|every|some|any|commit|commits|change|changes|deploy|deployment|release|merge|migration|patch|update|upgrade|config|settings|everything)\b|(?:\s+back)?\s+to\s+(?!(?:me|us|you|him|her|them)\b)[a-z0-9])(?: back\b)?/gi, fix: 'Here "revert" means undo. Say "reply" or "get back to me."' },
   { id: 'prepone', label: 'prepone', category: 'regional', re: /\bprepone[sd]?\b/gi, fix: '"Move it earlier" or "move it up."' },
   { id: 'isit', label: 'is it?', category: 'regional', re: /(?<=^|[.!?,;\n]\s*)is it\?/gi, fix: '"Really?" or "Got it."' },
   { id: 'doubt2', label: 'I have a doubt', category: 'regional', re: /\bi have (?:a|one|some) doubts?\b/gi, fix: '"I have a question." In US English, "doubt" means disbelief.' },
@@ -44,7 +45,8 @@ export const WEAK_RULES: Rule[] = [
 
 export const FILLER_RULES: Rule[] = [
   { id: 'um', label: 'um / uh', re: /\b(?:u+m+|u+h+|uhm+|e+r+m+|hmm+|ah+)\b/gi, fix: '' },
-  { id: 'like', label: 'like', re: /\b(?:was|is|it'?s|and|but|so|just) like\b|\blike,/gi, fix: '' },
+  // A comparison ("just like last quarter", "is like the old one") or ask ("just like to") isn't a filler (hq#574).
+  { id: 'like', label: 'like', re: /\b(?:was|is|it'?s|and|but|so|just) like\b(?!\s+(?:to|the|a|an|this|that|these|those|my|our|your|his|her|their|its|last|before|new|old|every|any|each)\b)|\blike,/gi, fix: '' },
   { id: 'youknow', label: 'you know', re: /(?<!\b(?:let|do|did|does|would|will|if|as|you'll|I'll|we'll)\s)\byou know(?! (?:what|how|why|when|where|who|that|the|if|whether|about|him|her|them|it|this))\b/gi, fix: '' },
   { id: 'basically', label: 'basically', re: /\bbasically\b/gi, fix: '' },
   { id: 'actually', label: 'actually', re: /\bactually\b/gi, fix: '' },
