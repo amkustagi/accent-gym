@@ -193,3 +193,44 @@ describe('apologies and over-politeness only count when they are (hq#396, hq#397
       expect(count(t, 'noproblem'), t).toBe(0);
   });
 });
+
+describe('comparison "like" is not a filler (hq#574)', () => {
+  it.each([
+    'We should ship it just like last quarter.',
+    "I'd just like to add one point.",
+    'The new flow is like the old one.',
+    "It's like the old dashboard but faster.",
+  ])('%s', (s) => {
+    expect(analyzeText(s).fillerByRule.find((x) => x.rule.id === 'like')).toBeUndefined();
+  });
+
+  it('still counts filler "like"', () => {
+    expect(analyzeText('It was like, you know, broken.').fillerByRule.find((x) => x.rule.id === 'like')?.count).toBe(1);
+    expect(analyzeText('so like we need more time').fillerByRule.find((x) => x.rule.id === 'like')?.count).toBe(1);
+    // "just" is a minimizer again once "just like to" is not a filler
+    expect(analyzeText("I'd just like to add one point.").weakByRule.map((x) => x.rule.id)).toContain('just');
+  });
+});
+
+describe('"revert" counts only when it means reply (hq#575)', () => {
+  it.each([
+    'We reverted the deploy last night and the site is fine.',
+    "Let's revert it before the demo.",
+    'Revert to the old version if the test fails.',
+    'We can revert back to the previous design.',
+    'I am reverting our changes now.',
+  ])('undo: %s', (s) => {
+    expect(analyzeText(s).weakByRule.map((x) => x.rule.id)).not.toContain('revert');
+  });
+
+  it.each([
+    'Please revert back.',
+    'Kindly revert at the earliest.',
+    'Revert to me by Friday.',
+    'I will revert once I hear from the vendor.',
+    'Revert back ASAP please.',
+    'Can you revert back to us today?',
+  ])('reply: %s', (s) => {
+    expect(analyzeText(s).weakByRule.map((x) => x.rule.id)).toContain('revert');
+  });
+});
