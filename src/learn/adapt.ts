@@ -1,5 +1,6 @@
 // Self-learning: adaptive difficulty, spaced repetition, personal habits, personalized content, daily plan.
 import { DRILL_FOR_SKILL, type DrillId } from '../content/catalog';
+import { firstTakePlanItem } from './firstTake';
 import { goalPlanItem } from './meetingGoal';
 import { SWAPS, swapKey, type SwapCard } from '../content/drills';
 import { guessStarting, soundMap, targetById, type AccentId, type MapEntry } from '../content/accents';
@@ -209,6 +210,9 @@ export function todayPlan(s: State): PlanItem[] {
   const learner = s.learner;
   const pick = (d: DrillId) => preferDrill(learner, d, (x) => x !== 'pronunciation' || s.profile.accentGoal !== 'none');
   const items: { drill: DrillId; reason: string; param?: string }[] = [];
+  // Right after onboarding, the plan opens with a redo of the first take, point-first (hq#398).
+  const redo = firstTakePlanItem(s);
+  if (redo) items.push(redo);
   // A goal from the last real meeting comes first until the next one is saved (hq#142).
   const goal = goalPlanItem(s);
   if (goal) items.push(goal);
@@ -249,7 +253,9 @@ export function todayPlan(s: State): PlanItem[] {
   const simLevel = levelFor(s, 'simulator');
   const soon = upcoming(learner);
   if (soon) items.push({ drill: 'simulator', reason: `Practice for: ${soon}`, param: 'upcoming' });
-  else items.push(simLevel >= 3 ? { drill: pick('pressure'), reason: 'You\'re ready for cold questions' } : { drill: 'simulator', reason: hasWorld(s) ? 'A scenario about your own work' : 'A scenario from your world' });
+  else if (simLevel >= 3) items.push({ drill: pick('pressure'), reason: 'You\'re ready for cold questions' });
+  // The first-take redo is already a simulator round, so it isn't listed twice.
+  else if (!redo) items.push({ drill: 'simulator', reason: hasWorld(s) ? 'A scenario about your own work' : 'A scenario from your world' });
 
   // Plan length follows how much the user actually does on a typical day.
   const max = learnedPlanSize(s, s.profile.minutes === 5 ? 3 : s.profile.minutes === 10 ? 4 : 6);

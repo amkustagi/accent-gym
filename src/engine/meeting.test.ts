@@ -155,3 +155,82 @@ describe('silent while recording (hq#105)', () => {
     vi.unstubAllGlobals();
   });
 });
+
+// ---------- hq#169: tone colour, one fix re-tags the meeting, doubt flag ----------
+import { fixTurn, retagMeeting, voiceDistance } from './meeting';
+import { spectralShape } from './voice';
+
+describe('smarter voice tagging (hq#169)', () => {
+  // Meera and Anya: the same pitch, different tone colour (Anya brighter, Meera darker).
+  const SAME = { medianSt: 11.5, spreadSt: 3.2, voiced: 200 };
+  const DARK: VoiceFeatures = { ...SAME, spec: [22, 30, 0.5, 0.3, 0.15, 0.05] };
+  const BRIGHT: VoiceFeatures = { ...SAME, spec: [27, 36, 0.2, 0.3, 0.3, 0.2] };
+  const pitchOnly = (f: VoiceFeatures): VoiceFeatures => ({ medianSt: f.medianSt, spreadSt: f.spreadSt, voiced: f.voiced });
+
+  it('tells two same-pitch voices apart by their spectrum, where pitch alone merges them', () => {
+    const lines = ['Where are we on the launch?', 'Two more weeks.', 'What about the demo?', 'Thursday.'];
+    const voices = [DARK, BRIGHT, DARK, BRIGHT];
+    const withSpec = tagChunks(lines.map((l, i) => chunk(l, voices[i], i * 2, i * 2 + 2)), ARJUN);
+    expect(withSpec.map((t) => t.speaker)).toEqual(['p1', 'p2', 'p1', 'p2']);
+    const pitch = tagChunks(lines.map((l, i) => chunk(l, pitchOnly(voices[i]), i * 2, i * 2 + 2)), ARJUN);
+    expect(new Set(pitch.map((t) => t.speaker)).size).toBe(1);
+  });
+
+  it('a pitch-only voice print (before v0.21.0) still matches on pitch, with no crash', () => {
+    const old: VoiceFeatures = pitchOnly(ARJUN);
+    expect(voiceDistance({ ...ARJUN, spec: [20, 28, 0.4, 0.3, 0.2, 0.1] }, old)).toBeLessThan(1);
+    const turns = tagChunks([chunk('We need two more weeks.', { ...jitter(ARJUN, 0.3), spec: [20, 28, 0.4, 0.3, 0.2, 0.1] }, 0, 2), chunk('Okay.', MEERA, 2, 3)], old);
+    expect(turns.map((t) => t.speaker)).toEqual([YOU, 'p1']);
+  });
+
+  it('one fix re-tags similar untouched turns, never hand-fixed ones, and undo is the old meeting', () => {
+    // Pitch-only tagging put Meera (dark) and Anya (bright) under one label.
+    const voices = [DARK, BRIGHT, DARK, BRIGHT, DARK, BRIGHT];
+    const turns = voices.map((f, i) => ({ speaker: 'p1', text: `Line ${i + 1}.`, start: i, end: i + 1, features: f }));
+    const before: Meeting = { turns, names: { p1: 'Person 1' }, durationSec: 6, source: 'live' };
+    // Turn 6 was fixed by hand to Person 1 earlier, even though it sounds bright.
+    const pinned: Meeting = { ...before, turns: before.turns.map((t, i) => (i === 5 ? { ...t, fixed: true } : t)) };
+    const { meeting, moved } = fixTurn(pinned, 1, 'p2', ARJUN);
+    expect(meeting.turns.map((t) => t.speaker)).toEqual(['p1', 'p2', 'p1', 'p2', 'p1', 'p1']);
+    expect(moved).toBe(1);
+    expect(meeting.turns[1].fixed).toBe(true);
+    // Undo keeps the meeting from before the fix; the fix did not change it.
+    expect(pinned.turns.map((t) => t.speaker)).toEqual(['p1', 'p1', 'p1', 'p1', 'p1', 'p1']);
+    expect(pinned.turns[1].fixed).toBeUndefined();
+  });
+
+  it('pasted transcripts (no voice numbers) are never re-tagged', () => {
+    const m = parseTranscript('Meera: Where are we?\nArjun: Two more weeks.\nMeera: Okay.', 'Arjun');
+    const r = fixTurn(m, 0, 'p2', null);
+    expect(r.moved).toBe(0);
+    expect(r.meeting.turns.map((t) => t.speaker)).toEqual(['p2', YOU, 'p1']);
+  });
+
+  it('flags a near tie between two voices, and not a clear match', () => {
+    const between: VoiceFeatures = { ...SAME, spec: DARK.spec!.map((x, i) => (x + BRIGHT.spec![i]) / 2) };
+    const turns = tagChunks([chunk('One.', DARK, 0, 1), chunk('Two.', BRIGHT, 1, 2), chunk('Three?', between, 2, 3), chunk('Four.', DARK, 3, 4)], null);
+    // "Three?" sits halfway, so it joins one of them and its turn carries the flag; the clear turns don't.
+    expect(turns.map((t) => [t.text.includes('Three?'), !!t.doubt])).toEqual(turns.map((t) => [t.text.includes('Three?'), t.text.includes('Three?')]));
+    const clear = tagChunks([chunk('One.', DARK, 0, 1), chunk('Two.', BRIGHT, 1, 2), chunk('Four.', DARK, 3, 4)], null);
+    expect(clear.some((t) => t.doubt)).toBe(false);
+    const re = retagMeeting({ turns: clear, names: defaultNames(clear), durationSec: 4, source: 'live' }, null).meeting;
+    expect(re.turns.some((t) => t.doubt)).toBe(false);
+  });
+
+  it('turns a spectrum into centroid, roll-off and band shares', () => {
+    // 1024 bins at 48 kHz: about 23.4 Hz per bin. All energy at ~200 Hz.
+    const db = new Float32Array(1024).fill(-Infinity);
+    db[9] = -20;
+    const s = spectralShape(db, 48000)!;
+    expect(s).toHaveLength(6);
+    expect(s[2]).toBe(1);
+    expect(s[3] + s[4] + s[5]).toBe(0);
+    expect(spectralShape(new Float32Array(1024).fill(-Infinity), 48000)).toBeNull();
+  });
+
+  it('averages tone colour into chunk features from voiced frames only', () => {
+    const frames: Frame[] = Array.from({ length: 20 }, (_, i) => ({ t: i * 0.05, db: -30, f0: 120, spec: [22, 30, 0.5, 0.3, 0.15, 0.05] }));
+    expect(featuresOf(frames)?.spec).toEqual([22, 30, 0.5, 0.3, 0.15, 0.05]);
+    expect(featuresOf(frames.map(({ spec: _s, ...f }) => f))?.spec).toBeUndefined();
+  });
+});

@@ -14,6 +14,11 @@ export interface VoiceFeatures {
   spreadSt: number;
   /** Voiced frames used, so tiny chunks can be ignored. */
   voiced: number;
+  /**
+   * Average spectral shape (hq#169): centroid and roll-off in semitones, then 4 band shares. Optional, so
+   * voice prints made before v0.21.0 (pitch only) keep working.
+   */
+  spec?: number[];
 }
 
 export interface VoicePrint extends VoiceFeatures {
@@ -37,6 +42,12 @@ export interface Turn {
   text: string;
   start: number;
   end: number;
+  /** Voice numbers of the turn (live meetings only), for re-tagging after a fix (hq#169). */
+  features?: VoiceFeatures | null;
+  /** The best voice match was close to the runner-up: worth a check. */
+  doubt?: boolean;
+  /** The user set this turn's speaker by hand; re-tagging never moves it. */
+  fixed?: boolean;
 }
 
 export interface Meeting {
@@ -59,18 +70,66 @@ const quantile = (sorted: number[], q: number) => {
 export function featuresOf(frames: Frame[], start = -Infinity, end = Infinity, minVoiced = 6): VoiceFeatures | null {
   const st = frames.filter((f) => f.t >= start && f.t <= end && f.f0 !== null).map((f) => semitones(f.f0 as number)).sort((a, b) => a - b);
   if (st.length < minVoiced) return null;
-  return { medianSt: round1(quantile(st, 0.5)), spreadSt: round1(quantile(st, 0.75) - quantile(st, 0.25)), voiced: st.length };
+  const out: VoiceFeatures = { medianSt: round1(quantile(st, 0.5)), spreadSt: round1(quantile(st, 0.75) - quantile(st, 0.25)), voiced: st.length };
+  const specs = frames.filter((f) => f.t >= start && f.t <= end && f.f0 !== null && f.spec?.length === SPEC_LEN).map((f) => f.spec as number[]);
+  if (specs.length >= Math.max(3, Math.ceil(st.length / 2))) out.spec = meanSpec(specs.map((x) => ({ spec: x, w: 1 })));
+  return out;
+}
+
+/** Centroid, roll-off and four band shares. */
+export const SPEC_LEN = 6;
+
+const round2 = (x: number) => Math.round(x * 100) / 100;
+
+/** Weighted mean of spectral shapes. */
+function meanSpec(xs: { spec: number[]; w: number }[]): number[] {
+  const w = xs.reduce((a, x) => a + x.w, 0) || 1;
+  return Array.from({ length: SPEC_LEN }, (_, i) => round2(xs.reduce((a, x) => a + x.spec[i] * x.w, 0) / w));
+}
+
+/** Weighted mean of several voices; the spectral part only from those that have one. */
+export function meanFeatures(xs: { f: VoiceFeatures; w: number }[]): VoiceFeatures {
+  const w = xs.reduce((a, x) => a + x.w, 0) || 1;
+  const withSpec = xs.filter((x) => x.f.spec?.length === SPEC_LEN);
+  const out: VoiceFeatures = {
+    medianSt: xs.reduce((a, x) => a + x.f.medianSt * x.w, 0) / w,
+    spreadSt: xs.reduce((a, x) => a + x.f.spreadSt * x.w, 0) / w,
+    voiced: xs.reduce((a, x) => a + x.f.voiced, 0),
+  };
+  if (withSpec.length) out.spec = meanSpec(withSpec.map((x) => ({ spec: x.f.spec as number[], w: x.w })));
+  return out;
 }
 
 const round1 = (x: number) => Math.round(x * 10) / 10;
 
-/** Distance between two voices in "tolerance units": under 1 means probably the same person. */
+/**
+ * Distance between two voices in "tolerance units": under 1 means probably the same person.
+ * Pitch and tone colour must both match (hq#169): two people with the same pitch but different
+ * spectra are told apart. Without spectra on both sides (old prints) it is pitch alone.
+ */
 export function voiceDistance(a: VoiceFeatures, b: VoiceFeatures): number {
-  return Math.hypot((a.medianSt - b.medianSt) / MATCH_TOL_ST, (a.spreadSt - b.spreadSt) / (MATCH_TOL_ST * 2));
+  const pitch = Math.hypot((a.medianSt - b.medianSt) / MATCH_TOL_ST, (a.spreadSt - b.spreadSt) / (MATCH_TOL_ST * 2));
+  if (a.spec?.length !== SPEC_LEN || b.spec?.length !== SPEC_LEN) return pitch;
+  const sa = a.spec;
+  const sb = b.spec;
+  const terms = sa.map((x, i) => (x - sb[i]) / (i < 2 ? SPEC_TOL_ST : BAND_TOL));
+  const spec = Math.sqrt(terms.reduce((acc, t) => acc + t * t, 0) / terms.length);
+  return Math.max(pitch, spec);
 }
 
 /** Median pitch can drift about ±2 semitones for one speaker between calm and animated talk. */
 export const MATCH_TOL_ST = 2.2;
+/** Centroid and roll-off move about ±3 semitones for one speaker; band shares about ±0.1. */
+export const SPEC_TOL_ST = 3;
+export const BAND_TOL = 0.1;
+/** A turn whose best and second-best matches are this close (and both plausible) gets a "?" chip. */
+export const DOUBT_GAP = 0.25;
+
+/** True when the best match is not clearly better than the runner-up. */
+const isDoubt = (ds: number[]) => {
+  const s = [...ds].sort((x, y) => x - y);
+  return s.length >= 2 && s[1] < 1 + DOUBT_GAP && s[1] - s[0] < DOUBT_GAP;
+};
 
 /**
  * Tags each chunk as You (close to the voice print) or Person N (grouped by voice, in order of
@@ -83,43 +142,46 @@ export function tagChunks(chunks: Chunk[], print: VoiceFeatures | null): Turn[] 
   for (const c of chunks) {
     if (!c.text.trim()) continue;
     let speaker = prev;
-    if (c.features) {
-      if (print && voiceDistance(c.features, print) < 1) speaker = YOU;
-      else {
-        let best: { id: string; f: VoiceFeatures; n: number } | null = null;
-        let bestD = Infinity;
-        for (const o of others) {
-          const d = voiceDistance(c.features, o.f);
-          if (d < bestD) {
-            bestD = d;
-            best = o;
-          }
-        }
-        if (best && bestD < 1) {
+    let doubt = false;
+    const f = c.features;
+    if (f) {
+      // The nearest of your print and everyone heard so far wins, if it is close enough.
+      const cands = [...(print ? [{ id: YOU, d: voiceDistance(f, print) }] : []), ...others.map((o) => ({ id: o.id, d: voiceDistance(f, o.f) }))];
+      const best = cands.reduce<{ id: string; d: number } | null>((a, x) => (!a || x.d < a.d ? x : a), null);
+      doubt = isDoubt(cands.map((x) => x.d));
+      if (best && best.d < 1) {
+        speaker = best.id;
+        const g = others.find((o) => o.id === best.id);
+        if (g) {
           // Running average keeps the group centred on that person's voice.
-          best.f = { medianSt: (best.f.medianSt * best.n + c.features.medianSt) / (best.n + 1), spreadSt: (best.f.spreadSt * best.n + c.features.spreadSt) / (best.n + 1), voiced: best.f.voiced + c.features.voiced };
-          best.n++;
-          speaker = best.id;
-        } else {
-          const id = `p${others.length + 1}`;
-          others.push({ id, f: c.features, n: 1 });
-          speaker = id;
+          g.f = meanFeatures([{ f: g.f, w: g.n }, { f, w: 1 }]);
+          g.n++;
         }
+      } else {
+        const id = `p${others.length + 1}`;
+        others.push({ id, f, n: 1 });
+        speaker = id;
       }
     }
     prev = speaker;
-    tagged.push({ speaker, text: c.text.trim(), start: c.start, end: c.end });
+    tagged.push({ speaker, text: c.text.trim(), start: c.start, end: c.end, features: f, doubt });
   }
   return mergeTurns(tagged);
 }
 
-/** Joins back-to-back turns by the same speaker. */
+/** Joins back-to-back turns by the same speaker (their voice numbers are averaged, a doubt is kept). */
 export function mergeTurns(turns: Turn[]): Turn[] {
   const out: Turn[] = [];
   for (const t of turns) {
     const last = out[out.length - 1];
-    if (last && last.speaker === t.speaker) out[out.length - 1] = { ...last, text: `${last.text} ${t.text}`, end: t.end };
-    else out.push({ ...t });
+    if (last && last.speaker === t.speaker) {
+      const fs = [last.features, t.features].filter((x): x is VoiceFeatures => !!x);
+      const merged: Turn = { ...last, text: `${last.text} ${t.text}`, end: t.end };
+      if (fs.length) merged.features = meanFeatures(fs.map((f) => ({ f, w: Math.max(1, f.voiced) })));
+      if (last.doubt || t.doubt) merged.doubt = true;
+      if (last.fixed || t.fixed) merged.fixed = true;
+      out[out.length - 1] = merged;
+    } else out.push({ ...t });
   }
   return out;
 }
@@ -155,12 +217,47 @@ export function setAsYou(m: Meeting, id: string): Meeting {
   return { ...m, turns: mergeTurns(m.turns.map((t) => ({ ...t, speaker: swap(t.speaker) }))), names };
 }
 
-/** Changes who said one turn (the one-tap fix when the voice match was wrong). */
+/** Changes who said one turn (the one-tap fix when the voice match was wrong). The turn is then fixed. */
 export function setTurnSpeaker(m: Meeting, index: number, id: string): Meeting {
-  const turns = m.turns.map((t, i) => (i === index ? { ...t, speaker: id } : t));
+  const turns = m.turns.map((t, i) => (i === index ? { ...t, speaker: id, fixed: true, doubt: false } : t));
   const names = { ...m.names };
   if (!names[id]) names[id] = id === YOU ? 'You' : `Person ${id.slice(1)}`;
   return { ...m, turns, names };
+}
+
+/** A hand-fixed turn (and your voice print) counts this much more than a guessed turn in a group. */
+const FIXED_WEIGHT = 3;
+
+/**
+ * Re-tags the turns you haven't fixed against the groups as they are now (hq#169): each speaker's group is
+ * the average voice of their turns, with hand-fixed turns and your print counting more. A turn moves only
+ * when another group is a real match and nearer than its own. Doubt flags are recomputed.
+ */
+export function retagMeeting(m: Meeting, print: VoiceFeatures | null): { meeting: Meeting; moved: number } {
+  const members = new Map<string, { f: VoiceFeatures; w: number }[]>();
+  const add = (id: string, f: VoiceFeatures, w: number) => members.set(id, [...(members.get(id) ?? []), { f, w }]);
+  if (print) add(YOU, print, FIXED_WEIGHT);
+  m.turns.forEach((t) => t.features && add(t.speaker, t.features, t.fixed ? FIXED_WEIGHT : 1));
+  const groups = [...members.entries()].map(([id, xs]) => ({ id, f: meanFeatures(xs) }));
+  let moved = 0;
+  const turns = m.turns.map((t) => {
+    if (t.fixed || !t.features) return t;
+    const ds = groups.map((g) => ({ id: g.id, d: voiceDistance(t.features as VoiceFeatures, g.f) }));
+    const best = ds.reduce((a, x) => (x.d < a.d ? x : a));
+    const own = ds.find((x) => x.id === t.speaker)?.d ?? Infinity;
+    const doubt = isDoubt(ds.map((x) => x.d));
+    if (best.id !== t.speaker && best.d < 1 && best.d < own) {
+      moved++;
+      return { ...t, speaker: best.id, doubt };
+    }
+    return { ...t, doubt };
+  });
+  return { meeting: { ...m, turns }, moved };
+}
+
+/** The one-tap fix plus re-tagging: one correction teaches the whole meeting (hq#169). */
+export function fixTurn(m: Meeting, index: number, id: string, print: VoiceFeatures | null): { meeting: Meeting; moved: number } {
+  return retagMeeting(setTurnSpeaker(m, index, id), print);
 }
 
 /** The next unused Person id. */

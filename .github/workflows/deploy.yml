@@ -2,14 +2,15 @@ name: Test and deploy
 
 on:
   push:
-    branches: [main]
+    # main → the live site; qa → a separate Cloudflare preview link (friends beta, tinyhustlers/hq#400).
+    branches: [main, qa]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: deploy
+  group: deploy-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -20,6 +21,8 @@ jobs:
       SB_REF: ${{ secrets.SUPABASE_SPEAKCO_REF }}
       REPORT_GH: ${{ secrets.REPORT_GITHUB_TOKEN }}
       AI_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,7 +33,7 @@ jobs:
       - run: npm test
       # In-app reports: deploy the `report` function once the Supabase secrets exist (see SETUP.md).
       - name: Deploy the report function
-        if: ${{ env.SUPABASE_ACCESS_TOKEN != '' && env.SB_REF != '' && env.REPORT_GH != '' }}
+        if: ${{ github.ref_name == 'main' && env.SUPABASE_ACCESS_TOKEN != '' && env.SB_REF != '' && env.REPORT_GH != '' }}
         run: |
           npx --yes supabase@2 secrets set --project-ref "$SB_REF" GITHUB_TOKEN="$REPORT_GH" ${AI_KEY:+ANTHROPIC_API_KEY="$AI_KEY"}
           npx --yes supabase@2 functions deploy report --project-ref "$SB_REF" --no-verify-jwt --use-api
@@ -41,7 +44,16 @@ jobs:
           VITE_PRICE_MONTHLY_LABEL: ${{ secrets.VITE_PRICE_MONTHLY_LABEL }}
           VITE_PRICE_LIFETIME_LABEL: ${{ secrets.VITE_PRICE_LIFETIME_LABEL }}
           VITE_REPORT_URL: ${{ secrets.VITE_REPORT_URL || (secrets.SUPABASE_SPEAKCO_REF && secrets.REPORT_GITHUB_TOKEN && format('https://{0}.supabase.co/functions/v1/report', secrets.SUPABASE_SPEAKCO_REF)) || '' }}
+      # Friends beta (tinyhustlers/hq#400): Cloudflare Pages project "speakco". main is the live link
+      # (speakco.pages.dev), qa a preview (qa.speakco.pages.dev). Skipped until the two secrets exist.
+      - name: Publish to Cloudflare Pages
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: |
+          npx --yes wrangler@4 pages project create speakco --production-branch main || true
+          npx --yes wrangler@4 pages deploy dist --project-name speakco --branch "$GITHUB_REF_NAME" --commit-dirty=true
+      # GitHub Pages stays the live link until the Cloudflare one works (then it can be retired).
       - name: Publish dist to the gh-pages branch
+        if: ${{ github.ref_name == 'main' }}
         run: |
           cd dist
           touch .nojekyll
