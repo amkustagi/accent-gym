@@ -4,6 +4,7 @@ import type { CaptureResult } from '../../engine/capture';
 import { STT_HELP } from '../../engine/speech';
 import { speak, stopSpeaking } from '../../engine/tts';
 import { LEVEL_LABEL, levelFor, nextScenario, recordScore } from '../../learn/adapt';
+import { FIRST_TAKE } from '../../learn/firstTake';
 import { upcomingScenario } from '../../learn/learner';
 import { aiAvailable, followUp, freshScenarios } from '../../lib/ai';
 import { conversationDebrief, reactiveFollowUp, type FollowUpQ, type Turn } from '../../content/followups';
@@ -296,6 +297,7 @@ function FollowUps({ scenario, firstAnswer, firstScore, onFinish }: { scenario: 
 export function SimulatorDrill({ param, pressure, onClose }: { param?: string; pressure?: boolean; onClose: () => void }) {
   const pro = useStore((s) => isPro(s));
   const first = (): Scenario => {
+    if (param === FIRST_TAKE.id) return FIRST_TAKE;
     if (param === 'upcoming') {
       const up = upcomingScenario(getState().learner);
       if (up) return up;

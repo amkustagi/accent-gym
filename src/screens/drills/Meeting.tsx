@@ -5,7 +5,7 @@ import { get, set } from 'idb-keyval';
 import { CaptureSession } from '../../engine/capture';
 import { evaluate } from '../../engine/score';
 import {
-  YOU, featuresOf, meetingDebrief, meetingText, newPersonId, parseTranscript, renameSpeaker, setAsYou, setTurnSpeaker, yourSeconds, yourText,
+  YOU, featuresOf, fixTurn, meetingDebrief, meetingText, newPersonId, parseTranscript, renameSpeaker, setAsYou, yourSeconds, yourText,
   type Meeting, type MeetingDebrief, type VoicePrint,
 } from '../../engine/meeting';
 import { deleteVoicePrint, loadVoicePrint, saveVoicePrint, startMeeting, type LiveMeeting } from '../../lib/meeting';
@@ -106,7 +106,7 @@ export function MeetingDrill({ onClose }: { onClose: () => void }) {
 
       {phase === 'paste' && <Paste myName={myName} onDone={(m) => finished(m)} onCancel={() => setPhase('home')} />}
 
-      {phase === 'label' && meeting && <Label m={meeting} onChange={setMeeting} onDone={() => setPhase('debrief')} />}
+      {phase === 'label' && meeting && <Label m={meeting} print={print} onChange={setMeeting} onDone={() => setPhase('debrief')} />}
 
       {phase === 'debrief' && meeting && <Debrief m={meeting} savedId={savedId} goal={judged.current} openedAt={openedAt.current} onRelabel={() => setPhase('label')} onClose={onClose} />}
     </SessionShell>
@@ -194,7 +194,7 @@ function Enrol({ onSaved, onCancel }: { onSaved: (p: VoicePrint) => void; onCanc
         <span className="eyebrow">Your voice print · about 15 seconds</span>
         <h2>Read these out loud</h2>
         {ENROL_LINES.map((l) => <p key={l} style={{ margin: 0, fontSize: '1.05rem' }}>{l}</p>)}
-        <p className="small muted" style={{ margin: 0 }}>Speakco keeps three numbers about your pitch, only on this phone. No recording is saved, and it's never in backups or sync.</p>
+        <p className="small muted" style={{ margin: 0 }}>Speakco keeps a few numbers about your pitch and tone, only on this phone. No recording is saved, and it's never in backups or sync.</p>
       </section>
       {err && <div className="note bad"><b>Try again</b>{err}</div>}
       <div className="foot stack-sm">
@@ -230,15 +230,24 @@ function Paste({ myName, onDone, onCancel }: { myName: string; onDone: (m: Meeti
   );
 }
 
-function Label({ m, onChange, onDone }: { m: Meeting; onChange: (m: Meeting) => void; onDone: () => void }) {
+function Label({ m, print, onChange, onDone }: { m: Meeting; print: VoicePrint | null; onChange: (m: Meeting) => void; onDone: () => void }) {
   const speakers = useMemo(() => Object.keys(m.names).filter((id) => m.turns.some((t) => t.speaker === id)), [m]);
   const hasYou = m.turns.some((t) => t.speaker === YOU);
+  // One fix re-tags similar turns (hq#169); Undo puts the meeting back exactly as it was before that fix.
+  const [undo, setUndo] = useState<{ prev: Meeting; moved: number } | null>(null);
+  const doubts = m.turns.filter((t) => t.doubt).length;
+  const fix = (i: number, id: string) => {
+    const r = fixTurn(m, i, id, print);
+    setUndo(r.moved ? { prev: m, moved: r.moved } : null);
+    onChange(r.meeting);
+  };
   return (
     <div className="stack" style={{ gap: 16 }}>
       <section className="card">
         <span className="eyebrow">Who spoke · {clock(m.durationSec)}</span>
         <h2>Check the names</h2>
-        <p className="small muted" style={{ margin: 0 }}>Rename anyone, or fix a turn that was tagged wrong. Changes apply to the whole meeting.</p>
+        <p className="small muted" style={{ margin: 0 }}>Rename anyone, or fix a turn that was tagged wrong. One fix also re-tags turns that sound the same.</p>
+        {doubts > 0 && <p className="small" style={{ margin: 0 }}><span className="pill warn" aria-hidden="true">?</span> {doubts === 1 ? '1 turn is' : `${doubts} turns are`} worth a check.</p>}
         {speakers.map((id) => (
           <div key={id} className="row" style={{ gap: 8 }}>
             <input
@@ -247,31 +256,40 @@ function Label({ m, onChange, onDone }: { m: Meeting; onChange: (m: Meeting) => 
               value={m.names[id]}
               disabled={id === YOU}
               maxLength={40}
-              onChange={(e) => onChange(renameSpeaker(m, id, e.target.value))}
+              onChange={(e) => { setUndo(null); onChange(renameSpeaker(m, id, e.target.value)); }}
             />
-            {id !== YOU && <button className="btn sm quiet" style={{ minHeight: 44 }} onClick={() => onChange(setAsYou(m, id))}>This is me</button>}
+            {id !== YOU && <button className="btn sm quiet" style={{ minHeight: 44 }} onClick={() => { setUndo(null); onChange(setAsYou(m, id)); }}>This is me</button>}
           </div>
         ))}
       </section>
       <section className="card" aria-label="Turns">
         {m.turns.map((t, i) => (
           <div key={i} className="stack-sm" style={{ borderTop: i ? '1px solid var(--line)' : undefined, paddingTop: i ? 10 : 0 }}>
+            <div className="row" style={{ gap: 8, flexWrap: 'nowrap', minWidth: 0 }}>
             <select
               aria-label={`Who said turn ${i + 1}`}
               className="input"
               style={{ minHeight: 44, width: 'auto', maxWidth: '100%', fontWeight: 700, color: t.speaker === YOU ? 'var(--brand)' : undefined }}
               value={t.speaker}
-              onChange={(e) => onChange(setTurnSpeaker(m, i, e.target.value === '+' ? newPersonId(m) : e.target.value))}
+              onChange={(e) => fix(i, e.target.value === '+' ? newPersonId(m) : e.target.value)}
             >
               {Object.keys(m.names).map((id) => <option key={id} value={id}>{m.names[id]}</option>)}
               {!m.names[YOU] && <option value={YOU}>You</option>}
               <option value="+">New person</option>
             </select>
+            {t.doubt && <span className="pill warn" role="img" aria-label="Not sure who said this. Worth a check." title="Not sure who said this">?</span>}
+            </div>
             <p className="small" style={{ margin: 0, overflowWrap: 'anywhere' }}>{t.text}</p>
           </div>
         ))}
       </section>
       <div className="foot stack-sm">
+        {undo && (
+          <div className="row spread" role="status" style={{ gap: 8, flexWrap: 'nowrap' }}>
+            <span className="small" style={{ minWidth: 0 }}>Re-tagged {undo.moved} more {undo.moved === 1 ? 'turn' : 'turns'}</span>
+            <button className="btn sm quiet" style={{ minHeight: 44, flex: '0 0 auto' }} onClick={() => { onChange(undo.prev); setUndo(null); }}>Undo</button>
+          </div>
+        )}
         <button className="btn signal block" disabled={!hasYou} onClick={onDone}><Icon name="sparkle" />Coach my turns</button>
         {!hasYou && <p className="small muted" style={{ margin: 0 }}>Choose "This is me" next to your name first.</p>}
       </div>
