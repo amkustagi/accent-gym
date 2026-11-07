@@ -4,6 +4,12 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
+## v0.20.4 (2026-11-06): "just like last quarter" and "we reverted the deploy" are fine
+- **Fix: comparisons and polite asks no longer count as filler words.** "We'll ship it just like last quarter", "The new flow is like the old one" and "I'd just like to add one point" each counted a filler "like", which lowered your Filler-free score and Meeting mode's filler count. "Like" now counts only as a filler ("it was like, you know, broken", "so like we need more time"), and the "just" in "I'd just like to" is flagged as a softener again. (Fix tinyhustlers/hq#574)
+- **Fix: "revert" meaning undo is not flagged.** "We reverted the deploy last night", "Let's revert it" and "Revert to the old version" were marked as a regional phrase. Only "revert" meaning reply still counts: "Please revert back", "Kindly revert at the earliest", "Revert to me by Friday", "I will revert once I hear". (Fix tinyhustlers/hq#575)
+- 16 new tests (220 in total).
+- Version 0.20.4 (build 25) for the iPhone and Android apps.
+
 ## v0.20.3 (2026-11-05): Say it first keeps your numbers and names whole
 - **Fix: Say it first no longer breaks numbers and abbreviations.** It split a message at every full stop, so "Revenue was $1.5 million" came back as "$1. 5 million" and "by 3 p.m. today" as "3 p." with "M. Today." elsewhere. Decimals, versions, times and e.g., i.e., Mr., Dr. and vs. now stay whole, and the point still moves to the front. (Fix tinyhustlers/hq#515)
 - **Fix: a greeting on its own no longer leaves the name behind.** "Hi Meera. Revenue was up… Can you approve the budget by Friday?" became "Can you approve the budget by Friday? Meera. Revenue was up…". A sentence that is only a greeting ("Hi Meera.", "Hello team!") is now dropped whole. (Fix tinyhustlers/hq#516)
