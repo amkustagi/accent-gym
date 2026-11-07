@@ -234,3 +234,21 @@ describe('"revert" counts only when it means reply (hq#575)', () => {
     expect(analyzeText(s).weakByRule.map((x) => x.rule.id)).toContain('revert');
   });
 });
+
+describe('"kind of" as a type is not a hedge (hq#661)', () => {
+  const hedges = (s: string) => analyzeText(s).weakByRule.filter((e) => e.rule.id === 'kindof').reduce((a, e) => a + e.count, 0);
+  it('leaves "kind of" / "sort of" alone when it means type of', () => {
+    expect(hedges('What kind of data do you need?')).toBe(0);
+    expect(hedges('This is a new kind of report for the board.')).toBe(0);
+    expect(hedges('We see this sort of delay every sprint.')).toBe(0);
+    expect(hedges('Which kind of test failed? The same kind of bug as last week.')).toBe(0);
+    expect(hedges('Any kind of feedback helps, and a different sort of plan too.')).toBe(0);
+  });
+  it('still flags the softener', () => {
+    expect(hedges('It was kind of slow.')).toBe(1);
+    expect(hedges('I kind of think this approach is better.')).toBe(1);
+    expect(hedges("So yeah, that's kind of it.")).toBe(1);
+    expect(hedges('The numbers sort of moved, and we kind of need one more test.')).toBe(2);
+    expect(hedges('Kind of. We are sort of ready.')).toBe(2);
+  });
+});

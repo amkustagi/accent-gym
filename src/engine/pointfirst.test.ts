@@ -86,3 +86,16 @@ describe('Say it first is in Practice (hq#34)', () => {
     expect(d?.hidden).toBeFalsy();
   });
 });
+
+describe('Say it first keeps "kind of" when it means type of (hq#661)', () => {
+  it('does not cut "the new kind of report"', () => {
+    const r = pointFirst('What kind of data do you need for the new kind of report? Please send it by Friday.');
+    expect(r.text).toContain('What kind of data');
+    expect(r.text).toContain('new kind of report');
+    expect(r.removed).not.toContain('kind of');
+  });
+  it('still cuts the softener', () => {
+    const r = pointFirst('The numbers kind of moved. Could you approve the budget by Friday?');
+    expect(r.text).not.toMatch(/kind of/i);
+  });
+});
