@@ -4,9 +4,10 @@ Semantic Versioning (`vMAJOR.MINOR.PATCH`) from 2026-10-30: fixes bump the last 
 the middle one (v0.17.0), and v1.0.0 is the public launch. Earlier entries were renamed from `v0.NN` to `v0.NN.0`.
 The iPhone and Android apps use the same `X.Y.Z`; their build number still goes up by 1 per upload.
 
-## v0.21.1 (2026-11-07): build tools updated, security exceptions removed
+## v0.21.1 (2026-11-07): "what kind of data" is not a hedge, and no security exceptions
+- **Fix: "kind of" meaning *type of* no longer counts as a hedge.** "What kind of data do you need?", "This is a new kind of report" and "We see this sort of delay every sprint" each counted a hedge, which lowered your Confident words score and Meeting mode's hedge count, and Say it first cut it, so "the new kind of report" came back as "the new report". Only the softener counts now ("it was kind of slow", "I kind of think"). (Fix tinyhustlers/hq#661)
 - **Fix: the security check passes with no exceptions.** Two advisories in build-only tools (a slow-pattern problem in `minimatch` and a cancel-signal problem in `glob`, both used by the iPhone/Android build tool to delete folders) were allowed by a time-boxed exception that ran out on 2026-11-30. The build tool now uses the fixed versions (glob 14, minimatch 11), so both exceptions are gone and a new test fails if either advisory comes back. Nothing changes in the app. (Fix tinyhustlers/hq#646)
-- 5 new tests (240 in total).
+- 9 new tests (244 in total).
 - Version 0.21.1 (build 27) for the iPhone and Android apps.
 
 ## v0.21.0 (2026-11-07): feedback in 30 seconds, and one fix re-tags the meeting

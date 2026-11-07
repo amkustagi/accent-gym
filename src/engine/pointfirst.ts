@@ -34,7 +34,7 @@ const HEDGES: { re: RegExp; label: string }[] = [
   { re: /\bi (?:just )?(?:think|feel like|guess|believe)(?: that)?,?\s+/gi, label: 'I think' },
   { re: /\bi'?m not (?:really |totally |100% )?sure,? but\s+/gi, label: "I'm not sure, but" },
   { re: /\bi could be wrong,? but\s+/gi, label: 'I could be wrong, but' },
-  { re: /\b(?:kind|sort) of\s+/gi, label: 'kind of' },
+  { re: /(?<!\b(?:what|which|whatever|this|that|these|those|the|a|an|any|some|every|each|no|same|different|other|another|right|wrong|new|one|our|my|your|their|his|her|its|first|last|best|worst|only|certain|similar|particular)\s+)\b(?:kind|sort) of\s+/gi, label: 'kind of' }, // not "the new kind of report" (hq#661)
   { re: /\bjust\s+/gi, label: 'just' },
   { re: /\bmaybe\s+/gi, label: 'maybe' },
   { re: /\b(?:probably|possibly|perhaps),?\s+/gi, label: 'probably' },
