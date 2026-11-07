@@ -7,6 +7,11 @@ export interface Frame {
   db: number;
   /** Fundamental frequency in Hz when voiced, otherwise null. */
   f0: number | null;
+  /**
+   * Spectral shape of a voiced frame (hq#169): [centroid st, roll-off st, 4 band shares]. Six numbers,
+   * nothing that can be played back. Missing on unvoiced frames and on older code paths.
+   */
+  spec?: number[];
 }
 
 export const FRAME_SEC = 0.05;
@@ -61,6 +66,49 @@ export function detectPitch(buf: Float32Array, sampleRate: number): number | nul
 }
 
 export const semitones = (f: number): number => 12 * Math.log2(f / 100);
+
+/** Speech bands (Hz) for the spectral shape: voice body, first formant, second formant, brightness. */
+export const SPEC_BANDS: [number, number][] = [[80, 300], [300, 1000], [1000, 2500], [2500, 5000]];
+const SPEC_LO = 80;
+const SPEC_HI = 5000;
+
+/**
+ * Spectral shape from an analyser's dB spectrum (getFloatFrequencyData; bin k is k·rate/(2·length) Hz):
+ * centroid and 85% roll-off in semitones above 100 Hz, then each band's share of the energy (0–1).
+ * Returns null when there is no energy in the speech range.
+ */
+export function spectralShape(db: Float32Array | number[], sampleRate: number): number[] | null {
+  const hzPerBin = sampleRate / (2 * db.length);
+  const lo = Math.max(1, Math.floor(SPEC_LO / hzPerBin));
+  const hi = Math.min(db.length - 1, Math.ceil(SPEC_HI / hzPerBin));
+  let total = 0;
+  let weighted = 0;
+  const bands = SPEC_BANDS.map(() => 0);
+  const power: number[] = [];
+  for (let k = lo; k <= hi; k++) {
+    const v = db[k];
+    const p = Number.isFinite(v) ? Math.pow(10, v / 10) : 0;
+    power.push(p);
+    const f = k * hzPerBin;
+    total += p;
+    weighted += p * f;
+    SPEC_BANDS.forEach(([a, b], i) => {
+      if (f >= a && f < b) bands[i] += p;
+    });
+  }
+  if (!(total > 0)) return null;
+  let acc = 0;
+  let roll = SPEC_HI;
+  for (let j = 0; j < power.length; j++) {
+    acc += power[j];
+    if (acc >= total * 0.85) {
+      roll = (lo + j) * hzPerBin;
+      break;
+    }
+  }
+  const r2 = (x: number) => Math.round(x * 100) / 100;
+  return [r2(semitones(weighted / total)), r2(semitones(Math.max(SPEC_LO, roll))), ...bands.map((b) => r2(b / total))];
+}
 
 function quantile(sorted: number[], q: number): number {
   if (!sorted.length) return 0;
@@ -201,6 +249,7 @@ export class VoiceAnalyzer {
     analyser.fftSize = 2048;
     src.connect(analyser);
     const buf = new Float32Array(analyser.fftSize);
+    const spectrum = new Float32Array(analyser.frequencyBinCount);
     const rate = this.ctx.sampleRate;
     this.t0 = performance.now();
     this.frames = [];
@@ -208,7 +257,13 @@ export class VoiceAnalyzer {
       analyser.getFloatTimeDomainData(buf);
       const db = rmsDb(buf);
       const f0 = db > -55 ? detectPitch(buf, rate) : null;
-      const frame = { t: (performance.now() - this.t0) / 1000, db, f0 };
+      const frame: Frame = { t: (performance.now() - this.t0) / 1000, db, f0 };
+      if (f0 !== null) {
+        // Six numbers about the voice's tone colour (hq#169), only for voiced frames; the spectrum is not kept.
+        analyser.getFloatFrequencyData(spectrum);
+        const spec = spectralShape(spectrum, rate);
+        if (spec) frame.spec = spec;
+      }
       this.frames.push(frame);
       this.onFrame?.(frame);
     };

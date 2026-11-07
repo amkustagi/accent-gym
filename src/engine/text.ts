@@ -20,7 +20,8 @@ export const WEAK_RULES: Rule[] = [
   { id: 'quick', label: 'quick / small', category: 'minimizer', re: /\b(?:quick|small|little) (?:question|thing|point|update)\b/gi, fix: 'Don\'t shrink your point before you make it. "One question:" works.' },
   { id: 'think', label: 'I think', category: 'hedge', re: /\bi (?:just )?think\b/gi, fix: 'State it: "I recommend…" or "The data shows…"' },
   { id: 'feel', label: 'I feel like', category: 'hedge', re: /\bi feel like\b/gi, fix: '"My view is…", or simply say the point.' },
-  { id: 'kindof', label: 'kind of / sort of', category: 'hedge', re: /\b(?:kind|sort) of\b/gi, fix: 'Drop the softener.' },
+  // After a determiner it means "type of" ("what kind of data", "this sort of delay"), not a hedge (hq#661).
+  { id: 'kindof', label: 'kind of / sort of', category: 'hedge', re: /(?<!\b(?:what|which|whatever|this|that|these|those|the|a|an|any|some|every|each|no|same|different|other|another|right|wrong|new|one|our|my|your|their|his|her|its|first|last|best|worst|only|certain|similar|particular)\s+)\b(?:kind|sort) of\b/gi, fix: 'Drop the softener.' },
   { id: 'maybe', label: 'maybe', category: 'hedge', re: /\bmaybe\b/gi, fix: '"Maybe we could…" becomes "Let\'s…"' },
   { id: 'guess', label: 'I guess', category: 'hedge', re: /\bi guess\b/gi, fix: 'Commit to the statement or give your reason.' },
   { id: 'probably', label: 'probably / possibly', category: 'hedge', re: /\b(?:probably|possibly|perhaps)\b/gi, allow: 1, fix: 'One qualifier is honest. Several sound unsure.' },

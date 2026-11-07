@@ -1,35 +1,54 @@
 import { useState } from 'react';
+import type { CaptureResult } from '../engine/capture';
+import { FIRST_TAKE, FIRST_RUN_DEFAULTS, firstResult, onboardingSteps, type FirstResult } from '../learn/firstTake';
 import { backendEnabled } from '../lib/backend';
-import { setState, updateProfile, updateSettings, useStore } from '../store/store';
+import { scoreAndSave, tooShort } from '../lib/session';
+import { setState, updateProfile, useStore } from '../store/store';
 import { Icon } from '../ui/Icon';
-import { CoachPicker } from '../ui/CoachSays';
-import { Seg, Switch } from '../ui/ui';
+import { MicStage } from '../ui/MicStage';
+import { HearButton } from '../ui/TakeCompare';
 import { SignInForm } from './Account';
 import { ProfileFields } from './Profile';
-import { BaselineRound } from './drills/Simulator';
-import { AccentSetup } from './accent/AccentSetup';
 
-type Step = 'welcome' | 'work' | 'needs' | 'setup' | 'account' | 'baseline';
-
+// First value before setup and sign-up (tinyhustlers/hq#398): Welcome → a 30-second first take → its result →
+// optional personalising → (only with accounts on) save it. Coach, voice and sharing choices live in Settings.
 export function Onboarding() {
   const p = useStore((s) => s.profile);
-  const st = useStore((s) => s.settings);
   const account = useStore((s) => s.account);
-  const steps: Step[] = ['welcome', 'work', 'needs', 'setup', ...(backendEnabled ? (['account'] as Step[]) : []), 'baseline'];
+  const steps = onboardingSteps(backendEnabled);
   const [i, setI] = useState(0);
+  const [result, setResult] = useState<FirstResult | null>(null);
+  const [err, setErr] = useState<string | null>(null);
   const step = steps[i];
+  const go = (to: (typeof steps)[number]) => setI(Math.max(0, steps.indexOf(to)));
   const next = () => setI((k) => Math.min(steps.length - 1, k + 1));
   const finish = () => {
     updateProfile({ onboarded: true, createdAt: Date.now() });
     setState((s) => ({ ...s, lastSeenVersion: __APP_VERSION__ }));
+  };
+  // After personalising: save the result if accounts are on, otherwise start.
+  const afterPersonalise = () => (steps.includes('account') ? go('account') : finish());
+  const skipPersonalise = () => {
+    if (!p.goal) updateProfile({ goal: FIRST_RUN_DEFAULTS.goal });
+    if (!p.minutes) updateProfile({ minutes: FIRST_RUN_DEFAULTS.minutes });
+    afterPersonalise();
+  };
+  const took = async (r: CaptureResult) => {
+    const short = tooShort(r);
+    if (short) return setErr(short);
+    setErr(null);
+    // The first take is the baseline round: scored on this phone, no audio kept unless Keep recordings is on.
+    await scoreAndSave(r, { drill: 'baseline', title: FIRST_TAKE.prompt, itemId: FIRST_TAKE.id, category: FIRST_TAKE.category });
+    setResult(firstResult(r.transcript));
+    go('result');
   };
 
   return (
     <div className="session" style={{ animation: 'none' }}>
       <div className="session-inner">
         <div className="row" style={{ marginTop: 8 }}>
-          {i > 0 && step !== 'baseline' && (
-            <button className="iconbtn ghost" onClick={() => setI(i - 1)} aria-label="Back"><Icon name="back" /></button>
+          {i > 0 && step !== 'result' && (
+            <button className="iconbtn ghost" onClick={() => setI(step === 'personalise' && !result ? steps.indexOf('try') : i - 1)} aria-label="Back"><Icon name="back" /></button>
           )}
           <div className="steps grow" aria-hidden="true">
             {steps.map((_, k) => <i key={k} className={k < i ? 'on' : k === i ? 'now' : ''} />)}
@@ -43,77 +62,69 @@ export function Onboarding() {
                 <Icon name="wave" size={40} />
               </div>
               <h1 style={{ fontSize: '2.3rem' }}>Speak so people listen.</h1>
-              <p className="muted" style={{ fontSize: '1.1rem' }}>Ten minutes a day. Speakco listens while you talk and coaches what you say, how your voice sounds, and how clearly you come across. It learns what you need and adapts.</p>
+              <p className="muted" style={{ fontSize: '1.1rem' }}>Answer one question out loud and see how you come across, in 30 seconds. No setup, no account. Then ten minutes a day, built around your work.</p>
               <div className="stack-sm">
                 {[['mic', 'Live feedback on fillers, weak words, pace and pitch'], ['target', 'Scenarios from your own job, getting harder as you improve'], ['lock', 'Private: your voice is analyzed on this phone']].map(([ic, t]) => (
                   <div key={t} className="row"><span className="ic" style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--brand-soft)', color: 'var(--brand)' }}><Icon name={ic} size={20} /></span><span>{t}</span></div>
                 ))}
               </div>
             </div>
-            <div className="foot"><button className="btn signal block" onClick={next}>Get started</button></div>
+            <div className="foot"><button className="btn signal block" onClick={next}><Icon name="mic" />Try it: 30 seconds</button></div>
           </>
         )}
 
-        {step === 'work' && (
+        {step === 'try' && (
+          <div className="stack" style={{ gap: 16 }}>
+            <section className="card">
+              <span className="eyebrow">{FIRST_TAKE.context} · 30 seconds</span>
+              <h1 style={{ margin: 0 }}>{FIRST_TAKE.prompt}</h1>
+              <p className="small muted" style={{ margin: 0 }}>Answer as you would in a stand-up. Your phone will ask for the microphone: Speakco needs it to hear your answer, and scores it on this phone.</p>
+            </section>
+            <MicStage maxSec={FIRST_TAKE.secs} onDone={(r) => void took(r)} needsTranscript idleHint="Tap the mic and answer out loud" />
+            {err && <div className="note bad"><b>Let's try that again</b>{err}</div>}
+            <button className="btn ghost block" style={{ minHeight: 44 }} onClick={() => go('personalise')}>Not now</button>
+          </div>
+        )}
+
+        {step === 'result' && result && (
           <>
             <div className="stack" style={{ gap: 16 }}>
-              <h1>Tell us about your work</h1>
-              <p className="muted">Your scenarios will use the projects, numbers and people from your world.</p>
+              <section className="card hero" aria-label="Your first result">
+                <span className="eyebrow">Your first take</span>
+                <h2 style={{ color: '#fff', margin: 0 }}>
+                  {result.wordsToPoint === null ? 'No clear point yet. Lead with it.' : result.wordsToPoint <= 10 ? `Point after ${result.wordsToPoint} words. Good.` : `Your point came after ${result.wordsToPoint} words.`}
+                </h2>
+                <div className="row spread" style={{ flexWrap: 'wrap', gap: 12 }}>
+                  {[['words before your point', result.wordsToPoint === null ? '–' : String(result.wordsToPoint)], ['fillers', String(result.fillers)], ['hedges and sorry', String(result.hedges + result.apologies)]].map(([l, v]) => (
+                    <div key={l} className="stat" style={{ minWidth: 0 }}><b>{v}</b><span>{l}</span></div>
+                  ))}
+                </div>
+              </section>
+              <section className="card">
+                <h3 style={{ margin: 0 }}>{result.changed ? 'Your answer, point-first' : 'Your answer'}</h3>
+                <p style={{ margin: 0, fontSize: '1.05rem', overflowWrap: 'anywhere' }}>{result.rewrite}</p>
+                <HearButton text={result.rewrite} label="Hear it" className="btn quiet" />
+              </section>
+            </div>
+            <div className="foot"><button className="btn primary block" onClick={next}>Continue</button></div>
+          </>
+        )}
+
+        {step === 'personalise' && (
+          <>
+            <div className="stack" style={{ gap: 16 }}>
+              <h1>Want practice built around your job?</h1>
+              <p className="muted">Your scenarios will use the projects, numbers and people from your world. Ten minutes a day; change it any time in Settings.</p>
               <div className="field">
                 <label htmlFor="ob-name">First name</label>
                 <input id="ob-name" className="input" value={p.name} onChange={(e) => updateProfile({ name: e.target.value.slice(0, 30) })} autoComplete="given-name" />
               </div>
               <ProfileFields part="work" />
-            </div>
-            <div className="foot"><button className="btn primary block" onClick={next}>Continue</button></div>
-          </>
-        )}
-
-        {step === 'needs' && (
-          <>
-            <div className="stack" style={{ gap: 16 }}>
-              <h1>What do you want to get better at?</h1>
               <ProfileFields part="needs" />
             </div>
-            <div className="foot"><button className="btn primary block" onClick={next}>Continue</button></div>
-          </>
-        )}
-
-        {step === 'setup' && (
-          <>
-            <div className="stack" style={{ gap: 18 }}>
-              <h1>Set up your practice</h1>
-              <div className="field">
-                <label>Pick your coach</label>
-                <CoachPicker />
-                <span className="small muted">Your Tiny Hustler listens to every take and tells you what to fix. You can switch any time in Settings.</span>
-              </div>
-              <div className="field">
-                <label>Time per day</label>
-                <Seg label="Daily minutes" value={p.minutes} onChange={(v) => updateProfile({ minutes: v })} options={[{ v: 5, label: '5 min' }, { v: 10, label: '10 min' }, { v: 15, label: '15 min' }]} />
-              </div>
-              <AccentSetup />
-              <div className="card">
-                <div className="row spread">
-                  <div className="stack-sm grow">
-                    <b>Natural AI voice</b>
-                    <span className="small muted">A human-sounding model voice. You'll download it once (about 90 MB, best on Wi-Fi) from the Today screen.</span>
-                  </div>
-                  <Switch label="Natural voice" checked={st.voiceEngine === 'natural'} onChange={(v) => updateSettings({ voiceEngine: v ? 'natural' : 'system' })} />
-                </div>
-              </div>
-              <div className="card">
-                <div className="row spread">
-                  <div className="stack-sm grow">
-                    <b>Help improve Speakco</b>
-                    <span className="small muted">Share anonymous usage counts and error messages. Never your recordings or transcripts.</span>
-                  </div>
-                  <Switch label="Share anonymous usage" checked={p.consentAnalytics} onChange={(v) => updateProfile({ consentAnalytics: v })} />
-                </div>
-              </div>
-            </div>
-            <div className="foot">
-              <button className="btn primary block" onClick={next}>Continue</button>
+            <div className="foot stack-sm">
+              <button className="btn primary block" onClick={afterPersonalise}>Continue</button>
+              <button className="btn ghost block" style={{ minHeight: 44 }} onClick={skipPersonalise}>Skip</button>
             </div>
           </>
         )}
@@ -121,24 +132,13 @@ export function Onboarding() {
         {step === 'account' && (
           <>
             <div className="stack" style={{ gap: 16 }}>
-              <h1>Save your progress</h1>
-              <p className="muted">Create a free account to keep your history safe and use Speakco on any device.</p>
-              {account ? <div className="note good"><b>Signed in</b>{account.email}</div> : <SignInForm onDone={next} />}
+              <h1>{result ? 'Save this result and your plan' : 'Save your progress'}</h1>
+              <p className="muted">A free account keeps your history safe and works on any device. Not now keeps everything on this phone.</p>
+              {account ? <div className="note good"><b>Signed in</b>{account.email}</div> : <SignInForm onDone={finish} />}
             </div>
             <div className="foot">
-              <button className="btn ghost block" onClick={next}>{account ? 'Continue' : 'Skip for now'}</button>
+              <button className="btn ghost block" style={{ minHeight: 44 }} onClick={finish}>{account ? 'Continue' : 'Not now'}</button>
             </div>
-          </>
-        )}
-
-        {step === 'baseline' && (
-          <>
-            <div className="note">
-              <b>60-second baseline</b>
-              Answer out loud so we can measure where you start. Your browser will ask for the microphone. Tap Allow.
-            </div>
-            <BaselineRound onDone={finish} />
-            <button className="btn ghost block" onClick={finish}>Skip for now</button>
           </>
         )}
       </div>
